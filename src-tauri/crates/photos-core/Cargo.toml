@@ -20,7 +20,7 @@ chrono.workspace = true
 
 flate2 = "1"
 # A plugin's apps.toml (Round 23 B2): detection identifiers only.
-toml = "0.8"
+toml = "1.1"
 # Names an AI mask's raster (Phase 8f).
 blake3 = "1"
 # Grouping compares every open face with every person (Round 5A), on the caller's pool.
