@@ -29,7 +29,7 @@
   },
   "plugins": {
     "updater": {
-      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IDU1NUI3MzYwMkJBNjJENjQKUldSa0xhWXJZSE5iVmExbnlwUm9pWkxaQ09xKzBUUmVRdlBzTHhaSnB5TE9JOHloTlVtOHhsQkUK",
+      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IDEzMUM5MUVBREJCNERCOEQKUldTTjI3VGI2cEVjRTNROHRVdk5OMTJkTXRNTlRhQ0NNU3N0dDdlVEdZZWlqS3p1QlZYUGpTQ0sK",
       "endpoints": [],
       "requireSignedVersion": true,
       "windows": {
