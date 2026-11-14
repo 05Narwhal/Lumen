@@ -1,0 +1,83 @@
+.selection-bar {
+  position: fixed;
+  left: 50%;
+  bottom: var(--space-6);
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-2) var(--space-2) var(--space-4);
+  border-radius: var(--radius-pill);
+  background: var(--bg-raised);
+  border: var(--border-width) solid var(--border);
+  box-shadow: var(--shadow-lg);
+  backdrop-filter: blur(var(--blur));
+  z-index: var(--z-overlay);
+  font-size: var(--text-sm);
+  // Never wider than the window: the labels are dropped before the bar could spill.
+  max-width: calc(100vw - var(--space-6) * 2);
+
+  &__count {
+    display: inline-flex;
+    gap: 4px;
+    font-weight: 600;
+    margin-right: var(--space-2);
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+  }
+
+  &__label {
+    white-space: nowrap;
+  }
+
+  &__btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 12px;
+    border-radius: var(--radius-pill);
+    background: var(--accent);
+    color: var(--accent-fg);
+    font-weight: 600;
+    transition: transform var(--motion-fast) var(--ease), background var(--motion-fast) var(--ease);
+    &:hover { background: var(--accent-hover); }
+    &:active { transform: scale(0.97); }
+
+    // Quiet actions still have to be legible. They sit on a translucent bar that floats
+    // over photographs, so `--fg-muted` on no background left them very close to
+    // invisible; they now carry the page's own surface and full-strength text.
+    &--quiet {
+      background: var(--bg-sunken);
+      color: var(--fg-primary);
+      &:hover { background: var(--accent-soft); }
+    }
+
+    // Destructive actions are red rather than accent-coloured, and the danger colour is
+    // legible against both light and dark surfaces.
+    &--danger {
+      background: var(--danger);
+      color: var(--danger-fg);
+      &:hover { background: var(--danger-hover); }
+    }
+
+    // Both at once: red text on the quiet surface, filling in on hover.
+    &--quiet#{&}--danger {
+      background: var(--bg-sunken);
+      color: var(--danger);
+      &:hover { background: var(--danger); color: var(--danger-fg); }
+    }
+  }
+
+  // Narrow windows: drop the words and keep the icons. Each button already carries its
+  // name in aria-label and title, so nothing is lost but the width.
+  @media (max-width: 900px) {
+    gap: var(--space-1);
+    padding: var(--space-2);
+
+    .selection-bar__label { display: none; }
+    .selection-bar__btn { padding: 8px; }
+    .selection-bar__count { margin-right: var(--space-1); padding-inline-start: var(--space-2); }
+  }
+}
+
+// Rotate left / right: the name is in the tooltip, the bar stays short.
+.selection-bar__btn--icon .selection-bar__label { display: none; }

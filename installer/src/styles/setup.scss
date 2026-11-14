@@ -1,0 +1,8 @@
+// Setup's own few rules. Lumen's tokens (src/styles/globals.scss, Glass here) are imported in
+// main.tsx as their own stylesheet, the way the app does, so the shared mixins reach them.
+
+html, body, #root { height: 100%; margin: 0; overflow: hidden; }
+body { background: var(--bg-base); background-image: none; }
+button { font-family: inherit; }
+// No text may run off a 640 px window: a long word or path wraps instead.
+h1, h2, p, label, li { overflow-wrap: break-word; }

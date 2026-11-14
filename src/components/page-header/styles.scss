@@ -1,0 +1,100 @@
+.page-header {
+  height: var(--header-h);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-4);
+  padding: 0 var(--space-6);
+  position: sticky;
+  top: 0;
+  z-index: var(--z-header);
+  // Transparent at rest so it sits on the page's own background (and Glass's wash);
+  // it only becomes a surface once content scrolls beneath it.
+  background: transparent;
+  isolation: isolate;
+  // Pages fold their own actions by the header's width, not the window's (the side panel and
+  // the sidebar take room too).
+  container: page-header / inline-size;
+
+  // The scrolled surface is a separate layer behind the header's own content, so it can
+  // be a gradient that runs past the bottom edge and dissolves into the photos. A flat
+  // fill plus a hairline border drew a hard-edged rectangle across whatever was beneath
+  // it, which is loud over a bright picture.
+  &::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    bottom: calc(-1 * var(--space-5));
+    z-index: -1;
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity var(--motion-base) var(--ease);
+    @include page-backdrop;
+    mask-image: var(--scroll-fade-mask);
+    -webkit-mask-image: var(--scroll-fade-mask);
+  }
+
+  &[data-scrolled="true"]::before { opacity: 1; }
+
+  // When the row is too full the right side gives way first: the search narrows, then the
+  // page folds its actions (see the albums page), and only then does the title truncate.
+  &__left { display: flex; align-items: center; gap: var(--space-2); min-width: 6rem; flex: 0 1 auto; }
+  &__title { @include truncate; min-width: 0; }
+  &__back {
+    display: grid;
+    place-items: center;
+    flex: none;
+    width: 28px;
+    height: 28px;
+    margin-left: calc(-1 * var(--space-2));
+    border-radius: var(--radius-sm);
+    color: var(--fg-muted);
+    transition: background var(--motion-fast) var(--ease), color var(--motion-fast) var(--ease);
+    &:hover { background: var(--bg-sunken); color: var(--fg-primary); }
+    &:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+  }
+  &__right { display: flex; align-items: center; justify-content: flex-end; gap: var(--space-3); min-width: 0; flex: 0 100 auto; }
+  &__count { font-size: var(--text-sm); color: var(--fg-muted); font-variant-numeric: tabular-nums; white-space: nowrap; }
+  // Two buttons of equal weight need more than a hairline between them.
+  // Not shrinkable: the search narrows before the actions wrap or fold.
+  &__toolbar { display: flex; align-items: center; gap: var(--space-3); flex-wrap: wrap; flex: none; }
+}
+
+.search-field {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  height: 32px;
+  width: 240px;
+  min-width: 120px;
+  flex: 0 1 auto;
+  padding: 0 var(--space-3);
+  border-radius: var(--radius-pill);
+  background: var(--bg-sunken);
+  color: var(--fg-muted);
+  border: var(--border-width) solid transparent;
+  transition: border-color var(--motion-fast) var(--ease), width var(--motion-base) var(--ease);
+
+  &:focus-within { border-color: var(--accent); color: var(--fg-primary); width: 300px; }
+
+  &__input {
+    flex: 1;
+    background: none;
+    border: 0;
+    outline: 0;
+    min-width: 0;
+    &::placeholder { color: var(--fg-subtle); }
+    &::-webkit-search-cancel-button { appearance: none; }
+  }
+}
+
+.search-field__clear {
+  display: grid;
+  place-items: center;
+  width: 20px;
+  height: 20px;
+  margin-right: 2px;
+  border-radius: var(--radius-pill);
+  color: var(--fg-muted);
+  &:hover { background: var(--bg-sunken); color: var(--fg-primary); }
+}

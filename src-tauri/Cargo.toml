@@ -1,0 +1,147 @@
+[workspace]
+members = ["crates/*"]
+resolver = "2"
+
+[workspace.package]
+version = "26.2.0-alpha"
+edition = "2021"
+authors = ["JL Studios"]
+license = "GPL-3.0-or-later"
+
+[workspace.dependencies]
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+thiserror = "2"
+ts-rs = { version = "12", features = ["serde-compat"] }
+rusqlite = { version = "0.40", features = ["bundled"] }
+dirs = "7"
+tracing = "0.1"
+uuid = { version = "1", features = ["v4"] }
+chrono = "0.4"
+
+[package]
+name = "lumen"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+license.workspace = true
+description = "Lumen — a local-first photo and video library"
+
+[lib]
+name = "lumen_lib"
+crate-type = ["staticlib", "cdylib", "rlib"]
+
+[build-dependencies]
+tauri-build = { version = "2", features = [] }
+
+[dependencies]
+photos-core = { path = "crates/photos-core" }
+photos-jobs = { path = "crates/photos-jobs" }
+photos-media = { path = "crates/photos-media" }
+photos-import = { path = "crates/photos-import" }
+photos-ml = { path = "crates/photos-ml" }
+photos-models = { path = "crates/photos-models" }
+photos-plugins = { path = "crates/photos-plugins" }
+sysinfo = "0.39"
+# The system locale, for the date order (Round 11).
+sys-locale = "0.3"
+# Camera Raw's preset folder (Round 11).
+dirs.workspace = true
+# *Copy image* (Round 4G): pixels onto the system clipboard. The binary only.
+arboard = "3.6"
+rayon = "1"
+tauri = { version = "2", features = [] }
+tauri-plugin-opener = "2"
+tauri-plugin-dialog = "2"
+serde.workspace = true
+serde_json.workspace = true
+thiserror.workspace = true
+ts-rs.workspace = true
+http = "1"
+mime_guess = "2"
+fs4 = "1"
+image = { version = "0.25", default-features = false, features = ["jpeg"] }
+tracing.workspace = true
+chrono.workspace = true
+# Verifies downloaded models against the manifest before they are used.
+sha2 = "0.10"
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+# The music browser is the only network feature; rustls keeps it off the system store.
+futures-util = "0.3"
+reqwest = { version = "0.12", default-features = false, features = ["json", "rustls-tls"] }
+rmcp = { version = "3.6.0", features = ["server", "macros", "transport-streamable-http-server"] }
+axum = { version = "0.8.9", default-features = false, features = ["http1", "tokio"] }
+tokio = { version = "1", features = ["net", "sync", "time", "rt"] }
+tokio-util = "0.7"
+# MCP image results are base64 (Round 16); the bearer token is random hex.
+base64 = "0.22"
+uuid.workspace = true
+# Reading the version and channel of an update (Round 17).
+semver = "1"
+tauri-plugin-single-instance = "2"
+
+# The watchdog ends a hung WebView2 renderer before it reloads the page (Round 15): a reload
+# alone never reaches a renderer stuck in a script. The same versions wry already uses.
+[target.'cfg(windows)'.dependencies]
+webview2-com = "0.39"
+windows-core = "0.62"
+# Painting the 1 px tao leaves below a maximized window for an auto-hiding taskbar (window_edge).
+windows-sys = { version = "0.59", features = ["Win32_Foundation", "Win32_Graphics_Gdi", "Win32_UI_Shell", "Win32_UI_WindowsAndMessaging", "Win32_Devices_DeviceAndDriverInstallation", "Win32_Security", "Win32_Storage_FileSystem", "Win32_System_IO", "Win32_System_Ioctl", "Win32_System_Registry", "Win32_UI_Shell_Common", "Win32_System_Com"] }
+
+[target.'cfg(any(target_os = "macos", windows, target_os = "linux"))'.dependencies]
+tauri-plugin-updater = "2.14.1"
+
+[dev-dependencies]
+tempfile = "3"
+# The search-quality replay names a connection type (search_eval.rs).
+rusqlite = { workspace = true }
+# Only the live Jamendo smoke test needs a runtime of its own; Tauri brings tokio anyway.
+tokio = { version = "1", features = ["macros", "rt-multi-thread"] }
+# Round 22 lane A: writes an oversized PNG row by row (already in the tree through `image`).
+png = "0.18"
+# Debug info is what filled the disk (a checkout's target/ reached 539 GB): our own crates keep
+# file/line tables for backtraces, dependencies keep none. `test` inherits `dev`, so it gets the
+# same; only `cargo clean` (or scripts/dev/clean-build.ps1) removes the output.
+[profile.dev]
+debug = "line-tables-only"
+
+[profile.test]
+debug = "line-tables-only"
+
+# Dependencies (image decoders, RAW, resize) run optimised even in dev builds; our own
+# crates stay unoptimised for fast incremental compiles.
+[profile.dev.package."*"]
+opt-level = 3
+debug = false
+
+[profile.test.package."*"]
+opt-level = 3
+debug = false
+
+# The edit renderer's pixel loops are ours, and unoptimised they made the editor's live
+# preview 150 ms instead of ~20: the one crate of ours that is worth the slower rebuild.
+[profile.dev.package.photos-media]
+opt-level = 3
+
+# The same for the ML preprocessing (CLIP and face crops, image warps, mel spectrograms) and
+# for photos-core's hot loops (cosine scans, face clustering, the grid layout): unoptimised,
+# the background work `tauri dev` starts at launch ran many times slower on every core while
+# the first screen was trying to load.
+[profile.dev.package.photos-ml]
+opt-level = 3
+
+[profile.dev.package.photos-core]
+opt-level = 3
+
+# photos-raw alone (`crates/photos-raw`): Lumen's release build aborts on a panic, this library's
+# panics have to come back as a status.
+[profile.raw-lib]
+inherits = "release"
+panic = "unwind"
+
+[profile.release]
+codegen-units = 1
+lto = true
+opt-level = 3
+panic = "abort"
+strip = true

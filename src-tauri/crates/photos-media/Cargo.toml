@@ -1,0 +1,32 @@
+[package]
+name = "photos-media"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+license.workspace = true
+description = "Lumen media: format detection, EXIF metadata, decoding, resizing, thumbnails"
+
+[dependencies]
+photos-core = { path = "../photos-core" }
+serde.workspace = true
+ts-rs.workspace = true
+serde_json.workspace = true
+thiserror.workspace = true
+tracing.workspace = true
+image = { version = "0.25", default-features = false, features = ["jpeg", "png", "webp", "gif", "tiff", "bmp"] }
+fast_image_resize = { version = "6", features = ["image"] }
+jxl-oxide = { version = "0.12", features = ["image"] }
+libloading = "0.8"
+blake3 = "1"
+kamadak-exif = "0.6"
+thumbhash = "0.1"
+chrono = "0.4"
+rayon = "1"
+jpeg-encoder = "0.7"
+webp = "0.3"
+# Already in the tree through `image`; named for the row-by-row reader of oversized PNGs.
+png = "0.18"
+
+[dev-dependencies]
+tempfile = "3"
+image = { version = "0.25", default-features = false, features = ["jpeg"] }

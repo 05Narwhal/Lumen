@@ -1,0 +1,71 @@
+name: CI
+
+on: [push, pull_request]
+
+permissions:
+  contents: read
+
+jobs:
+  frontend:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: yarn
+      - run: yarn install --frozen-lockfile
+      - run: yarn typecheck
+      - run: yarn test
+      - run: yarn setup:test
+      - run: node --test scripts/licenses/compat.test.mjs
+
+  scripts:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: yarn
+      - run: yarn install --frozen-lockfile
+      # The release scripts' tests are vitest and run in the frontend job (yarn test).
+      - name: Script tests
+        run: node --test scripts/licenses/*.test.mjs scripts/oss/*.test.mjs scripts/plugins/*.test.mjs
+      - name: No personal data in the files that would be published
+        run: git ls-files | node scripts/oss/scrub.mjs --stdin --exclude scripts/oss/public-exclude.txt
+      - name: Licence notices are committed
+        run: |
+          yarn run licenses
+          git diff --exit-code src/assets/licenses
+
+  rust:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - if: runner.os == 'Linux'
+        run: sudo apt-get update && sudo apt-get install -y libwebkit2gtk-4.1-dev libappindicator3-dev librsvg2-dev patchelf
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: src-tauri
+      # tauri-build refuses to compile without the sidecars (they are git-ignored): FFmpeg and
+      # ffprobe everywhere, and ExifTool on Windows (src-tauri/tauri.windows.conf.json).
+      - name: Sidecars (Windows)
+        if: runner.os == 'Windows'
+        run: |
+          pwsh scripts/fetch-ffmpeg.ps1
+          pwsh scripts/fetch-exiftool.ps1
+      - name: Sidecars (macOS, Linux)
+        if: runner.os != 'Windows'
+        run: bash scripts/fetch-ffmpeg.sh
+      - run: cargo test --workspace
+        working-directory: src-tauri
+      - run: cargo clippy --workspace --all-targets -- -D warnings
+        working-directory: src-tauri
+      - name: Generated types are committed
+        run: git diff --exit-code -- src/types/generated

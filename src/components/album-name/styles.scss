@@ -1,0 +1,11 @@
+.album-name {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+
+  &__in {
+    color: var(--fg-muted);
+    font-size: 0.85em;
+  }
+}

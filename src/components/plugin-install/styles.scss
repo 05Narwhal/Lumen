@@ -1,0 +1,21 @@
+.plugin-install {
+  border: var(--border-width) solid var(--border);
+  border-radius: var(--radius-lg) !important;
+  box-shadow: var(--shadow-lg);
+
+  &__header { background: transparent !important; }
+  &__body { display: flex; flex-direction: column; gap: var(--space-3); }
+  &__head { display: flex; align-items: center; gap: var(--space-3); }
+  &__icon { width: 40px; height: 40px; border-radius: var(--radius-md); background: var(--bg-raised); object-fit: cover; flex: none; }
+  &__title { display: flex; align-items: baseline; justify-content: space-between; gap: var(--space-3); font-weight: 600; }
+  &__version { color: var(--fg-muted); font-weight: 400; }
+  &__trust { color: var(--fg-muted); font-size: var(--text-sm); }
+  &__section { display: flex; flex-direction: column; gap: var(--space-1); }
+  &__label { color: var(--fg-muted); font-size: var(--text-sm); }
+  &__list { margin: 0; padding-left: var(--space-4); }
+  &__text { margin: 0; line-height: 1.5; }
+  &__new { margin-left: var(--space-2); color: var(--accent); font-size: var(--text-sm); font-weight: 600; }
+  &__problem { margin: 0; color: var(--danger); }
+  &__licence { display: flex; gap: var(--space-2); }
+  &__actions { display: flex; justify-content: flex-end; gap: var(--space-2); }
+}

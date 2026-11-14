@@ -1,0 +1,92 @@
+// The Library's timeline scrubber (Round 4H). It floats over the grid's right padding, so it
+// takes no width from the tiles. Years show while the pointer is over the track or the grid
+// is being dragged through; the thumb and the hairline always show.
+.timeline-scrubber {
+  position: absolute;
+  top: var(--space-4);
+  bottom: var(--space-4);
+  right: 2px;
+  width: var(--scrubber-width);
+  z-index: 3;
+  cursor: grab;
+  touch-action: none;
+  user-select: none;
+
+  &[data-dragging="true"] { cursor: grabbing; }
+
+  &__line {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    right: calc(var(--scrubber-width) / 2);
+    width: 1px;
+    background: var(--scrubber-track);
+    opacity: 0.5;
+  }
+
+  &__tick {
+    position: absolute;
+    right: calc(var(--scrubber-width) / 2 - 1.5px);
+    width: 4px;
+    height: 4px;
+    border-radius: var(--radius-pill);
+    background: var(--scrubber-track);
+    transform: translateY(-50%);
+    opacity: 0;
+    transition: opacity var(--motion-base) var(--ease);
+  }
+
+  &__thumb {
+    position: absolute;
+    top: -12px;
+    right: calc(var(--scrubber-width) / 2 - 2px);
+    width: 5px;
+    height: 24px;
+    border-radius: var(--radius-pill);
+    background: var(--scrubber-thumb);
+    transition: width var(--motion-fast) var(--ease), right var(--motion-fast) var(--ease);
+  }
+
+  &__year {
+    position: absolute;
+    right: calc(var(--scrubber-width) + var(--space-1));
+    transform: translateY(-50%);
+    padding: 1px 6px;
+    border-radius: var(--radius-pill);
+    background: var(--scrubber-bubble-bg);
+    backdrop-filter: blur(var(--blur));
+    font-size: var(--text-xs);
+    font-variant-numeric: tabular-nums;
+    color: var(--scrubber-label);
+    white-space: nowrap;
+    cursor: pointer;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity var(--motion-base) var(--ease), color var(--motion-fast) var(--ease);
+    &:hover { color: var(--scrubber-label-hover); }
+  }
+
+  &__bubble {
+    position: absolute;
+    right: calc(var(--scrubber-width) + var(--space-2));
+    transform: translateY(-50%);
+    padding: var(--space-1) var(--space-3);
+    border-radius: var(--radius-pill);
+    background: var(--scrubber-bubble-bg);
+    backdrop-filter: blur(var(--blur));
+    box-shadow: var(--shadow-md);
+    color: var(--scrubber-bubble-fg);
+    font-size: var(--text-xs);
+    font-weight: 600;
+    white-space: nowrap;
+    pointer-events: none;
+    z-index: 1;
+  }
+
+  &:hover,
+  &[data-dragging="true"] {
+    .timeline-scrubber__tick { opacity: 0.6; }
+    .timeline-scrubber__year { opacity: 1; pointer-events: auto; }
+    .timeline-scrubber__thumb { width: 8px; right: calc(var(--scrubber-width) / 2 - 3.5px); }
+  }
+}

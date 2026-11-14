@@ -1,0 +1,36 @@
+// The bar under a playing video or film (Round 6): one pill of glass, the viewer's look.
+.media-controls {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  width: min(720px, 100%);
+  padding: var(--space-1) var(--space-3);
+  border-radius: var(--radius-pill);
+  background: var(--viewer-chrome, oklch(20% 0.01 260 / 0.7));
+  backdrop-filter: blur(12px);
+  transition: opacity var(--motion-fast) var(--ease), transform var(--motion-fast) var(--ease);
+
+  // Idle (Round 8B): out of the way with the rest of the viewer's controls.
+  &[data-hidden="true"] {
+    opacity: 0;
+    transform: translateY(8px);
+    pointer-events: none;
+  }
+
+  &__time { font-size: var(--text-xs); font-variant-numeric: tabular-nums; color: var(--fg-muted); min-width: 4ch; text-align: center; }
+  &__scrubber { flex: 1; accent-color: var(--accent); cursor: pointer; }
+
+  &__icon {
+    width: 32px;
+    height: 32px;
+    display: grid;
+    place-items: center;
+    border-radius: var(--radius-md);
+    color: var(--fg-muted);
+    transition: background var(--motion-fast) var(--ease), color var(--motion-fast) var(--ease), transform var(--motion-fast) var(--ease);
+    &:hover { background: var(--bg-sunken); color: var(--fg-primary); }
+    &:active { transform: scale(0.94); }
+    &[aria-pressed="true"] { background: var(--accent-soft); color: var(--accent); }
+    &:disabled { opacity: 0.35; pointer-events: none; }
+  }
+}

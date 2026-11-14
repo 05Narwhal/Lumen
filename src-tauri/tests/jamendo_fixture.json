@@ -1,0 +1,76 @@
+{
+  "headers": {
+    "status": "success",
+    "code": 0,
+    "error_message": "",
+    "results_count": 3
+  },
+  "results": [
+    {
+      "id": "1886711",
+      "name": "Sunny Afternoon",
+      "duration": 184,
+      "artist_id": "338301",
+      "artist_name": "Jasmine Jordan",
+      "album_name": "Bright",
+      "audio": "https://prod-1.storage.jamendo.com/?trackid=1886711&format=mp31&from=app",
+      "audiodownload": "https://prod-1.storage.jamendo.com/download/track/1886711/mp32/",
+      "audiodownload_allowed": true,
+      "shareurl": "https://www.jamendo.com/track/1886711",
+      "license_ccurl": "http://creativecommons.org/licenses/by/3.0/",
+      "musicinfo": {
+        "vocalinstrumental": "instrumental",
+        "speed": "medium",
+        "tags": {
+          "genres": ["pop", "ambient"],
+          "instruments": ["piano"],
+          "vartags": ["happy", "calm"]
+        }
+      }
+    },
+    {
+      "id": "1755327",
+      "name": "Lantern Song",
+      "duration": 232,
+      "artist_id": "441205",
+      "artist_name": "Marta Vidal",
+      "album_name": "Lanterns",
+      "audio": "https://prod-1.storage.jamendo.com/?trackid=1755327&format=mp31&from=app",
+      "audiodownload": "https://prod-1.storage.jamendo.com/download/track/1755327/mp32/",
+      "audiodownload_allowed": true,
+      "shareurl": "https://www.jamendo.com/track/1755327",
+      "license_ccurl": "http://creativecommons.org/licenses/by-sa/4.0/",
+      "musicinfo": {
+        "vocalinstrumental": "vocal",
+        "speed": "low",
+        "tags": {
+          "genres": ["folk"],
+          "instruments": ["guitar"],
+          "vartags": ["dreamy"]
+        }
+      }
+    },
+    {
+      "id": "1099234",
+      "name": "Held Back",
+      "duration": 141,
+      "artist_id": "120884",
+      "artist_name": "The Quiet Room",
+      "album_name": "Held",
+      "audio": "https://prod-1.storage.jamendo.com/?trackid=1099234&format=mp31&from=app",
+      "audiodownload": "https://prod-1.storage.jamendo.com/download/track/1099234/mp32/",
+      "audiodownload_allowed": false,
+      "shareurl": "https://www.jamendo.com/track/1099234",
+      "license_ccurl": "http://creativecommons.org/licenses/by-nc-nd/2.0/",
+      "musicinfo": {
+        "vocalinstrumental": "vocal",
+        "speed": "high",
+        "tags": {
+          "genres": ["rock"],
+          "instruments": [],
+          "vartags": ["energetic"]
+        }
+      }
+    }
+  ]
+}

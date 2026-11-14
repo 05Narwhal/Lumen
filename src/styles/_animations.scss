@@ -1,0 +1,52 @@
+:root {
+  --motion-fast: 120ms;
+  --motion-base: 180ms;
+  --motion-slow: 260ms;
+  --motion-viewer: 220ms;
+  --motion-spin: 900ms;
+  --ease: cubic-bezier(0.2, 0.8, 0.2, 1);
+  // A slight overshoot, for switch thumbs (Settings 2026-11).
+  --ease-spring: cubic-bezier(0.3, 1.25, 0.5, 1);
+}
+
+:root[data-reduced-motion="true"] {
+  --motion-fast: 0ms;
+  --motion-base: 0ms;
+  --motion-slow: 0ms;
+  --motion-viewer: 0ms;
+}
+
+@keyframes fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes shimmer {
+  from { background-position: 120% 0; }
+  to { background-position: -120% 0; }
+}
+
+@keyframes ring-spin {
+  to { transform: rotate(270deg); }
+}
+
+// One full turn, for small busy spinners (Develop's AI chip).
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+@keyframes rise-in {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: none; }
+}
+
+// A short rise used by list rows and cards as they arrive. Deliberately not applied to
+// grid tiles: the photo grid stays still while it scrolls (architecture spec §9.5).
+@keyframes rise-in {
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: none; }
+}
+
+.rise-in { animation: rise-in var(--motion-base) var(--ease) both; }
+
+:root[data-reduced-motion="true"] .rise-in { animation: none; }

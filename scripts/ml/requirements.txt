@@ -1,0 +1,17 @@
+# PyTorch's CPU wheels are large and this network drops long TLS streams: if pip fails,
+# fetch the three torch wheels with `curl -C -` from download.pytorch.org/whl/cpu and
+# install them from disk first. The export was run with exactly these versions.
+--extra-index-url https://download.pytorch.org/whl/cpu
+torch==2.4.1+cpu
+torchaudio==2.4.1+cpu
+torchvision==0.19.1+cpu
+open_clip_torch==2.26.1
+onnx==1.16.2
+onnxruntime==1.19.2
+onnxconverter-common==1.14.0
+numpy==1.26.4
+soundfile==0.12.1
+einops==0.8.0
+rotary_embedding_torch==0.6.4
+soxr
+tqdm

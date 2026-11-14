@@ -1,0 +1,46 @@
+.ai-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  height: 26px;
+  padding: 0 var(--space-2);
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border);
+  color: var(--fg-primary);
+  font-size: var(--text-sm);
+  white-space: nowrap;
+
+  &:hover { background: var(--bg-sunken); }
+
+  & > svg { color: var(--accent); }
+
+  &__spinner {
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    border: 2px solid var(--border);
+    border-top-color: var(--accent);
+    animation: spin var(--motion-spin) linear infinite;
+  }
+
+  :root[data-reduced-motion="true"] & &__spinner { animation: none; }
+
+  &__label {
+    max-width: 200px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  &__text { margin: 0 0 var(--space-3); color: var(--fg-muted); font-size: var(--text-sm); }
+
+  &__off {
+    height: 28px;
+    padding: 0 var(--space-3);
+    border-radius: var(--radius-sm);
+    border: 1px solid var(--border);
+    font-size: var(--text-sm);
+    color: var(--fg-primary);
+
+    &:hover { background: var(--bg-sunken); }
+  }
+}

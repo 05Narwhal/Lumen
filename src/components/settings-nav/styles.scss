@@ -1,0 +1,140 @@
+.settings-nav-wrap { display: flex; flex-direction: column; gap: var(--space-2); min-height: 0; }
+
+.settings-nav {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+
+  // Search (2026-11): above the list, focused by Ctrl/⌘ F.
+  &__search {
+    position: sticky;
+    top: 0;
+    z-index: 2;
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+    height: 30px;
+    padding: 0 var(--space-2);
+    border: var(--border-width) solid var(--border);
+    border-radius: var(--radius-md);
+    background: var(--bg-sunken);
+    color: var(--fg-subtle);
+    transition: border-color var(--motion-fast) var(--ease), background-color var(--motion-fast) var(--ease);
+    &:focus-within { border-color: var(--accent); background: var(--bg-raised); }
+    input {
+      flex: 1;
+      min-width: 0;
+      height: 100%;
+      border: 0;
+      padding: 0;
+      background: none;
+      color: var(--fg-primary);
+      font: inherit;
+      font-size: var(--text-xs);
+      outline: none;
+      &::placeholder { color: var(--fg-subtle); }
+      &::-webkit-search-cancel-button { display: none; }
+    }
+    kbd {
+      font: inherit;
+      font-size: 10.5px;
+      font-weight: 500;
+      color: var(--fg-subtle);
+      border: var(--border-width) solid var(--border);
+      border-radius: var(--radius-sm);
+      padding: 0 5px;
+      white-space: nowrap;
+    }
+  }
+
+  &__heading {
+    padding: var(--space-3) var(--space-2) 2px;
+    font-size: 10.5px;
+    font-weight: 600;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--fg-subtle);
+    &:first-child { padding-top: 2px; }
+  }
+
+  // One line per section (2026-11): icon, label, a short tag.
+  &__item {
+    position: relative;
+    isolation: isolate;
+    display: flex;
+    align-items: center;
+    gap: 9px;
+    width: 100%;
+    height: 30px;
+    padding: 0 var(--space-2);
+    border: 0;
+    border-radius: var(--radius-md);
+    background: transparent;
+    color: var(--fg-muted);
+    font: inherit;
+    font-size: var(--text-sm);
+    text-align: left;
+    cursor: pointer;
+    transition: color var(--motion-fast) var(--ease), background-color var(--motion-fast) var(--ease), opacity var(--motion-base) var(--ease);
+    &:hover { color: var(--fg-primary); background: color-mix(in oklab, var(--accent-soft) 50%, transparent); }
+    &[aria-current="page"] { color: var(--fg-primary); background: transparent; }
+    &[data-dim] { opacity: 0.4; }
+    &:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+  }
+
+  &__indicator {
+    position: absolute;
+    inset: 0;
+    z-index: -1;
+    border-radius: var(--radius-md);
+    background: var(--accent-soft);
+  }
+
+  &__icon { display: inline-flex; color: inherit; opacity: 0.85; }
+  &__item[aria-current="page"] &__icon { color: var(--accent); opacity: 1; }
+
+  // The name never shrinks; the tag beside it gives way ("Playback & codecs" once read
+  // "Playback & c…" beside "FFmpeg ready": shrinking in proportion still took a fraction of a
+  // pixel from the name, enough for its ellipsis). It ellipsizes only past the icon's room.
+  &__label { flex: 0 0 auto; max-width: calc(100% - 26px); font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+  // The section's state, read without opening it; its whole text is the tooltip.
+  &__status {
+    flex: 0 1 auto;
+    min-width: 0;
+    max-width: 96px;
+    margin-left: auto;
+    padding-left: var(--space-2);
+    font-size: var(--text-xs);
+    color: var(--fg-subtle);
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  &__item[aria-current="page"] &__status { color: var(--fg-muted); }
+
+  &__hits {
+    flex: none;
+    margin-left: auto;
+    min-width: 18px;
+    padding: 0 6px;
+    border-radius: 999px;
+    background: var(--accent);
+    color: var(--accent-fg);
+    font-size: 10.5px;
+    font-weight: 600;
+    line-height: 16px;
+    text-align: center;
+  }
+
+  // A narrow window: the list becomes a strip that scrolls sideways.
+  @media (max-width: 720px) {
+    flex-direction: row;
+    overflow-x: auto;
+    scrollbar-width: none;
+    &__item { width: auto; flex: 0 0 auto; }
+    &__heading { display: none; }
+    &__status { display: none; }
+  }
+}

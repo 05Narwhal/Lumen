@@ -1,0 +1,22 @@
+# Detection only: Lumen finds the app (one that isn't installed isn't shown) and passes the file as
+# the only argument. A plugin app is always given a copy.
+
+[[app]]
+id = "gimp"
+name = "GIMP"
+kind = "editor"            # editor | developer | video
+accepts = ["photo"]        # photo | raw | video
+reads_raw = false
+writes = "inPlace"         # inPlace | sidecar | never
+
+[app.windows]
+globs = [
+  "%ProgramFiles%/GIMP */bin/gimp-*.exe",
+  "%LocalAppData%/Programs/GIMP */bin/gimp-*.exe",
+]
+
+[app.mac]
+bundle_ids = ["org.gimp.gimp-2.10"]
+
+[app.linux]
+desktop = ["gimp.desktop"]

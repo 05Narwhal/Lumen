@@ -1,0 +1,2240 @@
+{
+  "keys": [
+    {
+      "key": null,
+      "value": {
+        "id": 1,
+        "type": "person"
+      }
+    },
+    {
+      "key": null,
+      "value": {
+        "id": 1,
+        "type": "pet"
+      }
+    },
+    {
+      "key": null,
+      "value": {
+        "id": 1,
+        "type": "album"
+      }
+    },
+    {
+      "key": null,
+      "value": {
+        "id": 1,
+        "type": "collection"
+      }
+    },
+    {
+      "key": null,
+      "value": {
+        "tag": "beach",
+        "type": "scene"
+      }
+    },
+    {
+      "key": null,
+      "value": {
+        "type": "favorites"
+      }
+    },
+    {
+      "key": null,
+      "value": {
+        "type": "hasText"
+      }
+    },
+    {
+      "key": null,
+      "value": {
+        "type": "noText"
+      }
+    },
+    {
+      "key": null,
+      "value": {
+        "exact": false,
+        "text": "menu",
+        "type": "photoText"
+      }
+    },
+    {
+      "key": null,
+      "value": {
+        "text": "sunset",
+        "type": "text"
+      }
+    },
+    {
+      "key": null,
+      "value": {
+        "mark": "edited",
+        "type": "lumen"
+      }
+    },
+    {
+      "key": null,
+      "value": {
+        "app": "photoshop",
+        "type": "editedIn"
+      }
+    },
+    {
+      "key": "field:media",
+      "value": {
+        "media": 1,
+        "type": "media"
+      }
+    },
+    {
+      "key": "field:kind",
+      "value": {
+        "kind": "live",
+        "type": "kind"
+      }
+    },
+    {
+      "key": "field:place",
+      "value": {
+        "place": {
+          "country": "France",
+          "kind": "city",
+          "name": "Paris"
+        },
+        "type": "place"
+      }
+    },
+    {
+      "key": "field:extension",
+      "value": {
+        "ext": "nef",
+        "type": "extension"
+      }
+    },
+    {
+      "key": "field:shape",
+      "value": {
+        "shape": "portrait",
+        "type": "shape"
+      }
+    },
+    {
+      "key": "field:rating",
+      "value": {
+        "min": 3,
+        "type": "rating"
+      }
+    },
+    {
+      "key": "field:months",
+      "value": {
+        "months": [
+          3
+        ],
+        "type": "months"
+      }
+    },
+    {
+      "key": "field:dates",
+      "value": {
+        "from": 0,
+        "to": null,
+        "type": "dates"
+      }
+    },
+    {
+      "key": "field:dates",
+      "value": {
+        "field": "taken",
+        "from": 0,
+        "to": null,
+        "type": "dates"
+      }
+    },
+    {
+      "key": "field:dates:fileModified",
+      "value": {
+        "field": "fileModified",
+        "from": null,
+        "to": 0,
+        "type": "dates"
+      }
+    },
+    {
+      "key": "field:exif:model",
+      "value": {
+        "field": "model",
+        "type": "exif",
+        "value": "iPhone 12"
+      }
+    },
+    {
+      "key": "field:range:fileSize",
+      "value": {
+        "max": null,
+        "measure": "fileSize",
+        "min": 1,
+        "type": "range"
+      }
+    },
+    {
+      "key": "field:range:duration",
+      "value": {
+        "max": 10,
+        "measure": "duration",
+        "min": null,
+        "type": "range"
+      }
+    },
+    {
+      "key": "single:flag",
+      "value": {
+        "flag": 1,
+        "type": "flag"
+      }
+    },
+    {
+      "key": "single:location",
+      "value": {
+        "has": true,
+        "type": "location"
+      }
+    }
+  ],
+  "sequences": [
+    {
+      "input": {
+        "items": [
+          {
+            "tag": {
+              "label": "Live",
+              "value": {
+                "kind": "live",
+                "type": "kind"
+              }
+            },
+            "type": "tag"
+          }
+        ],
+        "joins": []
+      },
+      "name": "one tag",
+      "plain": [
+        {
+          "label": "Live",
+          "value": {
+            "kind": "live",
+            "type": "kind"
+          }
+        }
+      ],
+      "repaired": {
+        "items": [
+          {
+            "tag": {
+              "label": "Live",
+              "value": {
+                "kind": "live",
+                "type": "kind"
+              }
+            },
+            "type": "tag"
+          }
+        ],
+        "joins": []
+      }
+    },
+    {
+      "input": {
+        "items": [
+          {
+            "tag": {
+              "label": "Anna",
+              "value": {
+                "id": 1,
+                "type": "person"
+              }
+            },
+            "type": "tag"
+          },
+          {
+            "tag": {
+              "label": "Ben",
+              "value": {
+                "id": 2,
+                "type": "person"
+              }
+            },
+            "type": "tag"
+          }
+        ],
+        "joins": [
+          "and"
+        ]
+      },
+      "name": "and",
+      "plain": [
+        {
+          "label": "Anna",
+          "value": {
+            "id": 1,
+            "type": "person"
+          }
+        },
+        {
+          "label": "Ben",
+          "value": {
+            "id": 2,
+            "type": "person"
+          }
+        }
+      ],
+      "repaired": {
+        "items": [
+          {
+            "tag": {
+              "label": "Anna",
+              "value": {
+                "id": 1,
+                "type": "person"
+              }
+            },
+            "type": "tag"
+          },
+          {
+            "tag": {
+              "label": "Ben",
+              "value": {
+                "id": 2,
+                "type": "person"
+              }
+            },
+            "type": "tag"
+          }
+        ],
+        "joins": [
+          "and"
+        ]
+      }
+    },
+    {
+      "input": {
+        "items": [
+          {
+            "tag": {
+              "label": "Live",
+              "value": {
+                "kind": "live",
+                "type": "kind"
+              }
+            },
+            "type": "tag"
+          },
+          {
+            "tag": {
+              "label": "HDR",
+              "value": {
+                "kind": "hdr",
+                "type": "kind"
+              }
+            },
+            "type": "tag"
+          },
+          {
+            "tag": {
+              "label": "Paris",
+              "value": {
+                "place": {
+                  "country": "France",
+                  "kind": "city",
+                  "name": "Paris"
+                },
+                "type": "place"
+              }
+            },
+            "type": "tag"
+          }
+        ],
+        "joins": [
+          "or",
+          "and"
+        ]
+      },
+      "name": "or binds loosest",
+      "plain": null,
+      "repaired": {
+        "items": [
+          {
+            "tag": {
+              "label": "Live",
+              "value": {
+                "kind": "live",
+                "type": "kind"
+              }
+            },
+            "type": "tag"
+          },
+          {
+            "tag": {
+              "label": "HDR",
+              "value": {
+                "kind": "hdr",
+                "type": "kind"
+              }
+            },
+            "type": "tag"
+          },
+          {
+            "tag": {
+              "label": "Paris",
+              "value": {
+                "place": {
+                  "country": "France",
+                  "kind": "city",
+                  "name": "Paris"
+                },
+                "type": "place"
+              }
+            },
+            "type": "tag"
+          }
+        ],
+        "joins": [
+          "or",
+          "and"
+        ]
+      }
+    },
+    {
+      "input": {
+        "items": [
+          {
+            "not": true,
+            "tag": {
+              "label": "Live",
+              "value": {
+                "kind": "live",
+                "type": "kind"
+              }
+            },
+            "type": "tag"
+          }
+        ],
+        "joins": []
+      },
+      "name": "not",
+      "plain": null,
+      "repaired": {
+        "items": [
+          {
+            "not": true,
+            "tag": {
+              "label": "Live",
+              "value": {
+                "kind": "live",
+                "type": "kind"
+              }
+            },
+            "type": "tag"
+          }
+        ],
+        "joins": []
+      }
+    },
+    {
+      "input": {
+        "items": [
+          {
+            "seq": {
+              "items": [
+                {
+                  "tag": {
+                    "label": "Live",
+                    "value": {
+                      "kind": "live",
+                      "type": "kind"
+                    }
+                  },
+                  "type": "tag"
+                },
+                {
+                  "tag": {
+                    "label": "HDR",
+                    "value": {
+                      "kind": "hdr",
+                      "type": "kind"
+                    }
+                  },
+                  "type": "tag"
+                }
+              ],
+              "joins": [
+                "or"
+              ]
+            },
+            "type": "group"
+          },
+          {
+            "not": true,
+            "tag": {
+              "label": "Paris",
+              "value": {
+                "place": {
+                  "country": "France",
+                  "kind": "city",
+                  "name": "Paris"
+                },
+                "type": "place"
+              }
+            },
+            "type": "tag"
+          }
+        ],
+        "joins": [
+          "and"
+        ]
+      },
+      "name": "group and not",
+      "plain": null,
+      "repaired": {
+        "items": [
+          {
+            "seq": {
+              "items": [
+                {
+                  "tag": {
+                    "label": "Live",
+                    "value": {
+                      "kind": "live",
+                      "type": "kind"
+                    }
+                  },
+                  "type": "tag"
+                },
+                {
+                  "tag": {
+                    "label": "HDR",
+                    "value": {
+                      "kind": "hdr",
+                      "type": "kind"
+                    }
+                  },
+                  "type": "tag"
+                }
+              ],
+              "joins": [
+                "or"
+              ]
+            },
+            "type": "group"
+          },
+          {
+            "not": true,
+            "tag": {
+              "label": "Paris",
+              "value": {
+                "place": {
+                  "country": "France",
+                  "kind": "city",
+                  "name": "Paris"
+                },
+                "type": "place"
+              }
+            },
+            "type": "tag"
+          }
+        ],
+        "joins": [
+          "and"
+        ]
+      }
+    },
+    {
+      "input": {
+        "items": [
+          {
+            "seq": {
+              "items": [
+                {
+                  "tag": {
+                    "label": "Live",
+                    "value": {
+                      "kind": "live",
+                      "type": "kind"
+                    }
+                  },
+                  "type": "tag"
+                },
+                {
+                  "tag": {
+                    "label": "HDR",
+                    "value": {
+                      "kind": "hdr",
+                      "type": "kind"
+                    }
+                  },
+                  "type": "tag"
+                }
+              ],
+              "joins": [
+                "or"
+              ]
+            },
+            "type": "group"
+          },
+          {
+            "tag": {
+              "label": "Paris",
+              "value": {
+                "place": {
+                  "country": "France",
+                  "kind": "city",
+                  "name": "Paris"
+                },
+                "type": "place"
+              }
+            },
+            "type": "tag"
+          }
+        ],
+        "joins": [
+          "and"
+        ]
+      },
+      "name": "plain field group",
+      "plain": [
+        {
+          "label": "Live",
+          "value": {
+            "kind": "live",
+            "type": "kind"
+          }
+        },
+        {
+          "label": "HDR",
+          "value": {
+            "kind": "hdr",
+            "type": "kind"
+          }
+        },
+        {
+          "label": "Paris",
+          "value": {
+            "place": {
+              "country": "France",
+              "kind": "city",
+              "name": "Paris"
+            },
+            "type": "place"
+          }
+        }
+      ],
+      "repaired": {
+        "items": [
+          {
+            "seq": {
+              "items": [
+                {
+                  "tag": {
+                    "label": "Live",
+                    "value": {
+                      "kind": "live",
+                      "type": "kind"
+                    }
+                  },
+                  "type": "tag"
+                },
+                {
+                  "tag": {
+                    "label": "HDR",
+                    "value": {
+                      "kind": "hdr",
+                      "type": "kind"
+                    }
+                  },
+                  "type": "tag"
+                }
+              ],
+              "joins": [
+                "or"
+              ]
+            },
+            "type": "group"
+          },
+          {
+            "tag": {
+              "label": "Paris",
+              "value": {
+                "place": {
+                  "country": "France",
+                  "kind": "city",
+                  "name": "Paris"
+                },
+                "type": "place"
+              }
+            },
+            "type": "tag"
+          }
+        ],
+        "joins": [
+          "and"
+        ]
+      }
+    },
+    {
+      "input": {
+        "items": [
+          {
+            "tag": {
+              "label": "Live",
+              "value": {
+                "kind": "live",
+                "type": "kind"
+              }
+            },
+            "type": "tag"
+          },
+          {
+            "tag": {
+              "label": "HDR",
+              "value": {
+                "kind": "hdr",
+                "type": "kind"
+              }
+            },
+            "type": "tag"
+          }
+        ],
+        "joins": [
+          "and"
+        ]
+      },
+      "name": "same field anded",
+      "plain": null,
+      "repaired": {
+        "items": [
+          {
+            "tag": {
+              "label": "Live",
+              "value": {
+                "kind": "live",
+                "type": "kind"
+              }
+            },
+            "type": "tag"
+          },
+          {
+            "tag": {
+              "label": "HDR",
+              "value": {
+                "kind": "hdr",
+                "type": "kind"
+              }
+            },
+            "type": "tag"
+          }
+        ],
+        "joins": [
+          "and"
+        ]
+      }
+    },
+    {
+      "input": {
+        "items": [
+          {
+            "tag": {
+              "label": "Live",
+              "value": {
+                "kind": "live",
+                "type": "kind"
+              }
+            },
+            "type": "tag"
+          },
+          {
+            "tag": {
+              "label": "Paris",
+              "value": {
+                "place": {
+                  "country": "France",
+                  "kind": "city",
+                  "name": "Paris"
+                },
+                "type": "place"
+              }
+            },
+            "type": "tag"
+          }
+        ],
+        "joins": [
+          "or"
+        ]
+      },
+      "name": "or across fields",
+      "plain": null,
+      "repaired": {
+        "items": [
+          {
+            "tag": {
+              "label": "Live",
+              "value": {
+                "kind": "live",
+                "type": "kind"
+              }
+            },
+            "type": "tag"
+          },
+          {
+            "tag": {
+              "label": "Paris",
+              "value": {
+                "place": {
+                  "country": "France",
+                  "kind": "city",
+                  "name": "Paris"
+                },
+                "type": "place"
+              }
+            },
+            "type": "tag"
+          }
+        ],
+        "joins": [
+          "or"
+        ]
+      }
+    },
+    {
+      "input": {
+        "items": [
+          {
+            "tag": {
+              "label": "Picked",
+              "value": {
+                "flag": 1,
+                "type": "flag"
+              }
+            },
+            "type": "tag"
+          },
+          {
+            "tag": {
+              "label": "Rejected",
+              "value": {
+                "flag": -1,
+                "type": "flag"
+              }
+            },
+            "type": "tag"
+          }
+        ],
+        "joins": [
+          "or"
+        ]
+      },
+      "name": "two flags",
+      "plain": null,
+      "repaired": {
+        "items": [
+          {
+            "tag": {
+              "label": "Picked",
+              "value": {
+                "flag": 1,
+                "type": "flag"
+              }
+            },
+            "type": "tag"
+          },
+          {
+            "tag": {
+              "label": "Rejected",
+              "value": {
+                "flag": -1,
+                "type": "flag"
+              }
+            },
+            "type": "tag"
+          }
+        ],
+        "joins": [
+          "or"
+        ]
+      }
+    },
+    {
+      "input": {
+        "items": [
+          {
+            "tag": {
+              "label": "Picked",
+              "value": {
+                "flag": 1,
+                "type": "flag"
+              }
+            },
+            "type": "tag"
+          },
+          {
+            "tag": {
+              "label": "Rejected",
+              "value": {
+                "flag": -1,
+                "type": "flag"
+              }
+            },
+            "type": "tag"
+          }
+        ],
+        "joins": [
+          "and"
+        ]
+      },
+      "name": "flag twice anded",
+      "plain": null,
+      "repaired": {
+        "items": [
+          {
+            "tag": {
+              "label": "Picked",
+              "value": {
+                "flag": 1,
+                "type": "flag"
+              }
+            },
+            "type": "tag"
+          },
+          {
+            "tag": {
+              "label": "Rejected",
+              "value": {
+                "flag": -1,
+                "type": "flag"
+              }
+            },
+            "type": "tag"
+          }
+        ],
+        "joins": [
+          "and"
+        ]
+      }
+    },
+    {
+      "input": {
+        "items": [
+          {
+            "seq": {
+              "items": [
+                {
+                  "tag": {
+                    "label": "Anna",
+                    "value": {
+                      "id": 1,
+                      "type": "person"
+                    }
+                  },
+                  "type": "tag"
+                },
+                {
+                  "tag": {
+                    "label": "Ben",
+                    "value": {
+                      "id": 2,
+                      "type": "person"
+                    }
+                  },
+                  "type": "tag"
+                }
+              ],
+              "joins": [
+                "or"
+              ]
+            },
+            "type": "group"
+          },
+          {
+            "tag": {
+              "label": "Paris",
+              "value": {
+                "place": {
+                  "country": "France",
+                  "kind": "city",
+                  "name": "Paris"
+                },
+                "type": "place"
+              }
+            },
+            "type": "tag"
+          }
+        ],
+        "joins": [
+          "and"
+        ]
+      },
+      "name": "people group",
+      "plain": null,
+      "repaired": {
+        "items": [
+          {
+            "seq": {
+              "items": [
+                {
+                  "tag": {
+                    "label": "Anna",
+                    "value": {
+                      "id": 1,
+                      "type": "person"
+                    }
+                  },
+                  "type": "tag"
+                },
+                {
+                  "tag": {
+                    "label": "Ben",
+                    "value": {
+                      "id": 2,
+                      "type": "person"
+                    }
+                  },
+                  "type": "tag"
+                }
+              ],
+              "joins": [
+                "or"
+              ]
+            },
+            "type": "group"
+          },
+          {
+            "tag": {
+              "label": "Paris",
+              "value": {
+                "place": {
+                  "country": "France",
+                  "kind": "city",
+                  "name": "Paris"
+                },
+                "type": "place"
+              }
+            },
+            "type": "tag"
+          }
+        ],
+        "joins": [
+          "and"
+        ]
+      }
+    },
+    {
+      "input": {
+        "items": [
+          {
+            "seq": {
+              "items": [
+                {
+                  "tag": {
+                    "label": "March",
+                    "value": {
+                      "months": [
+                        3
+                      ],
+                      "type": "months"
+                    }
+                  },
+                  "type": "tag"
+                },
+                {
+                  "tag": {
+                    "label": "Summer",
+                    "value": {
+                      "months": [
+                        6,
+                        7,
+                        8
+                      ],
+                      "type": "months"
+                    }
+                  },
+                  "type": "tag"
+                }
+              ],
+              "joins": [
+                "or"
+              ]
+            },
+            "type": "group"
+          },
+          {
+            "tag": {
+              "label": "Anna",
+              "value": {
+                "id": 1,
+                "type": "person"
+              }
+            },
+            "type": "tag"
+          }
+        ],
+        "joins": [
+          "and"
+        ]
+      },
+      "name": "months group",
+      "plain": [
+        {
+          "label": "March",
+          "value": {
+            "months": [
+              3
+            ],
+            "type": "months"
+          }
+        },
+        {
+          "label": "Summer",
+          "value": {
+            "months": [
+              6,
+              7,
+              8
+            ],
+            "type": "months"
+          }
+        },
+        {
+          "label": "Anna",
+          "value": {
+            "id": 1,
+            "type": "person"
+          }
+        }
+      ],
+      "repaired": {
+        "items": [
+          {
+            "seq": {
+              "items": [
+                {
+                  "tag": {
+                    "label": "March",
+                    "value": {
+                      "months": [
+                        3
+                      ],
+                      "type": "months"
+                    }
+                  },
+                  "type": "tag"
+                },
+                {
+                  "tag": {
+                    "label": "Summer",
+                    "value": {
+                      "months": [
+                        6,
+                        7,
+                        8
+                      ],
+                      "type": "months"
+                    }
+                  },
+                  "type": "tag"
+                }
+              ],
+              "joins": [
+                "or"
+              ]
+            },
+            "type": "group"
+          },
+          {
+            "tag": {
+              "label": "Anna",
+              "value": {
+                "id": 1,
+                "type": "person"
+              }
+            },
+            "type": "tag"
+          }
+        ],
+        "joins": [
+          "and"
+        ]
+      }
+    },
+    {
+      "input": {
+        "items": [
+          {
+            "tag": {
+              "label": "Live",
+              "value": {
+                "kind": "live",
+                "type": "kind"
+              }
+            },
+            "type": "tag"
+          },
+          {
+            "seq": {
+              "items": [],
+              "joins": []
+            },
+            "type": "group"
+          },
+          {
+            "tag": {
+              "label": "Paris",
+              "value": {
+                "place": {
+                  "country": "France",
+                  "kind": "city",
+                  "name": "Paris"
+                },
+                "type": "place"
+              }
+            },
+            "type": "tag"
+          }
+        ],
+        "joins": [
+          "and",
+          "or"
+        ]
+      },
+      "name": "empty group",
+      "plain": null,
+      "repaired": {
+        "items": [
+          {
+            "tag": {
+              "label": "Live",
+              "value": {
+                "kind": "live",
+                "type": "kind"
+              }
+            },
+            "type": "tag"
+          },
+          {
+            "tag": {
+              "label": "Paris",
+              "value": {
+                "place": {
+                  "country": "France",
+                  "kind": "city",
+                  "name": "Paris"
+                },
+                "type": "place"
+              }
+            },
+            "type": "tag"
+          }
+        ],
+        "joins": [
+          "or"
+        ]
+      }
+    },
+    {
+      "input": {
+        "items": [
+          {
+            "seq": {
+              "items": [],
+              "joins": []
+            },
+            "type": "group"
+          },
+          {
+            "tag": {
+              "label": "Live",
+              "value": {
+                "kind": "live",
+                "type": "kind"
+              }
+            },
+            "type": "tag"
+          }
+        ],
+        "joins": [
+          "or"
+        ]
+      },
+      "name": "empty first",
+      "plain": [
+        {
+          "label": "Live",
+          "value": {
+            "kind": "live",
+            "type": "kind"
+          }
+        }
+      ],
+      "repaired": {
+        "items": [
+          {
+            "tag": {
+              "label": "Live",
+              "value": {
+                "kind": "live",
+                "type": "kind"
+              }
+            },
+            "type": "tag"
+          }
+        ],
+        "joins": []
+      }
+    },
+    {
+      "input": {
+        "items": [
+          {
+            "tag": {
+              "label": "Anna",
+              "value": {
+                "id": 1,
+                "type": "person"
+              }
+            },
+            "type": "tag"
+          },
+          {
+            "not": true,
+            "seq": {
+              "items": [
+                {
+                  "not": true,
+                  "tag": {
+                    "label": "Ben",
+                    "value": {
+                      "id": 2,
+                      "type": "person"
+                    }
+                  },
+                  "type": "tag"
+                }
+              ],
+              "joins": []
+            },
+            "type": "group"
+          }
+        ],
+        "joins": [
+          "and"
+        ]
+      },
+      "name": "group of one",
+      "plain": [
+        {
+          "label": "Anna",
+          "value": {
+            "id": 1,
+            "type": "person"
+          }
+        },
+        {
+          "label": "Ben",
+          "value": {
+            "id": 2,
+            "type": "person"
+          }
+        }
+      ],
+      "repaired": {
+        "items": [
+          {
+            "tag": {
+              "label": "Anna",
+              "value": {
+                "id": 1,
+                "type": "person"
+              }
+            },
+            "type": "tag"
+          },
+          {
+            "tag": {
+              "label": "Ben",
+              "value": {
+                "id": 2,
+                "type": "person"
+              }
+            },
+            "type": "tag"
+          }
+        ],
+        "joins": [
+          "and"
+        ]
+      }
+    },
+    {
+      "input": {
+        "items": [
+          {
+            "tag": {
+              "label": "Anna",
+              "value": {
+                "id": 1,
+                "type": "person"
+              }
+            },
+            "type": "tag"
+          },
+          {
+            "not": true,
+            "seq": {
+              "items": [
+                {
+                  "tag": {
+                    "label": "Ben",
+                    "value": {
+                      "id": 2,
+                      "type": "person"
+                    }
+                  },
+                  "type": "tag"
+                }
+              ],
+              "joins": []
+            },
+            "type": "group"
+          }
+        ],
+        "joins": [
+          "and"
+        ]
+      },
+      "name": "negated group of one",
+      "plain": null,
+      "repaired": {
+        "items": [
+          {
+            "tag": {
+              "label": "Anna",
+              "value": {
+                "id": 1,
+                "type": "person"
+              }
+            },
+            "type": "tag"
+          },
+          {
+            "not": true,
+            "tag": {
+              "label": "Ben",
+              "value": {
+                "id": 2,
+                "type": "person"
+              }
+            },
+            "type": "tag"
+          }
+        ],
+        "joins": [
+          "and"
+        ]
+      }
+    },
+    {
+      "input": {
+        "items": [
+          {
+            "tag": {
+              "label": "Live",
+              "value": {
+                "kind": "live",
+                "type": "kind"
+              }
+            },
+            "type": "tag"
+          },
+          {
+            "seq": {
+              "items": [
+                {
+                  "tag": {
+                    "label": "HDR",
+                    "value": {
+                      "kind": "hdr",
+                      "type": "kind"
+                    }
+                  },
+                  "type": "tag"
+                },
+                {
+                  "tag": {
+                    "label": "Paris",
+                    "value": {
+                      "place": {
+                        "country": "France",
+                        "kind": "city",
+                        "name": "Paris"
+                      },
+                      "type": "place"
+                    }
+                  },
+                  "type": "tag"
+                }
+              ],
+              "joins": [
+                "and"
+              ]
+            },
+            "type": "group"
+          }
+        ],
+        "joins": [
+          "or"
+        ]
+      },
+      "name": "splice and group",
+      "plain": null,
+      "repaired": {
+        "items": [
+          {
+            "tag": {
+              "label": "Live",
+              "value": {
+                "kind": "live",
+                "type": "kind"
+              }
+            },
+            "type": "tag"
+          },
+          {
+            "tag": {
+              "label": "HDR",
+              "value": {
+                "kind": "hdr",
+                "type": "kind"
+              }
+            },
+            "type": "tag"
+          },
+          {
+            "tag": {
+              "label": "Paris",
+              "value": {
+                "place": {
+                  "country": "France",
+                  "kind": "city",
+                  "name": "Paris"
+                },
+                "type": "place"
+              }
+            },
+            "type": "tag"
+          }
+        ],
+        "joins": [
+          "or",
+          "and"
+        ]
+      }
+    },
+    {
+      "input": {
+        "items": [
+          {
+            "tag": {
+              "label": "Anna",
+              "value": {
+                "id": 1,
+                "type": "person"
+              }
+            },
+            "type": "tag"
+          },
+          {
+            "seq": {
+              "items": [
+                {
+                  "tag": {
+                    "label": "Live",
+                    "value": {
+                      "kind": "live",
+                      "type": "kind"
+                    }
+                  },
+                  "type": "tag"
+                },
+                {
+                  "tag": {
+                    "label": "HDR",
+                    "value": {
+                      "kind": "hdr",
+                      "type": "kind"
+                    }
+                  },
+                  "type": "tag"
+                },
+                {
+                  "tag": {
+                    "label": "Paris",
+                    "value": {
+                      "place": {
+                        "country": "France",
+                        "kind": "city",
+                        "name": "Paris"
+                      },
+                      "type": "place"
+                    }
+                  },
+                  "type": "tag"
+                }
+              ],
+              "joins": [
+                "or",
+                "and"
+              ]
+            },
+            "type": "group"
+          },
+          {
+            "tag": {
+              "label": "Ben",
+              "value": {
+                "id": 2,
+                "type": "person"
+              }
+            },
+            "type": "tag"
+          }
+        ],
+        "joins": [
+          "or",
+          "or"
+        ]
+      },
+      "name": "splice between ors",
+      "plain": null,
+      "repaired": {
+        "items": [
+          {
+            "tag": {
+              "label": "Anna",
+              "value": {
+                "id": 1,
+                "type": "person"
+              }
+            },
+            "type": "tag"
+          },
+          {
+            "tag": {
+              "label": "Live",
+              "value": {
+                "kind": "live",
+                "type": "kind"
+              }
+            },
+            "type": "tag"
+          },
+          {
+            "tag": {
+              "label": "HDR",
+              "value": {
+                "kind": "hdr",
+                "type": "kind"
+              }
+            },
+            "type": "tag"
+          },
+          {
+            "tag": {
+              "label": "Paris",
+              "value": {
+                "place": {
+                  "country": "France",
+                  "kind": "city",
+                  "name": "Paris"
+                },
+                "type": "place"
+              }
+            },
+            "type": "tag"
+          },
+          {
+            "tag": {
+              "label": "Ben",
+              "value": {
+                "id": 2,
+                "type": "person"
+              }
+            },
+            "type": "tag"
+          }
+        ],
+        "joins": [
+          "or",
+          "or",
+          "and",
+          "or"
+        ]
+      }
+    },
+    {
+      "input": {
+        "items": [
+          {
+            "tag": {
+              "label": "Anna",
+              "value": {
+                "id": 1,
+                "type": "person"
+              }
+            },
+            "type": "tag"
+          },
+          {
+            "seq": {
+              "items": [
+                {
+                  "tag": {
+                    "label": "Live",
+                    "value": {
+                      "kind": "live",
+                      "type": "kind"
+                    }
+                  },
+                  "type": "tag"
+                },
+                {
+                  "tag": {
+                    "label": "HDR",
+                    "value": {
+                      "kind": "hdr",
+                      "type": "kind"
+                    }
+                  },
+                  "type": "tag"
+                }
+              ],
+              "joins": [
+                "or"
+              ]
+            },
+            "type": "group"
+          },
+          {
+            "tag": {
+              "label": "Paris",
+              "value": {
+                "place": {
+                  "country": "France",
+                  "kind": "city",
+                  "name": "Paris"
+                },
+                "type": "place"
+              }
+            },
+            "type": "tag"
+          }
+        ],
+        "joins": [
+          "or",
+          "and"
+        ]
+      },
+      "name": "keep group before and",
+      "plain": null,
+      "repaired": {
+        "items": [
+          {
+            "tag": {
+              "label": "Anna",
+              "value": {
+                "id": 1,
+                "type": "person"
+              }
+            },
+            "type": "tag"
+          },
+          {
+            "seq": {
+              "items": [
+                {
+                  "tag": {
+                    "label": "Live",
+                    "value": {
+                      "kind": "live",
+                      "type": "kind"
+                    }
+                  },
+                  "type": "tag"
+                },
+                {
+                  "tag": {
+                    "label": "HDR",
+                    "value": {
+                      "kind": "hdr",
+                      "type": "kind"
+                    }
+                  },
+                  "type": "tag"
+                }
+              ],
+              "joins": [
+                "or"
+              ]
+            },
+            "type": "group"
+          },
+          {
+            "tag": {
+              "label": "Paris",
+              "value": {
+                "place": {
+                  "country": "France",
+                  "kind": "city",
+                  "name": "Paris"
+                },
+                "type": "place"
+              }
+            },
+            "type": "tag"
+          }
+        ],
+        "joins": [
+          "or",
+          "and"
+        ]
+      }
+    },
+    {
+      "input": {
+        "items": [
+          {
+            "not": true,
+            "seq": {
+              "items": [
+                {
+                  "tag": {
+                    "label": "Live",
+                    "value": {
+                      "kind": "live",
+                      "type": "kind"
+                    }
+                  },
+                  "type": "tag"
+                },
+                {
+                  "tag": {
+                    "label": "HDR",
+                    "value": {
+                      "kind": "hdr",
+                      "type": "kind"
+                    }
+                  },
+                  "type": "tag"
+                }
+              ],
+              "joins": [
+                "or"
+              ]
+            },
+            "type": "group"
+          },
+          {
+            "tag": {
+              "label": "Paris",
+              "value": {
+                "place": {
+                  "country": "France",
+                  "kind": "city",
+                  "name": "Paris"
+                },
+                "type": "place"
+              }
+            },
+            "type": "tag"
+          }
+        ],
+        "joins": [
+          "and"
+        ]
+      },
+      "name": "keep negated group",
+      "plain": null,
+      "repaired": {
+        "items": [
+          {
+            "not": true,
+            "seq": {
+              "items": [
+                {
+                  "tag": {
+                    "label": "Live",
+                    "value": {
+                      "kind": "live",
+                      "type": "kind"
+                    }
+                  },
+                  "type": "tag"
+                },
+                {
+                  "tag": {
+                    "label": "HDR",
+                    "value": {
+                      "kind": "hdr",
+                      "type": "kind"
+                    }
+                  },
+                  "type": "tag"
+                }
+              ],
+              "joins": [
+                "or"
+              ]
+            },
+            "type": "group"
+          },
+          {
+            "tag": {
+              "label": "Paris",
+              "value": {
+                "place": {
+                  "country": "France",
+                  "kind": "city",
+                  "name": "Paris"
+                },
+                "type": "place"
+              }
+            },
+            "type": "tag"
+          }
+        ],
+        "joins": [
+          "and"
+        ]
+      }
+    },
+    {
+      "input": {
+        "items": [
+          {
+            "tag": {
+              "label": "Anna",
+              "value": {
+                "id": 1,
+                "type": "person"
+              }
+            },
+            "type": "tag"
+          },
+          {
+            "seq": {
+              "items": [
+                {
+                  "tag": {
+                    "label": "Ben",
+                    "value": {
+                      "id": 2,
+                      "type": "person"
+                    }
+                  },
+                  "type": "tag"
+                },
+                {
+                  "seq": {
+                    "items": [
+                      {
+                        "tag": {
+                          "label": "Live",
+                          "value": {
+                            "kind": "live",
+                            "type": "kind"
+                          }
+                        },
+                        "type": "tag"
+                      },
+                      {
+                        "tag": {
+                          "label": "HDR",
+                          "value": {
+                            "kind": "hdr",
+                            "type": "kind"
+                          }
+                        },
+                        "type": "tag"
+                      }
+                    ],
+                    "joins": [
+                      "or"
+                    ]
+                  },
+                  "type": "group"
+                }
+              ],
+              "joins": [
+                "and"
+              ]
+            },
+            "type": "group"
+          }
+        ],
+        "joins": [
+          "and"
+        ]
+      },
+      "name": "nested",
+      "plain": [
+        {
+          "label": "Anna",
+          "value": {
+            "id": 1,
+            "type": "person"
+          }
+        },
+        {
+          "label": "Ben",
+          "value": {
+            "id": 2,
+            "type": "person"
+          }
+        },
+        {
+          "label": "Live",
+          "value": {
+            "kind": "live",
+            "type": "kind"
+          }
+        },
+        {
+          "label": "HDR",
+          "value": {
+            "kind": "hdr",
+            "type": "kind"
+          }
+        }
+      ],
+      "repaired": {
+        "items": [
+          {
+            "tag": {
+              "label": "Anna",
+              "value": {
+                "id": 1,
+                "type": "person"
+              }
+            },
+            "type": "tag"
+          },
+          {
+            "tag": {
+              "label": "Ben",
+              "value": {
+                "id": 2,
+                "type": "person"
+              }
+            },
+            "type": "tag"
+          },
+          {
+            "seq": {
+              "items": [
+                {
+                  "tag": {
+                    "label": "Live",
+                    "value": {
+                      "kind": "live",
+                      "type": "kind"
+                    }
+                  },
+                  "type": "tag"
+                },
+                {
+                  "tag": {
+                    "label": "HDR",
+                    "value": {
+                      "kind": "hdr",
+                      "type": "kind"
+                    }
+                  },
+                  "type": "tag"
+                }
+              ],
+              "joins": [
+                "or"
+              ]
+            },
+            "type": "group"
+          }
+        ],
+        "joins": [
+          "and",
+          "and"
+        ]
+      }
+    },
+    {
+      "input": {
+        "items": [
+          {
+            "tag": {
+              "label": "beach",
+              "value": {
+                "text": "beach",
+                "type": "text"
+              }
+            },
+            "type": "tag"
+          },
+          {
+            "tag": {
+              "label": "sunset",
+              "value": {
+                "text": "sunset",
+                "type": "text"
+              }
+            },
+            "type": "tag"
+          }
+        ],
+        "joins": [
+          "and"
+        ]
+      },
+      "name": "text tags",
+      "plain": [
+        {
+          "label": "beach",
+          "value": {
+            "text": "beach",
+            "type": "text"
+          }
+        },
+        {
+          "label": "sunset",
+          "value": {
+            "text": "sunset",
+            "type": "text"
+          }
+        }
+      ],
+      "repaired": {
+        "items": [
+          {
+            "tag": {
+              "label": "beach",
+              "value": {
+                "text": "beach",
+                "type": "text"
+              }
+            },
+            "type": "tag"
+          },
+          {
+            "tag": {
+              "label": "sunset",
+              "value": {
+                "text": "sunset",
+                "type": "text"
+              }
+            },
+            "type": "tag"
+          }
+        ],
+        "joins": [
+          "and"
+        ]
+      }
+    },
+    {
+      "input": {
+        "items": [
+          {
+            "tag": {
+              "label": "Live",
+              "value": {
+                "kind": "live",
+                "type": "kind"
+              }
+            },
+            "type": "tag"
+          },
+          {
+            "tag": {
+              "label": "HDR",
+              "value": {
+                "kind": "hdr",
+                "type": "kind"
+              }
+            },
+            "type": "tag"
+          },
+          {
+            "tag": {
+              "label": "Paris",
+              "value": {
+                "place": {
+                  "country": "France",
+                  "kind": "city",
+                  "name": "Paris"
+                },
+                "type": "place"
+              }
+            },
+            "type": "tag"
+          }
+        ],
+        "joins": [
+          "or"
+        ]
+      },
+      "name": "joins padded",
+      "plain": null,
+      "repaired": {
+        "items": [
+          {
+            "tag": {
+              "label": "Live",
+              "value": {
+                "kind": "live",
+                "type": "kind"
+              }
+            },
+            "type": "tag"
+          },
+          {
+            "tag": {
+              "label": "HDR",
+              "value": {
+                "kind": "hdr",
+                "type": "kind"
+              }
+            },
+            "type": "tag"
+          },
+          {
+            "tag": {
+              "label": "Paris",
+              "value": {
+                "place": {
+                  "country": "France",
+                  "kind": "city",
+                  "name": "Paris"
+                },
+                "type": "place"
+              }
+            },
+            "type": "tag"
+          }
+        ],
+        "joins": [
+          "or",
+          "and"
+        ]
+      }
+    }
+  ]
+}

@@ -1,0 +1,212 @@
+.photo-tile {
+  position: absolute;
+  overflow: hidden;
+  border-radius: var(--radius-sm);
+  background-color: var(--bg-sunken);
+  background-size: cover;
+  background-position: center;
+  contain: strict;
+  // Badges step down by the tile's own width (see the end of this block).
+  container: photo-tile / inline-size;
+
+  // The year view's squares: badges would cover more of the picture than they explain.
+  &[data-compact] &__format,
+  &[data-compact] &__countdown,
+  &[data-compact] &__tags,
+  &[data-compact] &__rating,
+  &[data-compact] &__star,
+  &[data-compact] &__badge {
+    display: none;
+  }
+
+  &__hit {
+    position: absolute;
+    inset: 0;
+    display: block;
+    width: 100%;
+    height: 100%;
+    cursor: pointer;
+  }
+
+  &__img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    opacity: 0;
+    transition: opacity var(--motion-base) var(--ease);
+  }
+
+  &[data-loaded="true"] &__img { opacity: 1; }
+
+  // No placeholder yet (thumbhash still being computed): a soft sweep over the dominant colour.
+  &[data-loading="true"]::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(100deg, transparent 20%, oklch(100% 0 0 / 0.18) 50%, transparent 80%);
+    background-size: 200% 100%;
+    animation: shimmer 1.4s ease-in-out infinite;
+  }
+
+  &__format {
+    position: absolute;
+    inset: 0;
+    display: grid;
+    place-items: center;
+    font-size: var(--text-xs);
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    color: var(--fg-muted);
+  }
+
+  &__badge--live { letter-spacing: 0.08em; font-weight: 600; }
+
+  // Top-left, where the selection check also appears; the tags step aside for it.
+  &__tags {
+    position: absolute;
+    left: var(--space-2);
+    top: var(--space-2);
+    display: flex;
+    gap: 3px;
+    transition: transform var(--motion-fast) var(--ease);
+  }
+  &:hover &__tags,
+  &[data-selected="true"] &__tags { transform: translateX(28px); }
+
+  &__tag {
+    padding: 1px 5px;
+    border-radius: var(--radius-sm);
+    background: var(--badge-bg);
+    color: var(--badge-fg);
+    font-size: var(--text-xs);
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    line-height: 1.4;
+  }
+
+  // The app a copy was made for (Round 22 lane C): its icon in a tag's box.
+  &__tag--app { display: inline-flex; align-items: center; padding: 2px 3px; }
+  &__app-icon { display: block; width: 14px; height: 14px; object-fit: contain; }
+
+  &__rating {
+    position: absolute;
+    left: var(--space-2);
+    bottom: var(--space-2);
+    color: var(--star);
+    font-size: var(--text-sm);
+    letter-spacing: 1px;
+    text-shadow: 0 1px 2px oklch(0% 0 0 / 0.6);
+  }
+
+  &__countdown {
+    position: absolute;
+    left: var(--space-2);
+    bottom: var(--space-2);
+    padding: 2px 6px;
+    border-radius: var(--radius-pill);
+    background: var(--badge-bg);
+    color: var(--badge-fg);
+    font-size: var(--text-xs);
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+    line-height: 1.4;
+  }
+
+  &__star {
+    position: absolute;
+    top: var(--space-2);
+    right: var(--space-2);
+    color: var(--star);
+    filter: drop-shadow(0 1px 2px oklch(0% 0 0 / 0.5));
+    animation: rise-in var(--motion-base) var(--ease);
+  }
+
+  &__badge {
+    position: absolute;
+    right: var(--space-2);
+    bottom: var(--space-2);
+    display: inline-flex;
+    align-items: center;
+    gap: 3px;
+    padding: 2px 6px;
+    border-radius: var(--radius-pill);
+    background: var(--badge-bg);
+    color: var(--badge-fg);
+    font-size: var(--text-xs);
+    font-variant-numeric: tabular-nums;
+  }
+
+  &__check {
+    position: absolute;
+    top: var(--space-2);
+    left: var(--space-2);
+    width: 22px;
+    height: 22px;
+    display: grid;
+    place-items: center;
+    border-radius: 50%;
+    border: 2px solid oklch(100% 0 0 / 0.9);
+    background: oklch(0% 0 0 / 0.35);
+    color: oklch(100% 0 0);
+    opacity: 0;
+    transform: scale(0.8);
+    transition: opacity var(--motion-fast) var(--ease), transform var(--motion-fast) var(--ease), background var(--motion-fast) var(--ease);
+    svg { opacity: 0; }
+  }
+
+  &:hover &__check,
+  &__check[data-visible="true"],
+  &[data-selected="true"] &__check {
+    opacity: 1;
+    transform: none;
+  }
+
+  &[data-selected="true"] {
+    outline: 3px solid var(--accent);
+    outline-offset: -3px;
+    &::after {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background: var(--accent-soft);
+      pointer-events: none;
+    }
+    .photo-tile__check {
+      background: var(--accent);
+      border-color: var(--accent);
+      color: var(--accent-fg);
+      svg { opacity: 1; }
+    }
+  }
+
+  &:focus-within { outline: 2px solid var(--accent); outline-offset: -2px; }
+
+  // Pick mode (Round 19 §5): a photo already in the album is checked, labelled and not clickable.
+  &__locked {
+    position: absolute;
+    left: var(--space-2);
+    bottom: var(--space-2);
+    z-index: 1;
+    padding: 2px 6px;
+    border-radius: var(--radius-pill);
+    background: var(--badge-bg);
+    color: var(--badge-fg);
+    font-size: var(--text-xs);
+  }
+  &[data-locked="true"] &__hit { cursor: default; }
+  &[data-locked="true"] &__img { opacity: 0.6; }
+
+  // Badges step down with the tile's own width: full → compact → a dot or glyph. Priority RAW >
+  // video length > Live > the rest, so the lowest (HDR) goes first. The year view stays bare.
+  @container photo-tile (max-width: 89px) {
+    &__tags { left: 4px; top: 4px; gap: 2px; }
+    &__tag { padding: 0 3px; font-size: 0.5625rem; letter-spacing: 0.03em; }
+    &__badge { right: 4px; bottom: 4px; gap: 2px; padding: 1px 4px; font-size: 0.5625rem; }
+  }
+  @container photo-tile (max-width: 59px) {
+    &__tag { padding: 0; width: 7px; height: 7px; border-radius: 50%; font-size: 0; line-height: 0; overflow: hidden; }
+    &__tag + &__tag { display: none; }
+    &__badge-text { display: none; }
+    &__badge { padding: 2px; }
+  }
+}

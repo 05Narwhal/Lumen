@@ -1,0 +1,55 @@
+.person-picker {
+  border: var(--border-width) solid var(--border);
+  border-radius: var(--radius-lg) !important;
+  box-shadow: var(--shadow-lg);
+
+  &__header { background: transparent !important; }
+  &__body { display: flex; flex-direction: column; gap: var(--space-3); }
+
+  &__list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    overflow-y: auto;
+  }
+
+  &__row {
+    display: flex;
+    align-items: center;
+    gap: var(--space-3);
+    padding: 0 var(--space-2);
+    border-radius: var(--radius-md);
+    color: var(--fg-primary);
+    cursor: pointer;
+    &[aria-selected="true"] { background: var(--accent-soft); }
+
+    // *New person…*: a dashed, empty face in the accent, set apart from the people above.
+    &--create {
+      border-top: var(--border-width) solid var(--border);
+      border-radius: 0 0 var(--radius-md) var(--radius-md);
+      color: var(--accent);
+      .person-picker__face { background: transparent; border: 1.5px dashed currentColor; color: inherit; }
+    }
+  }
+
+  &__heading {
+    padding: var(--space-3) var(--space-2) var(--space-1);
+    h3 { margin: 0; color: var(--fg-muted); font-size: var(--text-sm); font-weight: 600; }
+  }
+
+  &__face {
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    object-fit: cover;
+    flex: none;
+    display: grid;
+    place-items: center;
+    background: var(--bg-sunken);
+    color: var(--fg-faint);
+  }
+
+  &__name { flex: 1; font-weight: 500; @include truncate; &[data-unnamed="true"] { color: var(--fg-muted); font-weight: 400; } }
+  &__count { color: var(--fg-muted); font-size: var(--text-sm); font-variant-numeric: tabular-nums; }
+  &__empty { margin: 0; padding: var(--space-3) var(--space-2); color: var(--fg-muted); font-size: var(--text-sm); }
+}

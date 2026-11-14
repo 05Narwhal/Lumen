@@ -1,0 +1,58 @@
+.mark-filter {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  padding: 2px;
+  border-radius: var(--radius-pill);
+  border: var(--border-width) solid var(--border);
+  background: var(--bg-sunken);
+
+  &__flag {
+    display: inline-grid;
+    place-items: center;
+    width: 24px;
+    height: 22px;
+    border-radius: var(--radius-pill);
+    color: var(--fg-muted);
+    transition: background var(--motion-fast) var(--ease), color var(--motion-fast) var(--ease);
+
+    &:hover { color: var(--fg-primary); background: var(--accent-soft); }
+    &[aria-pressed="true"] { color: var(--accent-fg); background: var(--accent); }
+    &[data-flag="-1"][aria-pressed="true"] { color: var(--danger-fg); background: var(--flag-reject); }
+  }
+
+  &__rule {
+    width: var(--border-width);
+    height: 14px;
+    margin: 0 var(--space-1);
+    background: var(--border);
+  }
+
+  &__dot {
+    width: 22px;
+    height: 22px;
+    border-radius: 50%;
+    display: inline-grid;
+    place-items: center;
+
+    // The swatch is drawn inside the hit area so a 12px dot still gets a 22px target.
+    &::before {
+      content: "";
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+      background: var(--dot);
+      opacity: 0.55;
+      transition: opacity var(--motion-fast) var(--ease), transform var(--motion-fast) var(--ease), box-shadow var(--motion-fast) var(--ease);
+    }
+
+    &:hover::before { opacity: 0.9; }
+    &[aria-pressed="true"]::before {
+      opacity: 1;
+      transform: scale(1.15);
+      box-shadow: 0 0 0 2px var(--bg-sunken), 0 0 0 3.5px var(--dot);
+    }
+  }
+
+  :focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+}

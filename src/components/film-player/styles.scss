@@ -1,0 +1,83 @@
+// A memory's film over everything: photographs on true black, whatever the theme, like the
+// viewer in full screen. Type and controls are the badges' light-on-glass.
+.film-player {
+  position: fixed;
+  inset: 0;
+  z-index: var(--z-overlay);
+  display: grid;
+  grid-template-rows: auto 1fr auto;
+  background: var(--viewer-fullscreen-bg);
+  color: var(--badge-fg);
+
+  &__top,
+  &__bottom {
+    display: flex;
+    align-items: center;
+    gap: var(--space-3);
+    padding: var(--space-3) var(--space-4);
+  }
+  // The viewer's video bar, centred under the film.
+  &__bottom { justify-content: center; }
+  // Nothing sits under the window controls (Round 15).
+  &__top { transition: opacity var(--motion-fast) var(--ease); padding-right: calc(var(--space-4) + var(--window-controls-w)); }
+
+  // Idle (Round 8B): the title row and the cursor step aside with the bar.
+  &[data-idle="true"],
+  &[data-idle="true"] * { cursor: none; }
+  &[data-idle="true"] &__top { opacity: 0; pointer-events: none; }
+
+  &__title { font-weight: 600; @include truncate; }
+  &__bpm { font-size: var(--text-xs); opacity: 0.7; }
+  &__spacer { flex: 1; }
+
+  &__icon {
+    display: grid;
+    place-items: center;
+    width: 34px;
+    height: 34px;
+    border: 0;
+    border-radius: var(--radius-pill);
+    background: var(--badge-bg);
+    color: inherit;
+    cursor: pointer;
+    &:disabled { opacity: 0.4; cursor: default; }
+  }
+
+  // The film keeps its own shape and fits the window, never cropped.
+  &__stage {
+    display: grid;
+    place-items: center;
+    min-height: 0;
+    padding: 0 var(--space-4);
+  }
+  &__frame { width: min(100%, calc((100vh - 140px) * 16 / 9)); }
+
+  &__making {
+    position: relative;
+    display: grid;
+    place-items: center;
+    width: min(100%, calc((100vh - 140px) * 16 / 9));
+    aspect-ratio: 16 / 9;
+    overflow: hidden;
+    border-radius: var(--radius-sm);
+  }
+  &__cover {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    opacity: 0.55;
+  }
+  &__status {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-2);
+    padding: var(--space-2) var(--space-4);
+    border-radius: var(--radius-pill);
+    background: var(--badge-bg);
+    font-size: var(--text-sm);
+  }
+
+}

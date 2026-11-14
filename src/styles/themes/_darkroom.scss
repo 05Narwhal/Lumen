@@ -1,0 +1,55 @@
+// Darkroom — dark-first, floating bordered panels, warm amber accent.
+[data-theme="darkroom"] {
+  --bg-base: oklch(93% 0.006 70);
+  --bg-raised: oklch(97% 0.005 70);
+  --bg-sunken: oklch(89% 0.007 70);
+  --develop-stage-bg: oklch(86% 0.006 70);
+  --bg-sidebar: oklch(91% 0.006 70);
+  --bg-overlay: oklch(93% 0.006 70 / 0.92);
+  --fg-primary: oklch(18% 0.01 60);
+  --fg-muted: oklch(40% 0.012 60);
+  --fg-subtle: oklch(48% 0.01 60);
+  --fg-faint: oklch(66% 0.01 60);
+  --accent: oklch(52% 0.15 70);
+  --accent-hover: oklch(47% 0.15 70);
+  --accent-fg: oklch(100% 0 0);
+  --accent-soft: oklch(52% 0.15 70 / 0.12);
+  --border: oklch(82% 0.01 70);
+  --border-width: 1px;
+  --scrollbar-thumb: oklch(74% 0.01 70);
+  --radius-sm: 6px;
+  --radius-md: 8px;
+  --radius-lg: 12px;
+  --radius-pill: 999px;
+  --tile-gap: 4px;
+  --shadow-sm: 0 1px 2px oklch(0% 0 0 / 0.08);
+  --shadow-md: 0 6px 16px oklch(0% 0 0 / 0.12);
+  --shadow-lg: 0 20px 48px oklch(0% 0 0 / 0.2);
+  --blur: 0px;
+  --font-heading: var(--font-body);
+  --heading-weight: 600;
+  --heading-style: normal;
+  --wash: none;
+}
+
+[data-theme="darkroom"][data-mantine-color-scheme="dark"] {
+  --bg-base: oklch(14% 0.004 60);
+  --bg-raised: oklch(18% 0.005 60);
+  --bg-sunken: oklch(11% 0.004 60);
+  --develop-stage-bg: oklch(8% 0.004 60);
+  --bg-sidebar: oklch(17% 0.005 60);
+  --bg-overlay: oklch(14% 0.004 60 / 0.92);
+  --fg-primary: oklch(93% 0.005 80);
+  --fg-muted: oklch(66% 0.01 80);
+  --fg-subtle: oklch(60% 0.01 80);
+  --fg-faint: oklch(45% 0.01 80);
+  --accent: oklch(80% 0.14 80);
+  --accent-hover: oklch(85% 0.14 80);
+  --accent-fg: oklch(20% 0.04 80);
+  --accent-soft: oklch(80% 0.14 80 / 0.14);
+  --border: oklch(25% 0.006 60);
+  --scrollbar-thumb: oklch(36% 0.006 60);
+  --shadow-sm: 0 1px 2px oklch(0% 0 0 / 0.5);
+  --shadow-md: 0 6px 16px oklch(0% 0 0 / 0.55);
+  --shadow-lg: 0 20px 48px oklch(0% 0 0 / 0.65);
+}

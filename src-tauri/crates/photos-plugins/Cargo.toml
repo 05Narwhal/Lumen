@@ -1,0 +1,42 @@
+[package]
+name = "photos-plugins"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+license.workspace = true
+description = "Lumen's plugin packages: manifest, package checks, signatures, licences and the on-disk store"
+
+# Depends on photos-core only, never tauri (spec Round 23 §11).
+[dependencies]
+photos-core = { path = "../photos-core" }
+serde.workspace = true
+serde_json.workspace = true
+ts-rs.workspace = true
+semver = { version = "1", features = ["serde"] }
+toml = "0.8"
+zip = { version = "9", default-features = false, features = ["deflate"] }
+blake3 = "1"
+minisign-verify = "0.3"
+base64 = "0.22"
+tracing.workspace = true
+chrono.workspace = true
+# The wasm host (A2): component model on cranelift, no `cache` feature (Lumen keeps its own
+# compile cache under app data), WASI preview 2 only.
+wasmtime = { version = "50", default-features = false, features = ["cranelift", "component-model", "runtime", "std", "parallel-compilation"] }
+wasmtime-wasi = { version = "50", default-features = false, features = ["p2"] }
+# Only for the log stream's trait impls (both already come with wasmtime-wasi).
+bytes = "1"
+tokio = { version = "1", default-features = false }
+# The lumen-plugins pool (below-normal priority, like photos-jobs' workers).
+rayon = "1"
+
+[target.'cfg(windows)'.dependencies]
+windows-sys = { version = "0.61", features = ["Win32_System_Threading"] }
+
+[target.'cfg(target_os = "linux")'.dependencies]
+libc = "0.2"
+
+[dev-dependencies]
+wasmtime = { version = "50", default-features = false, features = ["wat"] }
+tempfile = "3"
+minisign = "0.7"

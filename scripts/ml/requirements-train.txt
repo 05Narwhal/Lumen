@@ -1,0 +1,16 @@
+# Lumen's training kit (`scripts/ml/lumen_train`, docs/ML-TRAINING.md), in `.venv-train`
+# (Python 3.12). CUDA 12.6 wheels; the driver here is 617 (RTX 3080 Ti). Installed and
+# tested with exactly these versions on 2026-10-06. If the big torch wheel download drops,
+# fetch it with `curl -C -` from download.pytorch.org/whl/cu126 and install it from disk.
+--extra-index-url https://download.pytorch.org/whl/cu126
+torch==2.14.1+cu126
+onnx==1.23.2
+onnxruntime==1.30.0
+onnxscript==0.7.2
+numpy==2.5.3
+pillow==12.3.0
+tomli_w==1.2.0
+tensorboard==2.21.0
+pytest==9.1.1
+# Round 12-3: aligning a RAW to its edited JPEG (retouch/align.py). Apache-2.0; training kit only, never shipped.
+opencv-python-headless==5.0.0.93

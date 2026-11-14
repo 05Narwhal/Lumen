@@ -1,0 +1,174 @@
+.import-route {
+  display: flex;
+  flex-direction: column;
+  min-height: 100%;
+  // One centred column for the title and the body, so they line up on a wide window.
+  width: min(1320px, 100%);
+  margin: 0 auto;
+  padding-bottom: var(--space-6);
+
+  // The page fills the window up to a wide cap; sources sit left, history right.
+  &__body {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-5);
+    padding: 0 var(--space-6);
+  }
+
+  // The Import · Repair switch under the title (Round 21 B4).
+  &__body--modes { flex-direction: row; padding-bottom: var(--space-4); }
+
+  // The primary path: one row, obviously droppable.
+  &__drop {
+    display: flex;
+    // When the actions do not fit beside the text they take their own line, rather than
+    // squeezing the heading into a column one word wide.
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--space-3) var(--space-4);
+    width: 100%;
+    padding: var(--space-3) var(--space-4);
+    border-radius: var(--radius-lg);
+    border: 2px dashed var(--border);
+    background: var(--bg-raised);
+    color: var(--fg-primary);
+    transition: border-color var(--motion-fast) var(--ease);
+    &:hover { border-color: var(--accent); }
+  }
+  &__drop-icon {
+    display: grid;
+    place-items: center;
+    width: 40px;
+    height: 40px;
+    flex: none;
+    border-radius: var(--radius-pill);
+    background: var(--accent-soft);
+    color: var(--accent);
+  }
+  &__drop-text {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    flex: 1 1 300px;
+    min-width: 0;
+    strong { font-size: var(--text-lg); }
+    span { color: var(--fg-muted); font-size: var(--text-sm); }
+  }
+  &__found { color: var(--fg-muted); font-size: var(--text-xs); }
+
+  &__cols {
+    display: grid;
+    grid-template-columns: minmax(0, 5fr) minmax(0, 7fr);
+    gap: var(--space-6);
+    align-items: start;
+    @media (max-width: 860px) { grid-template-columns: minmax(0, 1fr); }
+  }
+  &__stack { display: flex; flex-direction: column; gap: var(--space-5); min-width: 0; }
+  &__section {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-2);
+    min-width: 0;
+    h2 {
+      display: flex;
+      align-items: baseline;
+      gap: var(--space-2);
+      margin: 0;
+      font-size: var(--text-lg);
+      small { color: var(--fg-muted); font-weight: 400; font-size: var(--text-sm); }
+    }
+  }
+  &__hint {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+    margin: 0;
+    padding: var(--space-3);
+    border: var(--border-width) solid var(--border);
+    border-radius: var(--radius-md);
+    color: var(--fg-muted);
+    font-size: var(--text-sm);
+    svg { flex: none; }
+  }
+
+  // Sources: a list of rows inside one bordered block.
+  &__compact { display: flex; flex-direction: column; align-items: flex-start; gap: var(--space-1); width: 100%; }
+  &__more { color: var(--fg-muted); }
+  &__list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    width: 100%;
+    overflow: hidden;
+    @include surface(raised);
+  }
+  &__source {
+    display: flex;
+    align-items: center;
+    gap: var(--space-3);
+    padding: var(--space-2) var(--space-3);
+    color: var(--fg-primary);
+    + .import-route__source { border-top: var(--border-width) solid var(--border); }
+  }
+  &__source-icon { display: grid; flex: none; color: var(--accent); }
+  &__source-text {
+    flex: 1 1 0;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    strong { font-weight: 500; @include truncate; }
+    span { color: var(--fg-muted); font-size: var(--text-xs); }
+  }
+  &__again { align-self: flex-start; padding: 0; color: var(--fg-muted); font-size: var(--text-xs); text-decoration: underline; &:hover { color: var(--fg-primary); } }
+  &__source-actions { display: flex; flex-wrap: wrap; justify-content: flex-end; align-items: center; gap: var(--space-2); flex: none; max-width: 60%; }
+
+  &__none { color: var(--fg-muted); margin: 0; }
+
+  // History: a table that fills its column.
+  &__table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: var(--text-sm);
+    font-variant-numeric: tabular-nums;
+    th {
+      padding: var(--space-1) var(--space-2);
+      border-bottom: var(--border-width) solid var(--border);
+      color: var(--fg-muted);
+      font-weight: 500;
+      text-align: left;
+    }
+    td {
+      padding: var(--space-2);
+      border-bottom: var(--border-width) solid var(--border);
+      vertical-align: middle;
+    }
+    td:nth-child(2) { white-space: nowrap; }
+    tbody tr:hover td { background: var(--bg-raised); }
+  }
+  &__num { text-align: right !important; white-space: nowrap; }
+  &__cell-source { max-width: 240px; }
+  &__batch-label { display: block; font-weight: 500; @include truncate; }
+  &__batch-path { display: block; color: var(--fg-muted); font-size: var(--text-xs); @include truncate; }
+  &__status {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    // Every state keeps its word; the dot only adds colour.
+    &::before { content: ""; width: 7px; height: 7px; border-radius: 50%; background: var(--fg-muted); }
+    &[data-state="0"]::before { background: var(--accent); }
+    &[data-state="2"]::before,
+    &[data-state="4"]::before { background: var(--danger); }
+  }
+  &__note { margin-left: var(--space-2); white-space: nowrap; color: var(--fg-muted); font-size: var(--text-xs); }
+  &__current { color: var(--fg-muted); font-size: var(--text-xs); }
+  &__failed { display: inline-flex; align-items: center; gap: 4px; margin-left: var(--space-2); color: var(--fg-primary); font-size: var(--text-xs); }
+  &__failures-row td { padding-top: 0; }
+  &__failures {
+    list-style: none; margin: 0; padding: var(--space-2) 0 0; display: flex; flex-direction: column; gap: var(--space-1); font-size: var(--text-xs);
+    li { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: var(--space-3); }
+    code { @include truncate; font-family: ui-monospace, "Cascadia Mono", Menlo, monospace; }
+    span { color: var(--fg-muted); @include truncate; }
+  }
+  // Skips carry a button, so the list has a third column.
+  &__skips li { grid-template-columns: minmax(0, 2fr) minmax(0, 1.4fr) auto; align-items: center; }
+}

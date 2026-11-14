@@ -1,0 +1,56 @@
+# Lumen Setup's binary. STANDALONE, decided in phase 3 by measurement: a cold `cargo test --lib` here
+# takes 1 min 16 s and clippy 25 s more, with its own target dir, so Lumen's builds are untouched.
+# Joining src-tauri's workspace would save only those compiles (same Tauri version) but cost more:
+# Cargo honours [profile.*] only at the workspace root, and Setup needs opt-level "s" + LTO +
+# panic = "abort" + strip to stay small while Lumen needs its own profile; the join would also add
+# winreg / windows-sys to Lumen's lockfile and compile Setup in every `cargo test --workspace`.
+# It depends on photos-models only.
+[package]
+name = "lumen-setup"
+version = "26.2.0-alpha"
+edition = "2021"
+authors = ["JL Studios"]
+license = "GPL-3.0-or-later"
+
+[lib]
+name = "lumen_setup_lib"
+
+[build-dependencies]
+tauri-build = { version = "2", features = [] }
+
+[dependencies]
+tauri = { version = "2", features = [] }
+tauri-plugin-dialog = "2"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+photos-models = { path = "../../src-tauri/crates/photos-models" }
+ts-rs = { version = "12", features = ["serde-compat"] }
+reqwest = { version = "0.12", default-features = false, features = ["rustls-tls"] }
+tokio = { version = "1", features = ["sync", "macros", "time"] }
+# Setup finds a running Lumen by its path and arguments (an `--mcp` bridge is not a window to close).
+sysinfo = { version = "0.39", default-features = false, features = ["system"] }
+
+[features]
+# The full Setup embeds the signed NSIS installer from the file named by LUMEN_SETUP_PAYLOAD at
+# build time (scripts/release, phase 7). Without it Setup is the slim uninstaller and install fails
+# with a plain message.
+payload = []
+
+[target.'cfg(windows)'.dependencies]
+winreg = "0.55"
+windows-sys = { version = "0.61", features = ["Win32_Storage_FileSystem", "Win32_Foundation", "Win32_UI_Shell", "Win32_System_Com", "Win32_System_Environment"] }
+
+[dev-dependencies]
+tempfile = "3"
+sha2 = "0.10"
+tokio = { version = "1", features = ["net", "io-util", "rt-multi-thread", "macros", "time", "sync"] }
+# Tests only (never linked into Setup): removal.rs's allow-list and registry reader are checked
+# against Lumen's own AppPaths and LibraryRegistry so they cannot drift.
+photos-core = { path = "../../src-tauri/crates/photos-core" }
+
+[profile.release]
+opt-level = "s"
+lto = true
+codegen-units = 1
+panic = "abort"
+strip = true

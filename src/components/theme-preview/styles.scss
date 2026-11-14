@@ -1,0 +1,102 @@
+.theme-preview {
+  display: flex;
+  width: 100%;
+  aspect-ratio: 16 / 10;
+  overflow: hidden;
+  border-radius: var(--radius-md);
+  border: var(--border-width) solid var(--border);
+  background: var(--bg-base);
+  background-image: var(--wash);
+  color: var(--fg-primary);
+  font-family: var(--font-body);
+  pointer-events: none;
+  // Everything inside scales with the preview's width (designed at 200 px), so a
+  // narrow card shrinks the miniature instead of wrapping and overflowing it.
+  container-type: inline-size;
+  white-space: nowrap;
+
+  &__sidebar {
+    width: 28%;
+    background: var(--bg-sidebar);
+    border-right: var(--border-width) solid var(--border);
+    min-width: 0;
+    overflow: hidden;
+    font-size: 3.5cqw;
+    padding: 3cqw;
+    display: flex;
+    flex-direction: column;
+    gap: 1cqw;
+    backdrop-filter: blur(var(--blur));
+  }
+
+  &__dots {
+    display: flex;
+    gap: 1.5cqw;
+    margin-bottom: 3cqw;
+    i { width: 2.5cqw; height: 2.5cqw; border-radius: 50%; background: var(--fg-faint); }
+  }
+
+  &__brand {
+    font-family: var(--font-heading);
+    font-weight: 700;
+    font-style: var(--heading-style);
+    font-size: 4cqw;
+    margin: 0 1.5cqw 2cqw;
+  }
+
+  &__nav {
+    padding: 1cqw 2cqw;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    border-radius: var(--radius-sm);
+    color: var(--fg-muted);
+    &[data-active="true"] { background: var(--accent-soft); color: var(--fg-primary); font-weight: 600; }
+  }
+
+  &__main {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+    font-size: 3.5cqw;
+    padding: 4cqw;
+    gap: 3cqw;
+  }
+
+  &__header {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    gap: 2cqw;
+    overflow: hidden;
+    span { overflow: hidden; text-overflow: ellipsis; }
+    b { font-family: var(--font-heading); font-weight: var(--heading-weight); font-style: var(--heading-style); font-size: 5cqw; }
+    span { color: var(--fg-muted); }
+  }
+
+  &__grid {
+    flex: 1;
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    grid-auto-rows: 1fr;
+    gap: min(var(--tile-gap), 1.5cqw);
+    min-height: 0;
+
+    i {
+      border-radius: calc(var(--radius-sm) * 0.6);
+      background: var(--sample);
+      &[data-selected="true"] { outline: 2px solid var(--accent); outline-offset: -2px; }
+    }
+    // Sample "photos": gradients so the miniature reads as a real grid.
+    i:nth-child(1) { --sample: linear-gradient(135deg, oklch(65% 0.15 40), oklch(85% 0.08 60)); }
+    i:nth-child(2) { --sample: linear-gradient(160deg, oklch(50% 0.1 240), oklch(82% 0.07 220)); }
+    i:nth-child(3) { --sample: linear-gradient(120deg, oklch(52% 0.1 145), oklch(85% 0.1 120)); }
+    i:nth-child(4) { --sample: linear-gradient(200deg, oklch(45% 0.12 310), oklch(85% 0.08 320)); }
+    i:nth-child(5) { --sample: linear-gradient(140deg, oklch(70% 0.15 80), oklch(92% 0.08 90)); }
+    i:nth-child(6) { --sample: linear-gradient(120deg, oklch(35% 0.08 250), oklch(70% 0.09 230)); }
+    i:nth-child(7) { --sample: linear-gradient(160deg, oklch(45% 0.13 20), oklch(80% 0.08 20)); }
+    i:nth-child(8) { --sample: linear-gradient(135deg, oklch(42% 0.08 150), oklch(78% 0.09 140)); }
+    i:nth-child(9) { --sample: linear-gradient(150deg, oklch(60% 0.14 60), oklch(88% 0.07 70)); }
+    i:nth-child(10) { --sample: linear-gradient(120deg, oklch(35% 0.06 280), oklch(70% 0.08 280)); }
+  }
+}

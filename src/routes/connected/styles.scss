@@ -1,0 +1,222 @@
+.connected-route {
+  display: flex;
+  flex-direction: column;
+  min-height: 100%;
+  // One centred column for the title and the body, so they line up on a wide window.
+  width: min(1320px, 100%);
+  margin: 0 auto;
+  padding-bottom: var(--space-6);
+
+  &__body {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-5);
+    padding: 0 var(--space-6);
+  }
+
+  // What the device is, what is new on it, and the one action that matters here.
+  &__summary {
+    display: flex;
+    align-items: flex-start;
+    gap: var(--space-4);
+    padding: var(--space-5);
+    border-radius: var(--radius-lg);
+    border: var(--border-width) solid var(--border);
+    background: var(--bg-raised);
+    flex-wrap: wrap;
+  }
+  &__icon {
+    display: grid;
+    place-items: center;
+    width: 52px;
+    height: 52px;
+    flex: none;
+    border-radius: var(--radius-pill);
+    background: var(--accent-soft);
+    color: var(--accent);
+  }
+  &__facts {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-1);
+    flex: 1;
+    min-width: 220px;
+    strong { font-size: var(--text-lg); }
+  }
+  &__kind {
+    font-size: var(--text-xs);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--fg-subtle);
+  }
+  &__muted { color: var(--fg-muted); font-size: var(--text-sm); }
+  &__storage {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-1);
+    margin-top: var(--space-2);
+    max-width: 440px;
+  }
+  &__legend {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-1) var(--space-3);
+    font-size: var(--text-sm);
+    color: var(--fg-muted);
+
+    [data-part]::before {
+      content: "";
+      display: inline-block;
+      width: 8px;
+      height: 8px;
+      margin-right: var(--space-1);
+      border-radius: var(--radius-pill);
+      vertical-align: 1px;
+    }
+    [data-part="media"]::before { background: var(--accent); }
+    [data-part="other"]::before { background: var(--fg-muted); }
+  }
+  &__free { margin-left: auto; font-variant-numeric: tabular-nums; }
+  &__actions { display: flex; flex-direction: column; align-items: flex-end; gap: var(--space-1); }
+  // Browse… then the primary Import, side by side; a narrow window wraps them (Round 4E).
+  &__buttons { display: flex; flex-direction: row; flex-wrap: wrap; justify-content: flex-end; align-items: center; gap: var(--space-2); }
+
+  &__progress {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-2);
+    padding: var(--space-4) var(--space-5);
+    border-radius: var(--radius-lg);
+    background: var(--bg-raised);
+  }
+  &__progress-line {
+    display: flex;
+    justify-content: space-between;
+    gap: var(--space-3);
+    span { color: var(--fg-muted); font-variant-numeric: tabular-nums; }
+  }
+  &__current {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  // A Photos library: its summary card, the import's progress, and its newest squares.
+  &__library {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-3);
+  }
+
+  // The folder browser on a Mac disk: breadcrumb, what is here, and one row per folder.
+  &__browser {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-3);
+  }
+  &__crumbs {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--space-1);
+    color: var(--fg-muted);
+    span { display: inline-flex; align-items: center; gap: var(--space-1); }
+    button {
+      padding: 2px var(--space-2);
+      border-radius: var(--radius-sm);
+      color: var(--fg-muted);
+      &:hover { background: var(--bg-sunken); color: var(--fg-primary); }
+      &[aria-current="location"] { color: var(--fg-primary); font-weight: 600; }
+    }
+  }
+  &__browser-bar {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--space-3);
+    > :first-child { flex: 1; min-width: 180px; }
+  }
+  &__folders {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+    gap: var(--space-1);
+    margin: 0;
+    padding: 0;
+    list-style: none;
+    button {
+      display: flex;
+      align-items: center;
+      gap: var(--space-2);
+      width: 100%;
+      padding: var(--space-2) var(--space-3);
+      border-radius: var(--radius-md);
+      color: var(--fg-primary);
+      text-align: left;
+      transition: background var(--motion-fast) var(--ease);
+      svg { flex: none; color: var(--accent); }
+      span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+      &:hover { background: var(--bg-raised); }
+    }
+  }
+
+  &__heading {
+    margin: 0 0 var(--space-3);
+    font-size: var(--text-sm);
+    font-weight: 600;
+    color: var(--fg-muted);
+  }
+
+  // Small, square, newest first: enough to recognise the card, not a second library.
+  &__grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(128px, 1fr));
+    gap: var(--tile-gap);
+  }
+  &__thumb {
+    position: relative;
+    margin: 0;
+    aspect-ratio: 1;
+    overflow: hidden;
+    border-radius: var(--radius-sm);
+    background: var(--bg-sunken);
+
+    img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      opacity: 0;
+      transition: opacity var(--motion-base) var(--ease);
+      &[data-loaded="true"] { opacity: 1; }
+    }
+  }
+  &__more {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 2px;
+    color: var(--fg-muted);
+    strong { font-size: var(--text-xl); color: var(--fg-primary); font-variant-numeric: tabular-nums; }
+    span { font-size: var(--text-sm); }
+  }
+  button.connected-route__more {
+    border: none;
+    font: inherit;
+    cursor: pointer;
+    transition: background-color var(--motion-fast) var(--ease);
+    &:hover { background: var(--accent-soft); }
+    &:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+  }
+  &__video {
+    position: absolute;
+    right: var(--space-1);
+    bottom: var(--space-1);
+    display: grid;
+    place-items: center;
+    width: 22px;
+    height: 22px;
+    border-radius: var(--radius-pill);
+    background: var(--badge-bg);
+    color: var(--badge-fg);
+  }
+}

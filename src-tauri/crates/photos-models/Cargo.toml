@@ -1,0 +1,18 @@
+[package]
+name = "photos-models"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+license.workspace = true
+description = "The model list, the file check and the resuming download shared by Lumen and Lumen Setup"
+
+# Depends on no workspace crate: Lumen, photos-ml and Lumen Setup (installer/) all use it.
+[dependencies]
+serde.workspace = true
+serde_json.workspace = true
+sha2 = "0.10"
+reqwest = { version = "0.12", default-features = false, features = ["rustls-tls"] }
+
+[dev-dependencies]
+tempfile = "3"
+tokio = { version = "1", features = ["macros", "rt"] }

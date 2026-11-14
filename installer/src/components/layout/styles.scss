@@ -1,0 +1,51 @@
+.s-h {
+  font-size: 22px;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  margin: 0;
+  text-wrap: balance;
+}
+
+.s-lead {
+  margin: 0;
+  max-width: 46ch;
+  color: var(--fg-muted);
+  font-size: var(--text-md);
+  line-height: 1.5;
+}
+
+.s-small {
+  margin: 0;
+  color: var(--fg-subtle);
+  font-size: var(--text-xs);
+  line-height: 1.45;
+  font-variant-numeric: tabular-nums;
+}
+
+// A folder path: breaks anywhere (it has no spaces) and never widens the window.
+.s-path {
+  overflow-wrap: anywhere;
+  word-break: break-word;
+  color: var(--fg-muted);
+}
+
+.s-card {
+  @include surface(raised);
+  border-radius: var(--radius-md);
+  backdrop-filter: blur(var(--blur));
+  box-shadow: var(--shadow-sm);
+}
+
+.s-actions {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  margin-top: auto;
+}
+
+.s-spacer { margin-right: auto; }
+
+@container (max-width: 480px) {
+  .s-h { font-size: 18px; }
+  .s-lead { font-size: var(--text-sm); }
+}

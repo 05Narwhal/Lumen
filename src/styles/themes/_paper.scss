@@ -1,0 +1,55 @@
+// Paper — warm editorial, serif italic headings, generous whitespace.
+[data-theme="paper"] {
+  --bg-base: oklch(96% 0.012 80);
+  --bg-raised: oklch(99% 0.008 80);
+  --bg-sunken: oklch(92% 0.014 80);
+  --develop-stage-bg: oklch(90% 0.014 80);
+  --bg-sidebar: oklch(96% 0.012 80);
+  --bg-overlay: oklch(96% 0.012 80 / 0.92);
+  --fg-primary: oklch(20% 0.02 60);
+  --fg-muted: oklch(42% 0.02 60);
+  --fg-subtle: oklch(50% 0.018 60);
+  --fg-faint: oklch(68% 0.018 60);
+  --accent: oklch(52% 0.18 290);
+  --accent-hover: oklch(46% 0.18 290);
+  --accent-fg: oklch(100% 0 0);
+  --accent-soft: oklch(52% 0.18 290 / 0.1);
+  --border: oklch(86% 0.015 80);
+  --border-width: 1px;
+  --scrollbar-thumb: oklch(78% 0.015 80);
+  --radius-sm: 4px;
+  --radius-md: 6px;
+  --radius-lg: 10px;
+  --radius-pill: 999px;
+  --tile-gap: 8px;
+  --shadow-sm: 0 1px 2px oklch(30% 0.03 60 / 0.08);
+  --shadow-md: 0 6px 18px oklch(30% 0.03 60 / 0.1);
+  --shadow-lg: 0 20px 48px oklch(30% 0.03 60 / 0.16);
+  --blur: 0px;
+  --font-heading: var(--font-serif);
+  --heading-weight: 500;
+  --heading-style: italic;
+  --wash: none;
+}
+
+[data-theme="paper"][data-mantine-color-scheme="dark"] {
+  --bg-base: oklch(18% 0.012 80);
+  --bg-raised: oklch(22% 0.012 80);
+  --bg-sunken: oklch(14% 0.012 80);
+  --develop-stage-bg: oklch(12% 0.012 80);
+  --bg-sidebar: oklch(18% 0.012 80);
+  --bg-overlay: oklch(18% 0.012 80 / 0.92);
+  --fg-primary: oklch(94% 0.01 80);
+  --fg-muted: oklch(68% 0.012 80);
+  --fg-subtle: oklch(62% 0.012 80);
+  --fg-faint: oklch(46% 0.012 80);
+  --accent: oklch(75% 0.14 290);
+  --accent-hover: oklch(80% 0.14 290);
+  --accent-fg: oklch(18% 0.03 290);
+  --accent-soft: oklch(75% 0.14 290 / 0.14);
+  --border: oklch(28% 0.012 80);
+  --scrollbar-thumb: oklch(38% 0.012 80);
+  --shadow-sm: 0 1px 2px oklch(0% 0 0 / 0.4);
+  --shadow-md: 0 6px 18px oklch(0% 0 0 / 0.5);
+  --shadow-lg: 0 20px 48px oklch(0% 0 0 / 0.6);
+}

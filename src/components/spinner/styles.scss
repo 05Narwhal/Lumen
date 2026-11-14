@@ -1,0 +1,15 @@
+.spinner {
+  display: inline-grid;
+  place-items: center;
+  flex: none;
+
+  svg { animation: spin 0.9s linear infinite; }
+  &__track { fill: none; stroke: var(--border); stroke-width: 2; }
+  &__arc { fill: none; stroke: var(--accent); stroke-width: 2; stroke-linecap: round; }
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+:root[data-reduced-motion="true"] .spinner svg { animation-duration: 3s; }

@@ -1,0 +1,54 @@
+.app-shell {
+  display: flex;
+  height: 100%;
+  position: relative;
+
+  &__body {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+  }
+
+  &__titlebar {
+    height: var(--titlebar-h);
+    display: flex;
+    justify-content: flex-end;
+    flex: none;
+    // A screen's toolbar in the row (Develop) gets the hairline its columns meet.
+    border-bottom: var(--border-width) solid transparent;
+    transition: border-color var(--motion-base) var(--ease);
+    &[data-toolbar="true"] { border-bottom-color: var(--border); }
+  }
+  // Takes the row up to the window controls, which keep their own width: nothing a screen
+  // puts here is ever drawn under them.
+  &__toolbar {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    min-width: 0;
+    height: 100%;
+    overflow: hidden;
+  }
+
+  &__main {
+    flex: 1;
+    min-height: 0;
+    overflow: hidden; // the route container scrolls; clipping here keeps transitions scrollbar-free
+    position: relative;
+  }
+
+  &__resize {
+    position: absolute;
+    z-index: var(--z-palette);
+
+    &--north { top: 0; left: 6px; right: 6px; height: 4px; cursor: ns-resize; }
+    &--south { bottom: 0; left: 6px; right: 6px; height: 4px; cursor: ns-resize; }
+    &--west { left: 0; top: 6px; bottom: 6px; width: 4px; cursor: ew-resize; }
+    &--east { right: 0; top: 6px; bottom: 6px; width: 4px; cursor: ew-resize; }
+    &--northwest { top: 0; left: 0; width: 8px; height: 8px; cursor: nwse-resize; }
+    &--southeast { bottom: 0; right: 0; width: 8px; height: 8px; cursor: nwse-resize; }
+    &--northeast { top: 0; right: 0; width: 8px; height: 8px; cursor: nesw-resize; }
+    &--southwest { bottom: 0; left: 0; width: 8px; height: 8px; cursor: nesw-resize; }
+  }
+}

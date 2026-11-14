@@ -1,0 +1,11 @@
+# The two code examples, built together for wasm32-wasip2 (node scripts/plugins/build-examples.mjs).
+# Not part of the src-tauri workspace.
+[workspace]
+resolver = "2"
+members = ["importer-folder-notes", "tools-warmth"]
+
+[profile.release]
+opt-level = "s"
+lto = true
+strip = true
+codegen-units = 1

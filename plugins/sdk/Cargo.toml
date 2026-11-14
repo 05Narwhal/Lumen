@@ -1,0 +1,6 @@
+# Plugin SDK workspace (Round 23 D1). Its own workspace and lockfile, MIT; not a member of
+# src-tauri's workspace (which only takes crates/*), so `cargo test --workspace` there never
+# needs the wasm toolchain. Guests build with `cargo build --target wasm32-wasip2`.
+[workspace]
+resolver = "2"
+members = ["lumen-plugin"]

@@ -1,0 +1,75 @@
+// The AI button (Round 12-6): the button that starts an AI action is also its progress.
+.ai-button {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  // A row of tools can share its width out (`--ai-button-flex`, with `--ai-label-min: 0`):
+  // the row then fixes the width, so stage text still never moves the button.
+  flex: var(--ai-button-flex, none);
+  min-width: 0;
+  min-height: 28px;
+  padding: 0 10px;
+  font-size: 0.8125rem;
+  font-weight: 500;
+  color: var(--fg-primary);
+  background: var(--bg-raised);
+  border: var(--border-width) solid var(--border);
+  border-radius: var(--radius-md);
+  transition: transform var(--motion-fast) var(--ease), background-color var(--motion-fast) var(--ease);
+
+  &:hover:not(:disabled) { background: var(--bg-sunken); }
+  &:active:not(:disabled) { transform: scale(0.97); }
+  &:disabled { opacity: 0.5; cursor: not-allowed; }
+
+  &__icon { display: inline-grid; place-items: center; flex: none; }
+
+  // The idle label, invisible, sizes the box (never narrower than `--ai-label-min`); the live
+  // label floats over it and truncates, so no stage text moves the button.
+  &__box {
+    position: relative;
+    display: inline-grid;
+    min-width: var(--ai-label-min);
+    text-align: center;
+  }
+  &__twin { visibility: hidden; white-space: nowrap; height: 0; overflow: hidden; }
+  &__live { position: relative; display: block; min-height: 1.25em; }
+  &__text {
+    position: absolute;
+    inset: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-variant-numeric: tabular-nums;
+  }
+
+  // The ring: a conic gradient over the border box, masked to the border's width.
+  &::before {
+    content: "";
+    position: absolute;
+    inset: calc(-1 * var(--border-width));
+    padding: var(--ai-ring-width);
+    border-radius: inherit;
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity var(--motion-fast) var(--ease);
+    background: conic-gradient(from 0deg, var(--ai-ring) calc(var(--ai-progress, 0) * 1turn), var(--ai-ring-track) 0);
+    -webkit-mask: linear-gradient(var(--ai-mask) 0 0) content-box, linear-gradient(var(--ai-mask) 0 0);
+    -webkit-mask-composite: xor;
+    mask: linear-gradient(var(--ai-mask) 0 0) content-box exclude, linear-gradient(var(--ai-mask) 0 0);
+  }
+  &[data-busy]::before { opacity: 1; }
+
+  // Total unknown: a soft sweep along the border instead of a ring.
+  &[data-indeterminate]::before {
+    background: linear-gradient(90deg, var(--ai-ring-track) 0%, var(--ai-ring) 50%, var(--ai-ring-track) 100%) 120% 0 / 240% 100%;
+    animation: shimmer var(--ai-shimmer-duration) linear infinite;
+  }
+}
+
+// Reduced motion: no sweep; the border keeps its track and the stage text still updates.
+@media (prefers-reduced-motion: reduce) {
+  .ai-button[data-indeterminate]::before { animation: none; background: var(--ai-ring-track); }
+}
+:root[data-reduced-motion="true"] .ai-button[data-indeterminate]::before { animation: none; background: var(--ai-ring-track); }

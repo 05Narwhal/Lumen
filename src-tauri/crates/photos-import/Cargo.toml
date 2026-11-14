@@ -1,0 +1,37 @@
+[package]
+name = "photos-import"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+license.workspace = true
+description = "Lumen import sources and the ingest pipeline"
+
+[dependencies]
+photos-core = { path = "../photos-core" }
+photos-media = { path = "../photos-media" }
+photos-jobs = { path = "../photos-jobs" }
+serde.workspace = true
+serde_json.workspace = true
+thiserror.workspace = true
+tracing.workspace = true
+ts-rs.workspace = true
+chrono.workspace = true
+blake3 = "1"
+rayon = "1"
+walkdir = "2"
+tempfile = "3"
+idevice = { version = "0.1.68", default-features = false, features = ["ring", "usbmuxd", "afc", "pair"] }
+tokio = { version = "1.53.1", features = ["rt", "net", "time"] }
+plist = "1.10"
+rusqlite.workspace = true
+hfsplus = "0.3"
+apfs = "0.3"
+image = { version = "0.25", default-features = false, features = ["jpeg"] }
+
+[dev-dependencies]
+kamadak-exif = "0.6"
+hfsplus = { version = "0.3", features = ["testutil"] }
+tempfile = "3"
+
+[target.'cfg(windows)'.dependencies]
+windows-sys = { version = "0.61", features = ["Win32_Foundation", "Win32_System_IO", "Win32_System_Ioctl", "Win32_Storage_FileSystem"] }

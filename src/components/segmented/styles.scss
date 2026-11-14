@@ -1,0 +1,43 @@
+.segmented {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  padding: 2px;
+  border-radius: var(--radius-pill);
+  background: var(--bg-sunken);
+  border: var(--border-width) solid var(--border);
+
+  &__option {
+    position: relative;
+    isolation: isolate;
+    padding: 4px 12px;
+    border-radius: var(--radius-pill);
+    color: var(--fg-muted);
+    font-size: var(--text-sm);
+    font-weight: 600;
+    line-height: 1.2;
+    transition: color var(--motion-fast) var(--ease);
+
+    &:hover { color: var(--fg-primary); }
+    &[aria-checked="true"] { color: var(--accent-fg); }
+    &:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+    &:disabled { opacity: 0.4; cursor: not-allowed; }
+    &:disabled:hover { color: var(--fg-muted); }
+  }
+
+  &[data-size="xs"] &__option {
+    padding: 2px 9px;
+    font-size: var(--text-xs);
+  }
+
+  // The travelling selection. Behind the label, so the text never flickers as it passes.
+  &__pill {
+    position: absolute;
+    inset: 0;
+    z-index: -1;
+    border-radius: var(--radius-pill);
+    background: var(--accent);
+  }
+
+  &__label { position: relative; }
+}

@@ -1,0 +1,34 @@
+.codec-card {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-3);
+  padding: var(--space-3) var(--space-4);
+  border-radius: var(--radius-md);
+  border: var(--border-width) solid var(--border);
+  background: var(--bg-raised);
+
+  &[data-available="false"] { border-color: color-mix(in oklch, var(--accent) 45%, var(--border)); }
+  &[data-compact="true"] { margin: 0 var(--space-6) var(--space-4); }
+
+  &__icon { flex: none; margin-top: 2px; color: var(--accent); }
+  &[data-available="true"] &__icon { color: var(--success, var(--accent)); }
+
+  &__body {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-1);
+    strong { font-weight: 600; }
+  }
+  &__detail { color: var(--fg-muted); font-size: var(--text-sm); }
+  &__path { font-size: var(--text-xs); color: var(--fg-subtle); word-break: break-all; }
+  &__cmd {
+    align-self: flex-start;
+    padding: var(--space-1) var(--space-2);
+    border-radius: var(--radius-sm);
+    background: var(--bg-sunken);
+    font-size: var(--text-sm);
+    user-select: all;
+  }
+}

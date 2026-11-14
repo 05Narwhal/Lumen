@@ -1,0 +1,426 @@
+// Lumen visual system. Every colour, radius, shadow, duration and z-index in the
+// app is a token defined here or in the theme partials. Component stylesheets
+// only ever reference tokens.
+//
+// Documented exception: the window close button's hover red lives in
+// components/window-controls/styles.scss because every OS user expects it.
+
+@use "typography";
+@use "animations";
+@use "themes/gallery";
+@use "themes/darkroom";
+@use "themes/paper";
+@use "themes/glass";
+
+:root {
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 20px;
+  --space-6: 24px;
+  --space-7: 32px;
+  --space-8: 48px;
+
+  --titlebar-h: 38px;
+  --header-h: 56px;
+  --sidebar-w: 240px;
+  --rail-w: 56px;
+
+  // One recipe for the fade wherever content scrolls under a surface: the layer paints the
+  // page's own backdrop (`page-backdrop` mixin) and this mask dissolves its lower edge.
+  --scroll-fade-mask: linear-gradient(to bottom, oklch(0% 0 0) 55%, transparent 100%);
+  // The sidebar's list dissolves into the pinned footer below it.
+  --sidebar-fade-mask: linear-gradient(to bottom, oklch(0% 0 0) calc(100% - 40px), transparent 100%);
+  --scroll-fade-h: 56px;
+
+  // The one non-theme colour: the favorites star, a warm yellow in every theme.
+  --star: oklch(85% 0.17 90);
+
+  // Colour labels and flags (Phase 8). Fixed like the star: a red label means the same
+  // photo in every theme, and they are Lightroom's five so a round trip through XMP reads.
+  --label-red: oklch(62% 0.2 25);
+  --label-yellow: oklch(84% 0.16 92);
+  --label-green: oklch(68% 0.16 150);
+  --label-blue: oklch(62% 0.15 250);
+  --label-purple: oklch(58% 0.17 305);
+
+  // Duplicates (Round 4D): the two kinds, fixed in every theme so a badge means one thing.
+  --dup-exact: oklch(55% 0.15 250);
+  --dup-exact-fg: oklch(100% 0 0);
+  --dup-similar: oklch(80% 0.14 75);
+  --dup-similar-fg: oklch(22% 0.04 60);
+  --label-ring: oklch(100% 0 0 / 0.85);
+  --flag-pick: oklch(99% 0 0);
+  --flag-reject: var(--danger);
+  --flag-badge-bg: oklch(0% 0 0 / 0.55);
+
+  // The quick editor's guides: a light line over a dark hairline reads on any photo.
+  --edit-grid-line: oklch(100% 0 0 / 0.55);
+  --edit-grid-shade: oklch(0% 0 0 / 0.6);
+
+  // Develop (Phase 8c). Data colours, fixed like the labels: a histogram's red channel and a
+  // temperature track mean the same thing in every theme. The histogram's channels are
+  // translucent so their overlaps mix; its luminance line takes the theme's muted ink.
+  --hist-r: oklch(64% 0.2 25 / 0.5);
+  --hist-g: oklch(72% 0.17 150 / 0.5);
+  --hist-b: oklch(62% 0.17 262 / 0.55);
+  --hist-luma: var(--fg-muted);
+  --hist-clip-on: oklch(99% 0 0);
+  // Slider tracks that show what a slider does: cool to warm, green to magenta.
+  --track-temperature: linear-gradient(to right, oklch(62% 0.13 250), oklch(88% 0.02 90), oklch(78% 0.15 70));
+  --track-tint: linear-gradient(to right, oklch(68% 0.16 145), oklch(88% 0.01 0), oklch(62% 0.19 330));
+  // The HSL bands at the OKLCh hues `photos-media::develop::color::BAND_HUES` centres them on.
+  --band-red: oklch(64% 0.19 25);
+  --band-orange: oklch(72% 0.16 60);
+  --band-yellow: oklch(86% 0.16 100);
+  --band-green: oklch(70% 0.17 140);
+  --band-aqua: oklch(74% 0.12 195);
+  --band-blue: oklch(62% 0.16 262);
+  --band-purple: oklch(58% 0.17 300);
+  --band-magenta: oklch(64% 0.2 330);
+  // A colour-grading wheel: OKLab hue h sits at screen angle h (anticlockwise from the
+  // right), which CSS's clockwise-from-the-top conic reaches as 90° − h.
+  --grade-wheel: conic-gradient(
+    from 90deg,
+    oklch(70% 0.14 0),
+    oklch(70% 0.14 330),
+    oklch(70% 0.14 300),
+    oklch(70% 0.14 270),
+    oklch(70% 0.14 240),
+    oklch(70% 0.14 210),
+    oklch(70% 0.14 180),
+    oklch(70% 0.14 150),
+    oklch(70% 0.14 120),
+    oklch(70% 0.14 90),
+    oklch(70% 0.14 60),
+    oklch(70% 0.14 30),
+    oklch(70% 0.14 0)
+  );
+  --grade-wheel-fade: radial-gradient(circle, oklch(78% 0 0) 0%, oklch(78% 0 0 / 0) 72%);
+  --grade-puck: oklch(99% 0 0);
+
+  // Destructive actions read as red in every theme, for the same reason the star is
+  // always yellow: the meaning is not the theme's to reinterpret. Two shades so the
+  // colour keeps its contrast on both a light and a dark surface.
+  --danger: oklch(58% 0.19 27);
+  --danger-hover: oklch(52% 0.2 27);
+  --danger-fg: oklch(99% 0 0);
+
+  // The Library's timeline scrubber (Round 4H): a hairline track in the theme's faint ink,
+  // a thumb in its accent, and a bubble of the overlay glass with the date.
+  --scrubber-width: 20px;
+  --scrubber-track: var(--fg-faint);
+  --scrubber-thumb: var(--accent);
+  --scrubber-label: var(--fg-muted);
+  --scrubber-label-hover: var(--fg-primary);
+  --scrubber-bubble-bg: var(--bg-overlay);
+  --scrubber-bubble-fg: var(--fg-primary);
+
+  // AI buttons (Round 12-6): the button is the progress. A ring in the accent traces its
+  // border (a hairline track behind it); a shimmer sweeps the border while the total is
+  // unknown. The delay is how long an action may run before it shows anything, so a fast
+  // one never flashes. `--ai-label-min` keeps the width still between the idle label and
+  // the longest stage ("Trying looks 2/3").
+  --ai-ring: var(--accent);
+  --ai-ring-track: color-mix(in oklab, var(--accent) 18%, transparent);
+  --ai-ring-width: 2px;
+  --ai-shimmer-duration: 1.6s;
+  --ai-delay: 250ms;
+  --ai-label-min: 16ch;
+  --ai-mask: oklch(0% 0 0);
+
+  // The base map, drawn on a canvas that reads these by name. Land and water are the
+  // theme's own surfaces; relief is shadow and highlight tinted at a strength that
+  // depends on the scheme, because a shadow that reads on white vanishes on near-black.
+  --map-water: var(--bg-sunken);
+  --map-land: var(--bg-raised);
+  --map-coast: var(--fg-faint);
+  --map-border: var(--fg-faint);
+  // Album and collection icon covers (Julian's 2026-11-08 list): ten fixed swatches, the same
+  // in every theme because the colour is the person's choice, not the theme's. A custom hex is
+  // data set inline as `--cover-color`. Shade and light model the shape's folds; ink is the icon.
+  --cover-swatch-1: oklch(62% 0.19 25);
+  --cover-swatch-2: oklch(70% 0.16 55);
+  --cover-swatch-3: oklch(78% 0.14 85);
+  --cover-swatch-4: oklch(65% 0.14 150);
+  --cover-swatch-5: oklch(64% 0.1 195);
+  --cover-swatch-6: oklch(60% 0.15 250);
+  --cover-swatch-7: oklch(52% 0.17 285);
+  --cover-swatch-8: oklch(58% 0.17 320);
+  --cover-swatch-9: oklch(72% 0.13 0);
+  --cover-swatch-10: oklch(46% 0.02 260);
+  --cover-shade: oklch(0% 0 0 / 0.2);
+  --cover-light: oklch(100% 0 0 / 0.22);
+  --cover-ink: oklch(100% 0 0 / 0.94);
+  --cover-drop: drop-shadow(0 1px 2px oklch(0% 0 0 / 0.18)) drop-shadow(0 5px 9px oklch(0% 0 0 / 0.14));
+  // The paper of the fanned prints on album and collection cards: a print, not a theme surface.
+  --print-paper: oklch(98.5% 0.004 90);
+  --print-shadow: 0 1px 2px oklch(0% 0 0 / 0.18), 0 6px 14px oklch(0% 0 0 / 0.16);
+  --map-shade: oklch(0% 0 0);
+  --map-light: oklch(100% 0 0);
+  --map-shade-strength: 0.32;
+  --map-light-strength: 0.12;
+
+  // Badges over photographs (RAW, HDR, LIVE, durations, trash countdowns): dark glass
+  // with white text in every theme, because what they sit on is a photo, not the theme.
+  --badge-bg: oklch(0% 0 0 / 0.55);
+  --badge-fg: oklch(100% 0 0);
+
+  // The viewer in full screen shows photographs on true black, whatever the theme.
+  --viewer-fullscreen-bg: oklch(0% 0 0);
+
+  // The crop tool draws on the photograph: what falls outside the crop is dimmed, the
+  // frame and its thirds are white, in every theme.
+  --crop-dim: oklch(0% 0 0 / 0.55);
+  --crop-line: oklch(100% 0 0 / 0.9);
+  --crop-guide: oklch(100% 0 0 / 0.35);
+
+  // Develop's masks (Phase 8e): the weight overlay's colours (`Shift+O` cycles them; the
+  // canvas applies the weight as alpha), and the handles, drawn like the crop's.
+  --mask-overlay-red: oklch(62% 0.24 25);
+  --mask-overlay-green: oklch(72% 0.2 145);
+  --mask-overlay-blue: oklch(60% 0.2 255);
+  --mask-overlay-white: oklch(100% 0 0);
+  --mask-handle: oklch(100% 0 0 / 0.95);
+  --mask-handle-shade: oklch(0% 0 0 / 0.6);
+  // Round 19: while a mask is selected the right column is tinted with this: the edge down
+  // the panel, the pinned bar and the slider fill (`.develop-panels[data-mask-mode]`).
+  --mask-accent: var(--mask-overlay-blue);
+  --z-mask-bar: 2;
+
+  // Face boxes in the viewer (Round 4I) sit on the photograph too: a white line with a dark
+  // halo so it reads on any picture, names on the badges' dark glass.
+  --face-box-line: oklch(100% 0 0 / 0.92);
+  --face-box-halo: oklch(0% 0 0 / 0.45);
+  // Pets' boxes (Round 8B) share the layer; a warm line tells them from people's.
+  --pet-box-line: oklch(85% 0.14 75 / 0.95);
+  // Text read in a photo (Round 13-3, Live Text-like): the photo dimmed except under each
+  // line, each line outlined, and the selection over the transparent glyphs. A white sign
+  // under a white outline needs the dark halo to show its edge; the selection is the
+  // theme's accent, as a selection is everywhere else (HIG Focus and selection).
+  --photo-text-dim: oklch(0% 0 0 / 0.38);
+  --photo-text-line: oklch(100% 0 0 / 0.9);
+  --photo-text-halo: oklch(0% 0 0 / 0.6);
+  --photo-text-selection: color-mix(in oklch, var(--accent) 45%, transparent);
+
+  // Memory cards set white type on a photograph: a fade to dark at the bottom, every theme.
+  --memory-scrim: linear-gradient(to top, oklch(0% 0 0 / 0.72), oklch(0% 0 0 / 0));
+
+  --z-sidebar: 10;
+  --z-header: 20;
+  --z-overlay: 100;
+  // The window's controls over the viewer and other full-window overlays (Round 15).
+  --z-window-chrome: 150;
+  // Above Mantine's modals (200), under the palette.
+  --z-window-chrome-modal: 250;
+  // Room a full-screen modal's header leaves for the window controls (3 × 46 px).
+  --window-controls-w: 138px;
+  --z-toast: 200;
+  --z-palette: 300;
+
+  // Minimize / maximize / close; macOS keeps its traffic lights (Round 15).
+  --window-controls-w: 138px;
+
+  color-scheme: light dark;
+}
+
+:root[data-mac="true"] {
+  --window-controls-w: 0px;
+}
+
+[data-mantine-color-scheme="dark"] {
+  --map-shade-strength: 0.6;
+  --map-light-strength: 0.22;
+  // Prints stay paper-white but do not glare off a dark page.
+  --print-paper: oklch(92% 0.006 90);
+  --print-shadow: 0 1px 2px oklch(0% 0 0 / 0.4), 0 8px 18px oklch(0% 0 0 / 0.38);
+}
+
+*, *::before, *::after { box-sizing: border-box; }
+
+html, body, #root { height: 100%; margin: 0; }
+
+body {
+  @include page-backdrop;
+  overflow: hidden;
+  user-select: none;
+}
+
+img, video { max-width: 100%; display: block; }
+button, input, select, textarea { font: inherit; color: inherit; }
+button { background: none; border: 0; padding: 0; cursor: pointer; }
+a { color: var(--accent); text-decoration: none; }
+
+:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+  border-radius: var(--radius-sm);
+}
+
+// Scrollbars: thin, floating, themed (A5). Firefox/WebKitGTK use scrollbar-color; WebKit/Chromium the pseudo-elements.
+* { scrollbar-width: thin; scrollbar-color: var(--scrollbar-thumb) transparent; }
+::-webkit-scrollbar { width: 8px; height: 8px; }
+::-webkit-scrollbar-thumb {
+  background: var(--scrollbar-thumb);
+  border: 2px solid transparent;
+  background-clip: padding-box;
+  border-radius: var(--radius-pill);
+  &:hover { background-color: var(--fg-faint); }
+}
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-corner { background: transparent; }
+
+.route-transition {
+  height: 100%;
+  overflow-y: auto;
+  overflow-x: hidden;
+  scrollbar-gutter: stable;
+}
+// A screen that fills the window and scrolls inside its own panes (Develop): no scroller and
+// no reserved gutter around it, or a pixel's overshoot adds a second scrollbar (Round 4J).
+.route-transition--fixed {
+  overflow: hidden;
+  scrollbar-gutter: auto;
+}
+
+// Buttons: a quick press response everywhere, from one place. Hover only tints (Mantine's own
+// hover colour): a button that rises under every pass of the pointer is motion on the most
+// frequent interaction there is (HIG Motion › Providing feedback). The press stays: it is
+// brief, and it answers something the person did.
+.mantine-Button-root,
+.mantine-ActionIcon-root {
+  transition: transform var(--motion-fast) var(--ease), background-color var(--motion-fast) var(--ease),
+    color var(--motion-fast) var(--ease);
+  &:active:not(:disabled) { transform: scale(0.97); }
+}
+// Mantine moves the switch thumb by flipping `--switch-thumb-start`, which animates
+// `inset-inline-start` — a layout property, on the main thread. That animation is the
+// first thing dropped when the grid is decoding images, which is why the thumb reads as
+// instant. We pin the inset and move the thumb with a transform instead: the compositor
+// runs it, so it cannot be starved. Colours come from our accent while we are here.
+.mantine-Switch-track {
+  transition: background-color var(--motion-base) var(--ease), border-color var(--motion-base) var(--ease);
+  background-color: var(--bg-sunken);
+  border: var(--border-width) solid var(--border);
+}
+.mantine-Switch-input:checked + .mantine-Switch-track {
+  background-color: var(--accent);
+  border-color: var(--accent);
+}
+// Specificity is deliberate: Mantine's own thumb rule has the same weight as a single
+// class, so a plain `.mantine-Switch-thumb` selector only wins while our stylesheet
+// happens to be concatenated after theirs. Scoping to the root outranks it outright, so
+// the transition survives however the bundler orders CSS. Every var carries the value
+// Mantine would have given it as a fallback: without one, an unresolved var makes the
+// whole `transform` invalid and the thumb silently stops moving at all.
+.mantine-Switch-root .mantine-Switch-thumb {
+  // LTR only, which the app is: a transform has no logical-direction form.
+  inset-inline-start: var(--switch-track-label-padding, 3px);
+  transform: translateX(0);
+  transition: transform var(--motion-base) var(--ease), background-color var(--motion-base) var(--ease);
+  will-change: transform;
+  background-color: var(--fg-muted);
+}
+.mantine-Switch-root .mantine-Switch-input:checked + * > .mantine-Switch-thumb {
+  background-color: var(--accent-fg);
+  transform: translateX(
+    calc(var(--switch-width, 46px) - var(--switch-thumb-size, 18px) - var(--switch-track-label-padding, 3px) * 2)
+  );
+}
+// A press squashes the thumb along its travel, so the control feels physical.
+.mantine-Switch-root:active .mantine-Switch-thumb { scale: 0.92 1; }
+
+// The segmented control's indicator, for the same reason: our duration must outrank
+// Mantine's regardless of stylesheet order, or the S/M/L pill jumps.
+.mantine-SegmentedControl-root .mantine-SegmentedControl-indicator {
+  transition: transform var(--motion-slow) var(--ease), width var(--motion-slow) var(--ease),
+    height var(--motion-slow) var(--ease);
+  will-change: transform;
+}
+.mantine-SegmentedControl-root .mantine-SegmentedControl-label {
+  transition: color var(--motion-base) var(--ease);
+}
+
+// Every floating surface (modal, popover, menu, tooltip body) must be opaque enough to
+// read over the grid. The Glass theme's `--bg-raised` is deliberately translucent, so the
+// tint is composited over the opaque base instead of replacing it.
+.mantine-Modal-content,
+.mantine-Popover-dropdown,
+.mantine-Menu-dropdown {
+  background-color: var(--bg-base);
+  background-image: linear-gradient(var(--bg-raised), var(--bg-raised));
+  backdrop-filter: blur(var(--blur));
+  border: var(--border-width) solid var(--border);
+  box-shadow: var(--shadow-lg);
+}
+// Capped to the room left in the window (`FLOATING_MIDDLEWARES.size`), a long one scrolls.
+.mantine-Popover-dropdown,
+.mantine-Menu-dropdown,
+.mantine-Combobox-dropdown { overflow-y: auto; overscroll-behavior: contain; }
+.mantine-Modal-header { background: transparent; }
+// A scrim dark enough to separate the dialog from the library behind it, in every theme.
+.mantine-Modal-overlay,
+.mantine-ModalBase-overlay { background-color: oklch(0% 0 0 / 0.45); }
+
+:root[data-reduced-motion="true"] {
+  .mantine-SegmentedControl-indicator,
+  .mantine-SegmentedControl-root .mantine-SegmentedControl-indicator,
+  .mantine-Switch-track,
+  .mantine-Switch-root .mantine-Switch-thumb {
+    transition-duration: 0ms !important;
+  }
+}
+
+// Reduce Transparency (HIG Materials, Accessibility): every frosted surface becomes solid.
+// The blur goes, Glass's translucent surfaces get opaque twins, and
+// the overlay tint (the viewer, the drop zone, Quick Look) stops letting the library through.
+// The selector outweighs the theme blocks, so the order the partials load in cannot matter.
+@media (prefers-reduced-transparency: reduce) {
+  :root[data-theme][data-mantine-color-scheme] {
+    --blur: 0px;
+    --bg-overlay: var(--bg-base);
+  }
+  .mantine-Modal-overlay,
+  .mantine-ModalBase-overlay { backdrop-filter: none !important; }
+  // Glass's translucent surfaces, solid. Lightness matches what each layer averages to over the
+  // base, so nothing changes weight; it only stops showing what is behind it.
+  :root[data-theme="glass"][data-mantine-color-scheme] {
+    --bg-raised: oklch(98.5% 0.004 260);
+    --bg-sidebar: oklch(97.5% 0.007 260);
+    --develop-stage-bg: oklch(90% 0.014 260);
+    --border: oklch(88% 0.014 260);
+  }
+  :root[data-theme="glass"][data-mantine-color-scheme="dark"] {
+    --bg-raised: oklch(26% 0.02 260);
+    --bg-sidebar: oklch(24% 0.02 260);
+    --develop-stage-bg: oklch(14% 0.02 260);
+    --border: oklch(32% 0.02 260);
+  }
+}
+
+// Increase Contrast (HIG Color, Accessibility): the quieter inks and the hairlines move toward
+// the primary ink, so secondary text, separators and control edges read without hunting.
+// Mixed from other tokens, never from themselves, so no theme needs a second palette.
+@media (prefers-contrast: more) {
+  :root[data-theme][data-mantine-color-scheme] {
+    --fg-muted: color-mix(in oklch, var(--fg-primary) 82%, var(--bg-base));
+    --fg-subtle: color-mix(in oklch, var(--fg-primary) 68%, var(--bg-base));
+    --fg-faint: color-mix(in oklch, var(--fg-primary) 50%, var(--bg-base));
+    --border: color-mix(in oklch, var(--fg-primary) 45%, var(--bg-base));
+    --scrollbar-thumb: color-mix(in oklch, var(--fg-primary) 50%, var(--bg-base));
+    // Text in photos: a solid outline over a deeper dim.
+    --photo-text-line: oklch(100% 0 0);
+    --photo-text-dim: oklch(0% 0 0 / 0.55);
+  }
+}
+
+// Round 22 lane B: the Repair page's health bar. No status tokens existed for "missing or
+// changed" or "recovered"; can't-be-opened is --danger. Healthy is a fixed green: the accent is amber in
+// Darkroom and would read as "missing".
+:root {
+  --health-ok: oklch(70% 0.14 150);
+  --health-bad: var(--danger);
+  --health-missing: oklch(74% 0.15 75);
+  --health-recovered: oklch(68% 0.12 235);
+}

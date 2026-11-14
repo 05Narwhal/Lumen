@@ -1,0 +1,183 @@
+name: Release
+
+# Runs when a version tag is pushed (`git tag v26.2.0-alpha && git push origin v26.2.0-alpha`). The
+# tag's version must already be in package.json, tauri.conf.json and docs/CHANGELOG.md
+# (`node scripts/release/set-version.mjs`). Builds Windows, macOS (universal) and Linux (AppImage
+# and deb) into a draft release, publishes it, then points the update channels at it.
+#
+# Secrets (Settings → Secrets and variables → Actions). A fork without them still builds; the
+# features they switch on are hidden:
+#   TAURI_SIGNING_PRIVATE_KEY, TAURI_SIGNING_PRIVATE_KEY_PASSWORD  signs the updater artefacts
+#   LUMEN_PLUGIN_PUBKEY                                            the "From JL Studios" plugin key
+#   LUMEN_DISCORD_CLIENT_ID                                        the opt-in Discord status
+
+on:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: write
+
+concurrency:
+  group: release-${{ github.ref_name }}
+  cancel-in-progress: false
+
+env:
+  # The exact source of the FFmpeg build Lumen ships, uploaded once per FFmpeg build.
+  FFMPEG_SOURCES_TAG: ffmpeg-sources-n9.0.2-47
+
+jobs:
+  ffmpeg-sources:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - name: Upload the FFmpeg source bundle once
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          if gh release view "$FFMPEG_SOURCES_TAG" >/dev/null 2>&1; then
+            echo "$FFMPEG_SOURCES_TAG already exists; nothing to upload."
+          else
+            node scripts/release/ffmpeg-sources.mjs "$FFMPEG_SOURCES_TAG"
+          fi
+
+  notes:
+    runs-on: ubuntu-latest
+    outputs:
+      body: ${{ steps.notes.outputs.body }}
+      prerelease: ${{ steps.notes.outputs.prerelease }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - id: notes
+        env:
+          TAG: ${{ github.ref_name }}
+        run: |
+          version="${TAG#v}"
+          node --input-type=module -e '
+            import { readFileSync, appendFileSync } from "node:fs";
+            import { notesFor } from "./scripts/release/release.mjs";
+            const version = process.argv[1];
+            const section = notesFor(readFileSync("docs/CHANGELOG.md", "utf8"), version);
+            if (!section) { console.error(`docs/CHANGELOG.md has no section for ${version}`); process.exit(1); }
+            const body = [
+              section, "",
+              "**Unsigned.** Windows SmartScreen will warn when you open the installer: choose *More info* → *Run anyway*.",
+              "macOS builds are not notarized: right-click the app and choose *Open* the first time.",
+              "",
+              "The exact source of the FFmpeg build is the release `" + process.env.FFMPEG_SOURCES_TAG + "`; every other source is this tag.",
+            ].join("\n");
+            appendFileSync(process.env.GITHUB_OUTPUT, "body<<LUMEN_NOTES_EOF\n" + body + "\nLUMEN_NOTES_EOF\n");
+            appendFileSync(process.env.GITHUB_OUTPUT, "prerelease=" + (version.endsWith("-stable") ? "false" : "true") + "\n");
+          ' "$version"
+
+  build:
+    needs: [ffmpeg-sources, notes]
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: windows-latest
+            args: ""
+          - os: macos-latest
+            args: "--target universal-apple-darwin"
+          - os: ubuntu-22.04
+            args: ""
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: yarn
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.os == 'macos-latest' && 'aarch64-apple-darwin,x86_64-apple-darwin' || '' }}
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: src-tauri
+      - if: runner.os == 'Linux'
+        run: sudo apt-get update && sudo apt-get install -y libwebkit2gtk-4.1-dev libappindicator3-dev librsvg2-dev patchelf
+      - run: yarn install --frozen-lockfile
+
+      # FFmpeg and ffprobe are sidecars. On Windows they must be the build whose source the
+      # release carries: taken from the FFmpeg source release when its assets include them, else
+      # fetched, and in both cases checked against the hash recorded in sources.json.
+      - name: FFmpeg sidecars (Windows)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release download $env:FFMPEG_SOURCES_TAG --pattern '*-x86_64-pc-windows-msvc.exe' --dir src-tauri/binaries
+          if (-not (Test-Path src-tauri/binaries/ffmpeg-x86_64-pc-windows-msvc.exe)) {
+            Write-Host "The source release has no FFmpeg binary; fetching one."
+            pwsh scripts/fetch-ffmpeg.ps1
+          }
+          pwsh scripts/fetch-exiftool.ps1
+          $want = (Get-Content scripts/release/sources.json -Raw | ConvertFrom-Json).ffmpeg.sidecarSha256
+          $have = (Get-FileHash src-tauri/binaries/ffmpeg-x86_64-pc-windows-msvc.exe -Algorithm SHA256).Hash.ToLower()
+          if ($want -and $have -ne $want.ToLower()) {
+            throw "ffmpeg-x86_64-pc-windows-msvc.exe is not the build the source release describes ($have, expected $want). Upload that exact binary to the release $env:FFMPEG_SOURCES_TAG."
+          }
+      - name: FFmpeg sidecars (macOS, Linux)
+        if: runner.os != 'Windows'
+        run: |
+          bash scripts/fetch-ffmpeg.sh
+          if [ "$RUNNER_OS" = "macOS" ]; then
+            # tauri's universal build looks for the -universal- name; the fetched build serves both.
+            for bin in ffmpeg ffprobe; do
+              src=$(ls src-tauri/binaries/$bin-*-apple-darwin | head -n 1)
+              cp "$src" "src-tauri/binaries/$bin-universal-apple-darwin"
+            done
+          fi
+      - name: Windows signing
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          # SignPath Foundation signing is wired here once the project is approved (it signs the
+          # installer, so the updater signature is made after it). Until then the build is unsigned
+          # and the release notes say so.
+          Write-Host "Windows code signing is not configured: this installer is unsigned."
+
+      - uses: tauri-apps/tauri-action@v0
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
+          LUMEN_PLUGIN_PUBKEY: ${{ secrets.LUMEN_PLUGIN_PUBKEY }}
+          LUMEN_DISCORD_CLIENT_ID: ${{ secrets.LUMEN_DISCORD_CLIENT_ID }}
+        with:
+          projectPath: .
+          tagName: ${{ github.ref_name }}
+          releaseName: Lumen ${{ github.ref_name }}
+          releaseBody: ${{ needs.notes.outputs.body }}
+          releaseDraft: true
+          prerelease: ${{ needs.notes.outputs.prerelease == 'true' }}
+          args: ${{ matrix.args }} --config src-tauri/tauri.release.conf.json
+
+  publish:
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - name: Publish the draft and point the update channels at it
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ github.ref_name }}
+        run: |
+          version="${TAG#v}"
+          dir="$(mktemp -d)"
+          gh release download "$TAG" --pattern '*-setup.exe' --pattern '*-setup.exe.sig' --dir "$dir"
+          installer="$(basename "$(ls "$dir"/*-setup.exe | head -n 1)")"
+          gh release edit "$TAG" --draft=false
+          node scripts/release/channels.mjs "$version" "$installer" "$dir/$installer.sig"

@@ -1,0 +1,16 @@
+id = "example.theme-nord"
+name = "Nord (example theme)"
+version = "1.0.0"
+author = "JL Studios"
+description = "Arctic blues on slate: an example theme on Darkroom with light and dark colours and a heading font."
+license = "MIT"
+lumen = ">=26.2.0"
+api = 1
+
+[[themes]]
+file = "themes/nord.toml"
+
+# The heading font is Fraunces (SIL OFL 1.1); its licence text is in assets/fonts/OFL.txt.
+[[assets]]
+path = "assets/fonts/fraunces-latin-wght-normal.woff2"
+license = "OFL-1.1"

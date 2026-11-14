@@ -1,0 +1,19 @@
+.health-banner {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-4);
+  background: var(--bg-raised);
+  border-bottom: var(--border-width) solid var(--border);
+  color: var(--fg-primary);
+  font-size: 13px;
+
+  &[data-state="stuck"] {
+    box-shadow: inset 3px 0 0 var(--danger);
+  }
+
+  &__text {
+    flex: 1;
+    min-width: 0;
+  }
+}

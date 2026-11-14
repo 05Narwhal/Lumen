@@ -1,0 +1,39 @@
+.collection-picker {
+  border: var(--border-width) solid var(--border);
+  border-radius: var(--radius-lg) !important;
+  box-shadow: var(--shadow-lg);
+
+  &__header { background: transparent !important; }
+  &__body { display: flex; flex-direction: column; gap: var(--space-3); }
+
+  &__list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    max-height: 320px;
+    overflow: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+
+  &__row {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+    padding: var(--space-2);
+    // Nested collections step in under their parent.
+    padding-left: calc(var(--space-2) + var(--depth, 0) * var(--space-4));
+    border-radius: var(--radius-md);
+    color: var(--fg-muted);
+    text-align: left;
+    transition: background var(--motion-fast) var(--ease);
+    &:hover { background: var(--accent-soft); }
+  }
+
+  &__name { flex: 1; font-weight: 500; color: var(--fg-primary); @include truncate; }
+  &__empty { color: var(--fg-muted); font-size: var(--text-sm); padding: var(--space-2); }
+  &__new { display: flex; gap: var(--space-2); }
+  &__add { align-self: flex-start; }
+}

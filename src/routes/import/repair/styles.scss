@@ -1,0 +1,182 @@
+// Import → Repair (Round 22 B4, layout C): one column, three blocks. Sits inside the Import page's body.
+.repair {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  min-width: 0;
+  // The Import page has no narrower-column token; its body caps at 1320 px, this page reads at about 820.
+  width: min(820px, 100%);
+}
+
+// ---- Health card ----
+.repair-health {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  padding: var(--space-4);
+  @include surface(raised);
+
+  &__head { display: flex; align-items: center; justify-content: space-between; gap: var(--space-3); }
+  &__title { font-size: var(--text-lg); font-weight: 600; font-variant-numeric: tabular-nums; }
+
+  &__bar {
+    display: flex;
+    gap: 2px;
+    height: 10px;
+    overflow: hidden;
+    border-radius: var(--radius-pill);
+    background: var(--bg-sunken);
+    > span { min-width: 3px; flex-basis: 0; }
+    > [data-part="healthy"] { background: var(--health-ok); }
+    > [data-part="unreadable"] { background: var(--health-bad); }
+    > [data-part="missing"] { background: var(--health-missing); }
+    > [data-part="recovered"] { background: var(--health-recovered); }
+    &--progress > span { display: block; flex: none; height: 100%; background: var(--accent); transition: width var(--motion-fast) var(--ease); }
+  }
+
+  &__legend {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-1) var(--space-4);
+    margin: 0;
+    padding: 0;
+    list-style: none;
+    color: var(--fg-muted);
+    font-size: var(--text-sm);
+    li { display: flex; align-items: center; gap: var(--space-1); }
+    b { color: var(--fg-primary); font-weight: 500; font-variant-numeric: tabular-nums; }
+    i { width: 8px; height: 8px; border-radius: var(--radius-pill); background: var(--fg-faint); }
+    [data-part="healthy"] i { background: var(--health-ok); }
+    [data-part="unreadable"] i { background: var(--health-bad); }
+    [data-part="missing"] i { background: var(--health-missing); }
+    [data-part="recovered"] i { background: var(--health-recovered); }
+  }
+  &__line { margin: 0; color: var(--fg-muted); font-size: var(--text-sm); @include truncate; }
+}
+
+// ---- Check against ----
+.repair-sources {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  h2 { margin: 0; font-size: var(--text-sm); font-weight: 500; color: var(--fg-muted); }
+  &__chips { display: flex; flex-wrap: wrap; gap: var(--space-2); }
+}
+
+// A chip is a pill button; the same pill is the list card's tab.
+.repair-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  padding: var(--space-1) var(--space-3);
+  border: var(--border-width) solid var(--border);
+  border-radius: var(--radius-pill);
+  background: transparent;
+  color: var(--fg-primary);
+  font: inherit;
+  font-size: var(--text-sm);
+  cursor: pointer;
+  small { color: var(--fg-muted); font-size: var(--text-xs); }
+  &:hover:not(:disabled) { border-color: var(--accent); }
+  &:disabled { color: var(--fg-faint); cursor: default; }
+  &[aria-pressed="true"] { border-color: var(--accent); background: var(--accent-soft); color: var(--accent); }
+}
+
+// ---- List card ----
+.repair-list,
+.repair-result {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  min-width: 0;
+  padding: var(--space-3) var(--space-4);
+  @include surface(raised);
+
+  &__head { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--space-2) var(--space-3); }
+  &__chips { display: flex; flex-wrap: wrap; gap: var(--space-2); }
+  &__causes { color: var(--fg-muted); font-size: var(--text-xs); margin-left: auto; }
+  &__none { margin: 0; color: var(--fg-muted); font-size: var(--text-sm); }
+  &__foot, &__bulk { display: flex; flex-wrap: wrap; gap: var(--space-2); justify-content: flex-end; }
+  &--empty { align-items: flex-start; p { margin: 0; font-size: var(--text-lg); } }
+}
+
+.repair-result {
+  &__crumb { align-self: flex-start; padding: 0; border: 0; background: none; color: var(--accent); font: inherit; font-size: var(--text-sm); cursor: pointer; }
+  &__verdict {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: var(--space-1) var(--space-3);
+    strong { font-weight: 500; }
+    span { color: var(--fg-muted); font-size: var(--text-sm); }
+  }
+  &__imported { display: flex; flex-direction: column; gap: var(--space-1); font-size: var(--text-sm); ul { margin: 0; padding-left: var(--space-4); color: var(--fg-muted); } }
+  &__actions { display: flex; align-items: center; justify-content: space-between; gap: var(--space-3); }
+  &__hint { color: var(--fg-muted); font-size: var(--text-sm); }
+}
+
+// ---- Rows ----
+.repair-rows {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  border-top: var(--border-width) solid var(--border);
+}
+.repair-row {
+  display: grid;
+  grid-template-columns: auto 40px minmax(0, 1fr) minmax(0, 12rem) auto;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-2) 0;
+  font-size: var(--text-sm);
+  + .repair-row { border-top: var(--border-width) solid var(--border); }
+
+  // Outcome and history rows have no checkbox or thumbnail; the recovered rows have no checkbox.
+  &--outcome { grid-template-columns: minmax(0, 1fr) minmax(0, 14rem) auto; }
+  &--source { grid-template-columns: auto minmax(0, 1fr) auto minmax(0, 11rem) auto; }
+  &--recovered { grid-template-columns: 40px minmax(0, 1fr) auto auto; }
+
+  &__thumb {
+    display: grid;
+    place-items: center;
+    width: 40px;
+    height: 40px;
+    overflow: hidden;
+    padding: 0;
+    border: 0;
+    border-radius: var(--radius-sm);
+    background: var(--bg-sunken);
+    color: var(--fg-faint);
+    img { width: 100%; height: 100%; object-fit: cover; }
+    &--button { cursor: zoom-in; }
+  }
+  &__main {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+    strong { font-weight: 500; @include truncate; }
+    small { color: var(--fg-muted); font-size: var(--text-xs); font-variant-numeric: tabular-nums; @include truncate; }
+  }
+  &__size { color: var(--fg-muted); white-space: nowrap; font-variant-numeric: tabular-nums; }
+  &__cause { color: var(--fg-muted); @include truncate; }
+  &__acts { display: flex; gap: var(--space-2); }
+  &[data-outcome="failed"] &__cause,
+  &[data-outcome="sourceDamaged"] &__cause,
+  &[data-status="sourceDamaged"] &__cause,
+  &[data-status="damaged"] &__cause { color: var(--danger); }
+
+  // The recovered file, larger, under its row.
+  &__big {
+    grid-column: 1 / -1;
+    img, video { display: block; max-width: 100%; max-height: 420px; margin: 0 auto; border-radius: var(--radius-sm); }
+  }
+
+  // Narrow window: the cause drops under the name.
+  @media (max-width: 760px) {
+    grid-template-columns: auto 40px minmax(0, 1fr) auto;
+    &__cause { grid-column: 3 / -1; }
+    &--outcome { grid-template-columns: minmax(0, 1fr) auto; }
+    &--source { grid-template-columns: auto minmax(0, 1fr) auto; }
+    &--recovered { grid-template-columns: 40px minmax(0, 1fr) auto auto; }
+  }
+}

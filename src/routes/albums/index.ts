@@ -1,0 +1,1 @@
+export { AlbumsRoute } from "./gui";

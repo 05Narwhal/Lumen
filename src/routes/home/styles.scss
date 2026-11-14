@@ -1,0 +1,211 @@
+.home-route {
+  display: flex;
+  flex-direction: column;
+  min-height: 100%;
+  padding-bottom: var(--space-6);
+
+  // The page's own width decides the layout, not the window's (the sidebar takes a share).
+  &__content { display: flex; flex-direction: column; gap: var(--space-7); padding: 0 var(--space-6); container: home / inline-size; }
+  &__section { display: flex; flex-direction: column; gap: var(--space-3); }
+  &__muted { margin: 0; color: var(--fg-muted); }
+
+  &__batch-head { display: flex; align-items: center; justify-content: space-between; h3 { font-size: var(--text-md); } }
+
+  // What needs attention: one wrapping line of pills.
+  &__attention { display: flex; flex-wrap: wrap; gap: var(--space-2); }
+  &__pill {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-2);
+    min-height: 32px;
+    padding: 0 var(--space-3);
+    border-radius: var(--radius-pill);
+    border: var(--border-width) solid var(--border);
+    background: var(--bg-raised);
+    color: var(--fg-primary);
+    font-size: var(--text-sm);
+    font-weight: 500;
+    transition: box-shadow var(--motion-fast) var(--ease), border-color var(--motion-fast) var(--ease);
+    svg { color: var(--accent); flex: none; }
+    &:hover { border-color: var(--accent); box-shadow: var(--shadow-sm); }
+  }
+
+  // Hero and the memories beside it.
+  &__memories { display: grid; grid-template-columns: minmax(0, 1fr); gap: var(--space-4); }
+  &__beside { display: flex; flex-direction: column; gap: var(--space-2); min-width: 0; }
+  &__beside-list {
+    display: grid;
+    grid-auto-flow: column;
+    grid-auto-columns: minmax(200px, 30%);
+    gap: var(--space-3);
+    overflow-x: auto;
+    padding-bottom: var(--space-1);
+    scroll-snap-type: x mandatory;
+    scrollbar-width: none;
+    &::-webkit-scrollbar { display: none; }
+  }
+  &__beside-item { scroll-snap-align: start; }
+  &__beside-all { align-self: flex-end; }
+
+  @container home (min-width: 900px) {
+    &__memories { grid-template-columns: minmax(0, 1fr) clamp(220px, 24%, 320px); }
+    &__beside-list { grid-auto-flow: row; grid-auto-columns: auto; grid-template-columns: minmax(0, 1fr); flex: 1; overflow: visible; align-content: start; }
+    &__beside-item:nth-child(n + 3) { display: none; }
+  }
+
+  // Continue: up to three cards.
+  &__cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: var(--space-4); }
+  &__card {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-3);
+    min-width: 0;
+    padding: var(--space-4);
+    border-radius: var(--radius-lg);
+    border: var(--border-width) solid var(--border);
+    background: var(--bg-raised);
+  }
+  &__card-head { display: flex; align-items: flex-start; justify-content: space-between; gap: var(--space-3); h3 { font-size: var(--text-md); } }
+  &__card-sub { font-size: var(--text-sm); color: var(--fg-muted); font-variant-numeric: tabular-nums; }
+  &__thumbs { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: var(--space-1); }
+  &__thumbs &__thumb { width: auto; height: auto; aspect-ratio: 1; }
+  &__albums { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: var(--space-3); }
+  &__album { display: flex; flex-direction: column; gap: 2px; min-width: 0; color: var(--fg-primary); }
+  &__album-cover {
+    position: relative;
+    aspect-ratio: 1;
+    margin-bottom: var(--space-1);
+    border-radius: var(--radius-md);
+    background: var(--bg-sunken);
+    color: var(--fg-faint);
+    display: grid;
+    place-items: center;
+    &[data-look] { background: transparent; }
+    &:not([data-look]) { overflow: hidden; }
+  }
+  &__album-name { font-weight: 600; font-size: var(--text-md); @include truncate; }
+
+  // Your library at a glance: faces and places, two columns when the page is wide.
+  &__glance { display: grid; grid-template-columns: minmax(0, 1fr); gap: var(--space-7); &:empty { display: none; } }
+  @container home (min-width: 1100px) {
+    &__glance { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: var(--space-6); }
+  }
+  &__half { display: flex; flex-direction: column; gap: var(--space-3); min-width: 0; }
+  &__faces { display: flex; gap: var(--space-3); overflow-x: auto; scrollbar-width: thin; padding-bottom: var(--space-1); }
+  &__face {
+    display: flex;
+    flex: none;
+    flex-direction: column;
+    align-items: center;
+    gap: var(--space-1);
+    width: 72px;
+    text-align: center;
+    color: var(--fg-primary);
+    img, > span:first-child { width: 56px; height: 56px; border-radius: 50%; object-fit: cover; background: var(--bg-sunken); }
+    [data-pet="true"] { border-radius: var(--radius-md); }
+    &:hover img, &:hover > span:first-child { box-shadow: var(--shadow-md); }
+  }
+  &__face-name { width: 100%; font-size: var(--text-sm); font-weight: 500; @include truncate; }
+  &__places { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: var(--space-3); }
+  &__place { display: flex; flex-direction: column; gap: 2px; min-width: 0; color: var(--fg-primary); }
+  &__place-media {
+    display: block;
+    aspect-ratio: 11 / 6;
+    margin-bottom: var(--space-1);
+    border-radius: var(--radius-md);
+    overflow: hidden;
+    background: var(--bg-sunken);
+    img, canvas { width: 100%; height: 100%; object-fit: cover; display: block; }
+  }
+  &__place:hover &__place-media { box-shadow: var(--shadow-md); }
+
+  &__devices { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: var(--space-3); }
+  &__devices-more { overflow: hidden; > .home-route__devices { padding-top: var(--space-3); } }
+  &__devices-toggle { margin-top: var(--space-2); align-self: flex-start; }
+  &__device {
+    display: grid;
+    grid-template-columns: auto 1fr;
+    grid-template-rows: auto auto;
+    column-gap: var(--space-3);
+    align-items: center;
+    padding: var(--space-3) var(--space-4);
+    border-radius: var(--radius-md);
+    border: var(--border-width) solid var(--border);
+    background: var(--bg-raised);
+    color: var(--fg-primary);
+    transition: transform var(--motion-fast) var(--ease), box-shadow var(--motion-fast) var(--ease);
+    svg { grid-row: span 2; color: var(--accent); }
+    &:hover { transform: translateY(-1px); box-shadow: var(--shadow-md); }
+  }
+  &__device-name { font-weight: 600; @include truncate; }
+  &__device-sub { font-size: var(--text-sm); color: var(--fg-muted); }
+
+  &__star { color: var(--star); vertical-align: -2px; }
+
+  &__strip {
+    display: flex;
+    gap: var(--tile-gap);
+    overflow-x: auto;
+    padding-bottom: var(--space-1);
+    scrollbar-width: thin;
+  }
+
+  &__thumb {
+    flex: none;
+    width: 120px;
+    height: 120px;
+    border-radius: var(--radius-sm);
+    overflow: hidden;
+    background: var(--bg-sunken);
+    transition: transform var(--motion-fast) var(--ease), box-shadow var(--motion-fast) var(--ease);
+    img { width: 100%; height: 100%; object-fit: cover; }
+    &:hover { transform: translateY(-2px); box-shadow: var(--shadow-md); }
+  }
+
+  &__stats { margin: 0; color: var(--fg-muted); font-size: var(--text-sm); font-variant-numeric: tabular-nums; }
+}
+
+// The hero: a photograph with type over it. The scrim is a token and the text always light.
+.home-hero {
+  position: relative;
+  // A definite width, or the minimum height and the ratio together would widen it past the page.
+  width: 100%;
+  min-width: 0;
+  min-height: 260px;
+  max-height: 420px;
+  aspect-ratio: 21 / 9;
+  overflow: hidden;
+  border-radius: var(--radius-lg);
+  background: var(--bg-sunken);
+  box-shadow: var(--shadow-sm);
+
+  &--reserved { box-shadow: none; }
+
+  &__img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+  &__link {
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    &:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
+  }
+  &__text {
+    position: absolute;
+    inset: auto 0 0 0;
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-1);
+    padding: var(--space-8) var(--space-6) var(--space-5);
+    background: var(--memory-scrim);
+    color: var(--badge-fg);
+    pointer-events: none; // the whole hero is the link; only the buttons catch clicks
+  }
+  &__kicker { font-size: var(--text-sm); font-weight: 600; letter-spacing: 0.04em; text-transform: uppercase; opacity: 0.85; }
+  &__title { margin: 0; font-size: var(--text-2xl); line-height: 1.15; color: inherit; }
+  &__sub { font-size: var(--text-md); opacity: 0.85; }
+  &__actions { display: flex; gap: var(--space-2); margin-top: var(--space-2); pointer-events: auto; }
+}
+
+@container home (min-width: 900px) {
+  // The row is as tall as the memories beside it; the hero fills it.
+  .home-hero { aspect-ratio: auto; max-height: none; height: 100%; }
+}

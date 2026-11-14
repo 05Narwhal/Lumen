@@ -1,0 +1,12 @@
+<x:xmpmeta xmlns:x="adobe:ns:meta/">
+ <rdf:RDF xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#">
+  <rdf:Description xmlns:crs="http://ns.adobe.com/camera-raw-settings/1.0/"
+   crs:PresetType="Normal"
+   crs:Name="Soft warm (Lightroom)"
+   crs:Contrast2012="+15"
+   crs:Highlights2012="-20"
+   crs:Shadows2012="+15"
+   crs:Vibrance="+10"
+   crs:GrainAmount="20"/>
+ </rdf:RDF>
+</x:xmpmeta>

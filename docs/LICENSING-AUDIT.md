@@ -1,0 +1,62 @@
+# Licensing notes for a GPL-3.0 release
+
+**Updated:** 2026-11-14. Lumen is free software under `GPL-3.0-or-later` (`LICENSE`); `photos-raw` stays `LGPL-2.1` (rawler's licence) and the plugin SDK, WIT and examples are `MIT OR Apache-2.0`. This page replaces the 2026-10-03 audit for a commercial release, which compared every dependency against a paid product. **These are engineering notes, not legal advice.**
+
+**Dependencies.** The rule is `scripts/licenses/compat.mjs`: `yarn run licenses` refuses any crate, npm package or sidecar whose licence is not GPL-3-compatible, and writes the notices that Settings → *Licences* shows (`src/assets/licenses/notices.json`, `scripts/licenses/extra.json` for programs, data, services and credits). Re-run it whenever dependencies change. Models are data and follow `THIRD-PARTY-MODELS.md`.
+
+## Still open
+
+| | What | Why | What to do |
+|---|---|---|---|
+| **Open** | **Jamendo** (music search and download) | API terms forbid apps that cache content or offer offline access, whatever the licence, and each track needs a backlink to its Jamendo page. Lumen saves tracks into the library. | Ask Jamendo, or drop it and keep *Use a file…* (the user's own music). |
+| **Open** | **Esri World Imagery** (the map's satellite layer) | Tiles are fetched from `server.arcgisonline.com/…/World_Imagery` with no key. Esri licenses its basemaps through ArcGIS with an account and key; keyless use is not covered. | An ArcGIS Location Platform key, another imagery provider, or no satellite layer. |
+| **Decide** | **Codec patents**: HEVC (HEIC, x265), H.264 (proxies, x264), AAC | Patent licences are separate from copyright licences and HEVC has several pools. | Prefer the OS's codecs; get advice before shipping x264 / x265 beyond the FFmpeg sidecar. |
+| Moot, note for forks | **Face models trained on non-commercial data**: YuNet (MIT weights, trained on WIDER FACE, CC BY-NC-ND) and SFace (Apache-2.0 weights, training data an open question, opencv_zoo#313) | Whether a model inherits its training data's NC terms is unsettled. Lumen is non-commercial, so it is not a problem here. | A fork that sells Lumen should find other weights. |
+| Risk | **Photon** (place search, komoot's public instance) and **Nominatim** (exact place names, opt-in) | Shared public instances: throttled, no availability guarantee. Nominatim: 1 request/s, identifying User-Agent, caching, attribution; names are ODbL (see below). | Self-host, or keep the bundled GeoNames atlas as the only search. |
+
+## What the licence obliges Lumen to ship
+
+- **GPL / LGPL source.** The FFmpeg sidecar (BtbN build, GPL-3.0 with x264 and x265) comes with its exact source in the release (`docs/RELEASING.md`). `rawler` lives alone in `crates/photos-raw` and is loaded at run time, so a person can rebuild and replace it (LGPL-2.1 §6). ExifTool (Artistic or GPL) stays a separate program.
+- **Notices** for MIT, BSD, Apache-2.0, ISC, Zlib, Unicode, OFL and CC BY: Settings → *Licences*. GeoNames (CC BY 4.0), OpenStreetMap (ODbL, "© OpenStreetMap contributors"), the IJG notice for `jpeg-encoder`, MPL-2.0 source links, fonts (OFL) and models are in `extra.json`.
+- **Services:** OpenFreeMap (attribution "OpenFreeMap © OpenMapTiles Data from OpenStreetMap", shown by MapLibre); Discord Rich Presence is local IPC to the person's own client (check Discord's Developer Terms for the Application before the first public release).
+- **Apple:** Lumen talks to Apple's own usbmuxd service and ships no Apple code. "iPhone" names the device nominatively; no Apple logos.
+
+## Pets (Round 4C)
+
+- **Detector candidates:** D-FINE-S COCO-only, RT-DETR(v2) COCO-only, YOLOX-s — Apache-2.0 code and weights. **Excluded:** Ultralytics (AGPL-3.0); D-FINE and RT-DETR **Objects365** checkpoints (D-FINE's README: may be subject to the Objects365 terms, "should not be assumed to be commercially cleared").
+- **Identity candidates:** DINOv2 ViT-S/14 (Apache-2.0 code and weights; trained on LVD-142M) and the shipped CLIP tower. **Excluded:** `AvitoTech/DINO-v2-small-for-animal-identification` — its weights are Apache-2.0, but it was fine-tuned on **PetFace**, whose repository says "Our PetFace dataset, code in this repository, and pretrained models are for non-commercial research purpose only".
+- **Evaluation data** (used to measure, never shipped, never trained on): Cat Individual Images (518 cats, CC BY 4.0), DogFaceNet (1,393 dogs, CC BY 4.0), Dogs-World (126,550 dogs, CC0), COCO val2017 cats, dogs and other animals (annotations CC BY 4.0), Oxford-IIIT Pet (CC BY-SA 4.0). PetFace is not used (non-commercial, research institutions only).
+- **Test fixtures in the repo** (never in the app bundle): `photos-ml/tests/fixtures/socks-buddy-*.jpg`, three White House photographs of Socks the Cat and Buddy the Dog — US federal works, public domain (Wikimedia Commons, via DPLA).
+
+## Adobe DNG Converter (Round 17)
+
+**Read 2026-11-01**, from version 18.7, the current one when read. Engineering diligence, not legal advice.
+
+**Where the text came from.** No licence file is installed, and the agreement isn't listed on Adobe's [licences page](https://www.adobe.com/legal/licenses-terms.html). The installer `AdobeDNGConverter_x64_18_7.exe` is an Inno Setup program, and the text it shows before installing is stored in its header. It was read from there without running the installer: 67,478 bytes, SHA-256 of the UTF-8 text without its BOM, with line ends normalised to LF: `57a8aed82bec5fa14b9b6a3ed7a3a13d5867139ec3756beabfb306f569cac79f`. It is titled *ADOBE Software License Agreement*. Being generic, it names many other products and never names the DNG Converter. The converter's own binary says: "For licensing terms and conditions, see http://www.adobe.com/products/eulas/".
+
+**Does it forbid being launched by another program? No.** It has no clause about that. What comes closest:
+
+- **§4.2 Use Obligations:** "Customer agrees that it will not use the Software other than as permitted by this agreement and that it will not use the Software in a manner inconsistent with its design or Documentation." Adobe's documentation is on Lumen's side here. [*Command Line Support in Adobe DNG Converter 16*](https://helpx.adobe.com/camera-raw/desktop/dng-and-file-formats/digital-negative.html), linked from Adobe's DNG page as valid for 16.0 and later, opens: "Adobe DNG Converter supports invocation from the command line, which allows it to be run by automation systems (i.e., scripting) without displaying a user interface. This allows DNG conversion to be included in automated raw processing workflows." Lumen uses the documented options (`-c`, `-p0`, `-d`).
+- **§2.1.7.2** is under *Server Use*, so it covers software installed on a server for network users: "the foregoing does not permit Customer to install or access (either directly or through commands, data, or instructions) the Software: … (d) as a component of a system, workflow or service accessible by more than the Permitted Number of users; or (e) for operations not initiated by an individual user (e.g., automated server processing)." Lumen is one person's desktop program on that person's own computer, and a conversion starts only when they open that photo in Develop. It does not batch a library (a spec non-goal). **Keep it that way:** a background job that converts photos nobody opened would move towards (e), even on a desktop.
+- **§4.6.1 No Transfer:** no selling or sublicensing, and no authorising copies onto another person's computer. Lumen never copies Adobe's software anywhere. **§4.7 No Service Bureau:** Lumen offers no service. **§4.3 / §4.4:** no modifying and no reverse engineering; Lumen only runs the program and reads the DNG it writes.
+
+**The open question, for the lawyer.** The agreement is boilerplate that doesn't fit a free tool. §2.1 "applies to Customers who have purchased a license", and nobody purchases this. §2.1.2.1 says software "provided without a serial number" may be used "for demonstration, evaluation, and training purposes only", with output "used only for internal, non-commercial, and non-production purposes". Read literally against a free, serial-less utility, that would restrict the converter for everyone, in conflict with what Adobe's own page says it is for: "a free utility that converts files from more than 600 cameras to DNG". It reads as a licence type for serial-less trial copies, not a term aimed at this tool, and it would bind the person running the converter whether or not Lumen launches it. But it is the clause to ask about before the first public release.
+
+**General Terms of Use.** [Adobe's General Terms](https://www.adobe.com/legal/terms.html) (effective 2025-10-03) don't list the converter, and it isn't clear they apply to it. If they do, §6.6 forbids accessing the Software "by any means other than the interface we provide or authorize"; the documented command line is one Adobe provides. §6.4 forbids use "on behalf of any third party" or in a hosted service; Lumen runs on the person's own behalf.
+
+**Also found: the DNG patent licence requires a notice.** Adobe's [DNG Specification patent license](https://helpx.adobe.com/camera-raw/desktop/dng-and-file-formats/digital-negative.html) grants royalty-free rights for software that reads or writes DNG, on condition that: "Any Compliant Implementation distributed under this license must include the following notice displayed in a prominent manner within its source code and documentation: 'This product includes DNG technology under license by Adobe.'" Lumen reads DNG through `rawler`, so the notice is in Settings → *Licences* (`scripts/licenses/extra.json`), `docs/RAW-FORMATS.md` and `crates/photos-raw/README.md`. The rights can also be revoked from anyone who brings a patent action against Adobe over reading or writing DNG.
+
+**The lines Lumen keeps** (spec, *The legal line*): Lumen never ships, bundles, downloads or installs Adobe's software. It runs only the copy the person installed, offers a link to Adobe's own page, and names Adobe only to say what it uses.
+
+## Nominatim / ODbL (exact place names, 2026-11-08)
+
+**Read 2026-11-08**: the [Nominatim usage policy](https://operations.osmfoundation.org/policies/nominatim/) and the [OSM copyright page](https://www.openstreetmap.org/copyright). Engineering diligence, not legal advice.
+
+- **The service.** OpenStreetMap's public Nominatim is free with no key, limited to **1 request per second** "absolute maximum", a valid identifying User-Agent, results cached, no bulk or systematic queries, and attribution. Lumen sends one request at a time at ≥ 1.1 s apart, as `Lumen/<version> (JL Studios photo library)` (no email, no user data), only a photo's coordinates (never the photo), only while the person's *Exact place names* switch is on (off by default), and keeps every answer in `place_lookups` so a position is never asked twice. A shipped app's users would all share the public instance; the policy reserves the right to block heavy users and gives no availability guarantee. **Risk at release:** fine for "barely any users" (Julian, 2026-11-08); with many users, self-host Nominatim or use a commercial OSM geocoder (the `Geocoder` trait in `src-tauri/src/places_online.rs` takes another provider).
+- **The data.** Names are OSM data under the **ODbL 1.0**. The names stored on a person's photos in their own library are a *Produced Work* (attribution, no share-alike on the library itself); the lookup cache is a derivative database that never leaves the machine (not "publicly used"), so share-alike does not bite. Attribution: *© OpenStreetMap contributors* under an online-named location in the info panel, the switch's text in Settings, and Settings → *Licences* (`Nominatim` and `OpenStreetMap data` entries). **Keep it so:** never upload or sync the cache, and keep the credit next to the names.
+
+## Before a release
+
+1. `yarn run licenses` passes and `src/lib/licenses.test.ts` is green.
+2. Jamendo and Esri are decided (above).
+3. The source for the GPL and LGPL parts shipped (FFmpeg, `photos-raw`) is public, or in the release (`docs/RELEASING.md`).

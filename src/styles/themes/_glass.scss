@@ -1,0 +1,56 @@
+// Glass — frosted translucent layers over a soft colour wash, pill nav.
+[data-theme="glass"] {
+  --bg-base: oklch(95% 0.012 260);
+  --bg-raised: oklch(100% 0 0 / 0.7);
+  --bg-sunken: oklch(91% 0.014 260);
+  --develop-stage-bg: oklch(90% 0.014 260 / 0.7);
+  --bg-sidebar: oklch(100% 0 0 / 0.55);
+  --bg-overlay: oklch(95% 0.012 260 / 0.85);
+  --fg-primary: oklch(18% 0.03 260);
+  --fg-muted: oklch(42% 0.03 260);
+  --fg-subtle: oklch(49% 0.025 260);
+  --fg-faint: oklch(68% 0.025 260);
+  --accent: oklch(53% 0.2 265);
+  --accent-hover: oklch(48% 0.2 265);
+  --accent-fg: oklch(100% 0 0);
+  --accent-soft: oklch(53% 0.2 265 / 0.12);
+  --border: oklch(100% 0 0 / 0.7);
+  --border-width: 1px;
+  --scrollbar-thumb: oklch(70% 0.02 260 / 0.6);
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 16px;
+  --radius-pill: 999px;
+  --tile-gap: 6px;
+  --shadow-sm: 0 2px 6px oklch(30% 0.05 260 / 0.08);
+  --shadow-md: 0 8px 24px oklch(30% 0.05 260 / 0.12);
+  --shadow-lg: 0 24px 56px oklch(30% 0.05 260 / 0.18);
+  --blur: 20px;
+  --font-heading: var(--font-body);
+  --heading-weight: 600;
+  --heading-style: normal;
+  --wash: radial-gradient(60% 50% at 85% 0%, oklch(90% 0.06 40) 0%, transparent 60%), radial-gradient(50% 50% at 5% 100%, oklch(88% 0.06 265) 0%, transparent 60%);
+}
+
+[data-theme="glass"][data-mantine-color-scheme="dark"] {
+  --bg-base: oklch(20% 0.02 260);
+  --bg-raised: oklch(100% 0 0 / 0.08);
+  --bg-sunken: oklch(16% 0.02 260);
+  --develop-stage-bg: oklch(14% 0.02 260 / 0.7);
+  --bg-sidebar: oklch(100% 0 0 / 0.06);
+  --bg-overlay: oklch(20% 0.02 260 / 0.85);
+  --fg-primary: oklch(95% 0.01 260);
+  --fg-muted: oklch(74% 0.02 260);
+  --fg-subtle: oklch(66% 0.02 260);
+  --fg-faint: oklch(48% 0.02 260);
+  --accent: oklch(72% 0.17 265);
+  --accent-hover: oklch(77% 0.17 265);
+  --accent-fg: oklch(15% 0.04 265);
+  --accent-soft: oklch(72% 0.17 265 / 0.16);
+  --border: oklch(100% 0 0 / 0.12);
+  --scrollbar-thumb: oklch(100% 0 0 / 0.25);
+  --shadow-sm: 0 2px 6px oklch(0% 0 0 / 0.4);
+  --shadow-md: 0 8px 24px oklch(0% 0 0 / 0.5);
+  --shadow-lg: 0 24px 56px oklch(0% 0 0 / 0.6);
+  --wash: radial-gradient(60% 50% at 85% 0%, oklch(35% 0.08 40) 0%, transparent 60%), radial-gradient(50% 50% at 5% 100%, oklch(32% 0.09 265) 0%, transparent 60%);
+}

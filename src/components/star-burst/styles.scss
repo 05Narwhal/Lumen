@@ -1,0 +1,37 @@
+.star-burst-host {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: var(--z-toast);
+}
+
+.star-burst {
+  position: absolute;
+  width: 0;
+  height: 0;
+
+  // Sizes are set inline from the burst, so the same shape works over a 120px S tile
+  // and in the middle of the window.
+  &__star {
+    position: absolute;
+    display: block;
+    color: var(--star);
+    filter: drop-shadow(0 2px 10px oklch(0% 0 0 / 0.35)) drop-shadow(0 0 14px var(--star));
+  }
+
+  &__ring {
+    position: absolute;
+    border-radius: 50%;
+    border: 2px solid var(--star);
+  }
+
+  &__spark {
+    position: absolute;
+    border-radius: 50%;
+    background: var(--accent);
+    &[data-warm="true"] {
+      background: var(--star);
+      box-shadow: 0 0 6px var(--star);
+    }
+  }
+}

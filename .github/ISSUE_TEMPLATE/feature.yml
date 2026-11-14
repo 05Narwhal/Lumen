@@ -1,0 +1,23 @@
+name: Feature
+description: A scoped improvement to Lumen.
+labels: [enhancement]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: What are you trying to do that Lumen makes hard?
+    validations:
+      required: true
+  - type: textarea
+    id: idea
+    attributes:
+      label: What would you like to happen?
+    validations:
+      required: true
+  - type: checkboxes
+    id: fit
+    attributes:
+      label: Fit
+      options:
+        - label: It works offline, needs no account and sends nothing anywhere (Lumen's rules, see docs/VISION.md).
+          required: true

@@ -1,0 +1,41 @@
+.develop-slider {
+  display: grid;
+  // The value column grows past 44 px for a long reading (the brush's `3600 px`) rather than wrapping.
+  grid-template-columns: 92px minmax(0, 1fr) minmax(44px, auto);
+  align-items: center;
+  gap: var(--space-2);
+  height: 28px;
+  padding: 0 var(--space-3);
+  border-radius: var(--radius-sm);
+  // A row's inner z-indexes (the thumb's) stay in the row, under the pinned mask bar.
+  isolation: isolate;
+
+  &:hover { background: var(--bg-sunken); }
+
+  &__label {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    min-width: 0;
+    font-size: var(--text-sm);
+    color: var(--fg-muted);
+    @include truncate;
+  }
+  &[data-changed="true"] &__label { color: var(--fg-primary); }
+
+  &__value {
+    text-align: right;
+    white-space: nowrap;
+    font-size: var(--text-xs);
+    font-variant-numeric: tabular-nums;
+    color: var(--fg-muted);
+  }
+  &[data-changed="true"] &__value { color: var(--fg-primary); }
+
+  // The fill follows the column's accent when it sets one (mask mode); else Mantine's.
+  & &__track { --slider-color: var(--panel-accent, var(--mantine-primary-color-filled)); }
+
+  // A painted track (temperature, tint) shows what the slider does instead of a fill.
+  &__track[data-painted="true"] .develop-slider__rail::before { background: var(--develop-track); opacity: 0.9; }
+  &__bar--hidden { opacity: 0; }
+}

@@ -1,0 +1,22 @@
+name: Plugin idea
+description: Something that could be a plugin (an importer, theme, preset, look or app link) rather than part of Lumen.
+labels: [plugin]
+body:
+  - type: textarea
+    id: idea
+    attributes:
+      label: What would the plugin do?
+    validations:
+      required: true
+  - type: dropdown
+    id: kind
+    attributes:
+      label: Kind
+      options: [Importer, Theme, Preset or look, Open with app, MCP tool or prompt, Something else]
+    validations:
+      required: true
+  - type: textarea
+    id: needs
+    attributes:
+      label: What would it need from Lumen that plugins can't do today?
+      description: See docs/PLUGINS.md for what a plugin can use.

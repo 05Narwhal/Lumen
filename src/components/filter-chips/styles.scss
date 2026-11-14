@@ -1,0 +1,64 @@
+.filter-chips {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+
+  // Docked: a floating cluster in the bottom-right corner, chips stacked above the
+  // button so the newest filter is nearest the thumb.
+  &[data-placement="dock"] {
+    position: absolute;
+    right: var(--space-6);
+    bottom: var(--space-6);
+    z-index: var(--z-docked, 5);
+    flex-direction: column-reverse;
+    align-items: flex-end;
+    flex-wrap: nowrap;
+    padding: var(--space-2);
+    border-radius: var(--radius-lg);
+    background-color: var(--bg-base);
+    background-image: linear-gradient(var(--bg-raised), var(--bg-raised));
+    backdrop-filter: blur(var(--blur));
+    border: var(--border-width) solid var(--border);
+    box-shadow: var(--shadow-md);
+    animation: dock-in var(--motion-base) var(--ease);
+  }
+
+  &__dropdown {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-3);
+    // The Select lists open inside this sheet (not in a portal, so picking doesn't count as an
+    // outside click); the global Popover scroll box would clip them.
+    overflow: visible !important;
+    border: var(--border-width) solid var(--border) !important;
+  }
+
+  &__rating {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-2);
+    font-size: var(--text-sm);
+    color: var(--fg-muted);
+  }
+
+  &__chip {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-1);
+    padding: 2px var(--space-2);
+    border-radius: var(--radius-pill);
+    border: var(--border-width) solid var(--border);
+    background: var(--bg-sunken);
+    color: var(--fg-primary);
+    font-size: var(--text-sm);
+    transition: background var(--motion-fast) var(--ease);
+    &:hover { background: var(--accent-soft); }
+  }
+}
+
+@keyframes dock-in {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: none; }
+}

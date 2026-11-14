@@ -1,0 +1,11 @@
+id = "example.apps-gimp"
+name = "GIMP in Edit in (example)"
+version = "1.0.0"
+author = "JL Studios"
+description = "Adds GIMP to Edit in and Open with, found by one detection entry per operating system."
+license = "MIT"
+lumen = ">=26.2.0"
+api = 1
+
+[apps]
+file = "apps.toml"

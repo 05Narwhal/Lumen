@@ -1,0 +1,8 @@
+.trash-route {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+
+  &__meta { font-size: var(--text-sm); color: var(--fg-muted); margin-right: var(--space-2); }
+  &__grid { flex: 1; min-height: 0; }
+}

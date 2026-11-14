@@ -1,0 +1,23 @@
+.window-chrome {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: var(--titlebar-h);
+  display: flex;
+  justify-content: flex-end;
+  z-index: var(--z-window-chrome);
+  // The overlay's own top bar sits under the strip and keeps its clicks and its drag.
+  pointer-events: none;
+  &[data-over-modal] { z-index: var(--z-window-chrome-modal); }
+
+  &__controls {
+    pointer-events: auto;
+    background: var(--bg-raised);
+    border-bottom-left-radius: var(--radius-md);
+    transition: opacity var(--motion-fast) var(--ease);
+  }
+  &[data-visible="false"] &__controls {
+    opacity: 0;
+  }
+}

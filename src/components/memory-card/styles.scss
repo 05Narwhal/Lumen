@@ -1,0 +1,67 @@
+// Photographs with type over them: the scrim is a token, and the text is always light.
+.memory-card {
+  position: relative;
+  display: block;
+  aspect-ratio: 3 / 2;
+  overflow: hidden;
+  border-radius: var(--radius-lg);
+  background: var(--bg-sunken);
+  box-shadow: var(--shadow-sm);
+  transition: transform var(--motion-fast) var(--ease), box-shadow var(--motion-fast) var(--ease);
+
+  &:hover { transform: translateY(-2px); box-shadow: var(--shadow-md); }
+  &[data-hidden="true"] { opacity: 0.55; }
+
+  &__link {
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    &:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+  }
+
+  // Play the memory's film: shown on hover or focus.
+  &__play {
+    position: absolute;
+    top: var(--space-3);
+    right: var(--space-3);
+    display: grid;
+    place-items: center;
+    width: 36px;
+    height: 36px;
+    padding: 0 0 0 2px;
+    border: 0;
+    border-radius: var(--radius-pill);
+    background: var(--badge-bg);
+    color: var(--badge-fg);
+    cursor: pointer;
+    opacity: 0;
+    transform: scale(0.9);
+    transition: opacity var(--motion-fast) var(--ease), transform var(--motion-fast) var(--ease);
+    &:focus-visible { opacity: 1; transform: none; outline: 2px solid var(--accent); outline-offset: 2px; }
+  }
+  &:hover &__play { opacity: 1; transform: none; }
+
+  &__img {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    opacity: 0;
+    transition: opacity var(--motion-base) var(--ease);
+    &[data-loaded="true"] { opacity: 1; }
+  }
+
+  &__text {
+    position: absolute;
+    inset: auto 0 0 0;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    padding: var(--space-6) var(--space-4) var(--space-3);
+    background: var(--memory-scrim);
+    color: var(--badge-fg);
+  }
+  &__title { font-size: var(--text-lg); line-height: 1.2; }
+  &__subtitle { font-size: var(--text-sm); opacity: 0.85; }
+}

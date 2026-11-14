@@ -1,0 +1,271 @@
+// The tag search (Round 7): the header's field with its list of suggestions, and the bar of
+// chosen tags under the header. The field itself is `.search-field` (page-header).
+
+.tag-search {
+  position: relative;
+  // The first thing to give way when the header runs out of room: it narrows to 120px
+  // (the field fills this box), and opens wider while focused or showing suggestions.
+  flex: 0 1 240px;
+  min-width: 120px;
+  transition: flex-basis var(--motion-base) var(--ease);
+  &:focus-within,
+  &:has([data-open="true"]) { flex-basis: 340px; }
+
+  // Over `.search-field`'s own fixed widths (page-header), which load in either order.
+  .tag-search__field,
+  .tag-search__field:focus-within,
+  .tag-search__field[data-open="true"] { width: 100%; min-width: 0; }
+
+  // The list hangs from the field; the field keeps its focused look while it is open.
+  &__field[data-open="true"] {
+    border-color: var(--accent);
+    color: var(--fg-primary);
+  }
+
+  &__dropdown {
+    position: absolute;
+    top: calc(100% + var(--space-2));
+    right: 0;
+    z-index: var(--z-overlay);
+    width: 380px;
+    max-width: calc(100vw - 2 * var(--space-6));
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    border: var(--border-width) solid var(--border);
+    border-radius: var(--radius-lg);
+    // The raised surface, opaque in every theme but Glass: a list read over photos must not
+    // let them show through (the overlay tone did, faintly, and looked busy).
+    // Composited over the opaque base: Glass's `--bg-raised` is translucent, and photos
+    // showed through the list. Same recipe as every Mantine floating surface (globals.scss).
+    background-color: var(--bg-base);
+    background-image: linear-gradient(var(--bg-raised), var(--bg-raised));
+    box-shadow: var(--shadow-lg);
+    backdrop-filter: blur(var(--blur));
+    transform-origin: top right;
+  }
+
+  &__list {
+    max-height: min(420px, 60vh);
+    overflow-y: auto;
+    padding: var(--space-1);
+    list-style: none;
+    margin: 0;
+    scrollbar-width: thin;
+  }
+
+  &__group {
+    padding: var(--space-2) var(--space-2) var(--space-1);
+    font-size: var(--text-xs);
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: var(--fg-subtle);
+    &:first-child { padding-top: var(--space-1); }
+  }
+
+  &__option {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+    min-height: 32px;
+    padding: 0 var(--space-2);
+    border-radius: var(--radius-sm);
+    color: var(--fg-primary);
+    font-size: var(--text-sm);
+    cursor: default;
+    transition: background-color var(--motion-fast) var(--ease);
+
+    &[aria-selected="true"] { background: var(--accent-soft); }
+  }
+
+  &__icon {
+    display: grid;
+    place-items: center;
+    flex: none;
+    width: 24px;
+    height: 24px;
+    border-radius: var(--radius-sm);
+    background: var(--bg-sunken);
+    color: var(--fg-muted);
+    transition: color var(--motion-fast) var(--ease), background-color var(--motion-fast) var(--ease);
+  }
+
+  &__option[aria-selected="true"] &__icon { background: var(--accent); color: var(--accent-fg); }
+
+  &__label {
+    flex: 1;
+    min-width: 0;
+    @include truncate;
+  }
+
+  &__match { font-weight: 650; }
+
+  &__count {
+    flex: none;
+    font-size: var(--text-xs);
+    color: var(--fg-subtle);
+    font-variant-numeric: tabular-nums;
+  }
+
+  &__hint {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-1) var(--space-4);
+    padding: var(--space-2) var(--space-3);
+    border-top: var(--border-width) solid var(--border);
+    font-size: var(--text-xs);
+    color: var(--fg-subtle);
+  }
+
+  &__kbd {
+    display: inline-grid;
+    place-items: center;
+    min-width: 18px;
+    height: 18px;
+    margin-right: 2px;
+    padding: 0 4px;
+    border-radius: var(--radius-sm);
+    border: var(--border-width) solid var(--border);
+    background: var(--bg-raised);
+    font: inherit;
+    font-size: 10px;
+    color: var(--fg-muted);
+  }
+}
+
+// The chosen tags, where the Library's All / Photos / Videos pills were. The bar opens to its
+// height on a spring (motion animates `height`); the inner row carries the padding so the
+// collapse never squeezes a tag.
+.tag-bar {
+  flex: none;
+  overflow: hidden;
+
+  &__inner {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: var(--space-1);
+    padding: 0 var(--space-6) var(--space-3);
+  }
+
+  &__tag {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    height: 28px;
+    padding: 0 4px 0 10px;
+    border-radius: var(--radius-pill);
+    border: var(--border-width) solid var(--border);
+    background: var(--bg-raised);
+    box-shadow: var(--shadow-sm);
+    color: var(--fg-primary);
+    font-size: var(--text-sm);
+    font-weight: 500;
+    white-space: nowrap;
+
+    .tag-icon { color: var(--accent); flex: none; }
+  }
+
+  &__label { max-width: 260px; @include truncate; }
+
+  &__remove {
+    display: grid;
+    place-items: center;
+    width: 20px;
+    height: 20px;
+    border-radius: var(--radius-pill);
+    color: var(--fg-muted);
+    transition: background-color var(--motion-fast) var(--ease), color var(--motion-fast) var(--ease);
+    &:hover { background: var(--bg-sunken); color: var(--fg-primary); }
+    &:focus-visible { @include focus-ring; }
+  }
+
+  // The operators between tags (Round 20 §3). `and` is quiet: muted text and no surface, so
+  // and-runs read as clusters; `or` and anything with `not` are stronger, on the chip surface.
+  &__join-wrap { display: inline-flex; align-items: center; }
+
+  &__join {
+    display: inline-flex;
+    align-items: center;
+    height: 24px;
+    padding: 0 var(--space-1);
+    border: var(--border-width) solid transparent;
+    border-radius: var(--radius-pill);
+    background: none;
+    font: inherit;
+    font-size: var(--text-xs);
+    color: var(--fg-subtle);
+    white-space: nowrap;
+    &[data-strong="true"] {
+      margin: 0 var(--space-1);
+      padding: 0 var(--space-2);
+      border-color: var(--border);
+      background: var(--bg-raised);
+      color: var(--fg-primary);
+      font-weight: 600;
+    }
+  }
+  button#{&}__join {
+    cursor: pointer;
+    transition: color var(--motion-fast) var(--ease), background-color var(--motion-fast) var(--ease);
+    &:hover { color: var(--fg-primary); background: var(--bg-sunken); }
+    &:focus-visible { @include focus-ring; }
+  }
+
+  // A bracketed group of tags.
+  &__group-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-1);
+    padding: 2px var(--space-2);
+    border: var(--border-width) solid var(--border);
+    border-radius: var(--radius-pill);
+    background: var(--bg-sunken);
+  }
+
+  &__label--button {
+    padding: 0;
+    border: 0;
+    background: none;
+    font: inherit;
+    color: inherit;
+    cursor: pointer;
+    &:focus-visible { @include focus-ring; border-radius: var(--radius-sm); }
+  }
+
+  &__clear {
+    height: 28px;
+    padding: 0 var(--space-2);
+    border-radius: var(--radius-pill);
+    font-size: var(--text-sm);
+    color: var(--fg-muted);
+    transition: color var(--motion-fast) var(--ease), background-color var(--motion-fast) var(--ease);
+    &:hover { color: var(--fg-primary); background: var(--bg-sunken); }
+    &:focus-visible { @include focus-ring; }
+  }
+}
+
+/* *in Trips › Europe* after an album or collection tag, in the list and in the bar. */
+.tag-where {
+  color: var(--fg-muted);
+  font-size: 0.85em;
+}
+
+// The *Read as* row of a typed sentence: the read-only token row, whole.
+.tag-search__option[data-read="true"] { min-height: 40px; padding-top: var(--space-1); padding-bottom: var(--space-1); }
+.tag-search__read {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-1);
+  pointer-events: none;
+}
+
+// In a portal (inside a modal) the field fills its row and the list is as wide as the field.
+.tag-search--portal {
+  flex: 1 1 auto;
+  width: 100%;
+  &:focus-within { flex-basis: auto; }
+}
+.tag-search__popover { padding: 0; overflow: hidden; }

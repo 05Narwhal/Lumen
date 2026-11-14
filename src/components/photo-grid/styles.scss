@@ -1,0 +1,122 @@
+// The grid and its timeline scrubber (Round 4H), which floats over the grid's right padding.
+.photo-grid-frame {
+  position: relative;
+  height: 100%;
+  min-height: 0;
+}
+
+// What a page shows instead of an empty grid (Round 13-3), over the grid's place.
+.photo-grid__empty {
+  position: absolute;
+  inset: 0;
+  overflow: auto;
+}
+
+.photo-grid {
+  position: relative;
+  height: 100%;
+  overflow-y: auto;
+  overflow-x: hidden;
+  // The scrubber replaces the native scrollbar.
+  scrollbar-width: none;
+  &::-webkit-scrollbar { display: none; }
+  padding: 0 var(--space-6);
+
+  &__inner {
+    position: relative;
+    width: 100%;
+    // The canvas is exactly as tall as its rows, so without this the last row ends flush
+    // with the bottom of the scroller — and sits under the docked filter cluster, which
+    // floats in that same corner. The tail gives the grid somewhere to end.
+    padding-bottom: var(--space-8);
+  }
+
+  &__canvas {
+    position: relative;
+    width: 100%;
+    transition: opacity var(--motion-base) var(--ease);
+  }
+
+  &[data-resizing="true"] &__canvas { opacity: 0.35; }
+
+  &__row,
+  &__header {
+    position: absolute;
+    left: 0;
+    right: 0;
+  }
+
+  &__header {
+    display: flex;
+    align-items: flex-end;
+    padding-bottom: var(--space-2);
+  }
+
+  &__title {
+    font-size: var(--text-lg);
+    color: var(--fg-primary);
+  }
+
+  // A collection's photos by album: the header is the way into that album.
+  &__title-link {
+    all: unset;
+    cursor: pointer;
+    border-radius: var(--radius-sm);
+    &:hover { text-decoration: underline; text-underline-offset: 3px; }
+    &:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+  }
+
+  // The fade at the top of the scroller, independent of whether a month label happens to
+  // be pinned. It used to ride on the pinned element, so an album (no month sections) or
+  // the first screen of any grid met the surface above it on a hard line.
+  &__topfade {
+    position: sticky;
+    top: 0;
+    z-index: 2;
+    height: 0;
+    overflow: visible;
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity var(--motion-base) var(--ease);
+    &[data-visible="true"] { opacity: 1; }
+    &::before {
+      content: "";
+      position: absolute;
+      left: calc(-1 * var(--space-6));
+      right: calc(-1 * var(--space-6));
+      top: 0;
+      height: var(--scroll-fade-h);
+      @include page-backdrop;
+      mask-image: var(--scroll-fade-mask);
+      -webkit-mask-image: var(--scroll-fade-mask);
+    }
+  }
+
+  &__pinned {
+    position: sticky;
+    top: 0;
+    z-index: 2;
+    height: 0;
+    overflow: visible;
+    pointer-events: none;
+    // The label itself: same type as the section headers so the hand-off is seamless.
+    font-family: var(--font-heading);
+    font-weight: var(--heading-weight);
+    font-style: var(--heading-style);
+    font-size: var(--text-lg);
+    letter-spacing: -0.02em;
+    color: var(--fg-primary);
+    line-height: 36px;
+    padding-left: 0;
+  }
+}
+
+.photo-grid__marquee {
+  position: absolute;
+  z-index: 2;
+  pointer-events: none;
+  border: var(--border-width) solid var(--accent);
+  border-radius: var(--radius-sm);
+  background: var(--accent-soft);
+  opacity: 0.55;
+}

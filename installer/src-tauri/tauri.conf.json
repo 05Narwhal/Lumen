@@ -1,0 +1,34 @@
+{
+  "$schema": "https://schema.tauri.app/config/2",
+  "productName": "Lumen Setup",
+  "version": "26.2.0-alpha",
+  "identifier": "com.jlstudios.lumen.setup",
+  "build": {
+    "beforeDevCommand": "yarn --cwd .. dev",
+    "devUrl": "http://localhost:1477",
+    "beforeBuildCommand": "yarn --cwd .. build",
+    "frontendDist": "../dist"
+  },
+  "app": {
+    "windows": [
+      {
+        "label": "main",
+        "create": false,
+        "title": "Lumen Setup",
+        "width": 640,
+        "height": 420,
+        "resizable": false,
+        "maximizable": false,
+        "center": true,
+        "decorations": false,
+        "shadow": true,
+        "visible": true
+      }
+    ],
+    "security": { "csp": null }
+  },
+  "bundle": {
+    "active": false,
+    "icon": ["icons/32x32.png", "icons/128x128.png", "icons/icon.ico"]
+  }
+}

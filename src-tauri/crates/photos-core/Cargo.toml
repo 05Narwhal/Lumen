@@ -1,0 +1,49 @@
+[package]
+name = "photos-core"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+license.workspace = true
+description = "Lumen domain types, storage, settings and SQLite"
+
+[dependencies]
+rustfft = "6"
+serde.workspace = true
+serde_json.workspace = true
+thiserror.workspace = true
+ts-rs.workspace = true
+rusqlite.workspace = true
+dirs.workspace = true
+tracing.workspace = true
+uuid.workspace = true
+chrono.workspace = true
+
+flate2 = "1"
+# A plugin's apps.toml (Round 23 B2): detection identifiers only.
+toml = "0.8"
+# Names an AI mask's raster (Phase 8f).
+blake3 = "1"
+# Grouping compares every open face with every person (Round 5A), on the caller's pool.
+rayon = "1"
+# The Hidden folder's password (round 3): Argon2id, stored as a PHC string.
+argon2 = { version = "0.5", features = ["std"] }
+
+# Children (FFmpeg) end with Lumen: a kill-on-close Job Object (Round 15, `child_jobs`).
+[target.'cfg(windows)'.dependencies]
+windows-sys = { version = "0.61", features = ["Win32_System_JobObjects", "Win32_System_Threading", "Win32_Foundation", "Win32_Security"] }
+
+[dev-dependencies]
+tempfile = "3"
+criterion = "0.5"
+
+[[bench]]
+name = "layout"
+harness = false
+
+[[bench]]
+name = "query"
+harness = false
+
+[[bench]]
+name = "geo"
+harness = false

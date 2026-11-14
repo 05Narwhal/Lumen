@@ -1,0 +1,29 @@
+// Duplicates (Round 4D): one list of sets under the page header.
+.duplicates-route {
+  display: flex;
+  flex-direction: column;
+  min-height: 100%;
+  padding-bottom: var(--space-6);
+
+  &__list { display: flex; flex-direction: column; gap: var(--space-3); padding: 0 var(--space-6); }
+}
+
+// Home's card: shown only when there are duplicates to review.
+.duplicates-card {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-3) var(--space-4);
+  border-radius: var(--radius-lg);
+  background: var(--bg-raised);
+  border: var(--border-width) solid var(--border);
+
+  &__icon { flex: none; color: var(--accent); }
+  &__text {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+    > span { font-size: var(--text-sm); color: var(--fg-muted); }
+  }
+}

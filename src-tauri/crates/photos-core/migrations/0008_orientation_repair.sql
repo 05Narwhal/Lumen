@@ -1,0 +1,13 @@
+-- Re-derive every photo whose stored orientation describes a quarter turn.
+--
+-- Two decoders disagreed with the EXIF tag in opposite directions: HEIC comes back from
+-- FFmpeg already upright, so applying the tag turned it a second time, and an iPhone PNG
+-- export carries the original's rotation tag over pixels that are already upright, so
+-- applying it broke a correct picture. Both now resolve at ingest, from the pixels the
+-- decoder actually returns, but rows catalogued before that keep the wrong orientation,
+-- the wrong stored size and a rotated thumbnail.
+--
+-- Clearing the thumbhash puts them back on the "underived" list, which re-runs ingest and
+-- rewrites orientation, width and height from the decoded image. The derivative files are
+-- content-addressed and are removed by the re-queue pass before it schedules the work.
+UPDATE assets SET thumbhash = NULL WHERE orientation BETWEEN 5 AND 8;

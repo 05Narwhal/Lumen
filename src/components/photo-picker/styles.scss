@@ -1,0 +1,56 @@
+// A full-screen grid with one row of actions along the bottom.
+.photo-picker {
+  // The window controls sit over the header's right end (WindowChrome overModal).
+  &__header { padding-right: calc(var(--window-controls-w) + var(--space-2)) !important; }
+
+  background: var(--bg-base) !important;
+
+  &__body { display: flex; flex-direction: column; height: calc(100vh - 60px); padding: 0 !important; }
+  &__grid { flex: 1; min-height: 0; }
+  &__filters {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+    margin-right: var(--space-2);
+  }
+  &__device-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-1);
+    height: 26px;
+    padding: 0 var(--space-3);
+    border: var(--border-width) solid var(--border);
+    border-radius: var(--radius-pill);
+    font-size: var(--text-xs);
+    color: var(--fg-muted);
+    &[data-active="true"] { color: var(--accent); border-color: var(--accent); }
+  }
+  &__devices { padding: var(--space-2) !important; }
+  &__device-list { list-style: none; margin: var(--space-2) 0 0; padding: 0; max-height: 260px; overflow-y: auto; }
+  &__device {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+    width: 100%;
+    padding: var(--space-1) var(--space-2);
+    border-radius: var(--radius-sm);
+    font-size: var(--text-sm);
+    &:hover { background: var(--bg-sunken); }
+  }
+  &__device-check { display: inline-flex; width: 12px; color: var(--accent); }
+  &__device-name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  &__device-count { color: var(--fg-muted); font-size: var(--text-xs); font-variant-numeric: tabular-nums; }
+  &__device-empty { padding: var(--space-2); color: var(--fg-muted); font-size: var(--text-sm); }
+  &__device-clear { display: block; width: 100%; margin-top: var(--space-2); padding: var(--space-1) var(--space-2); font-size: var(--text-xs); color: var(--accent); }
+  // The count, by class: a bare `span` rule here also greyed the confirm button's label.
+  &__count { flex: 1; color: var(--fg-muted); font-size: var(--text-sm); }
+  &__actions {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: var(--space-2);
+    padding: var(--space-3) var(--space-6);
+    border-top: var(--border-width) solid var(--border);
+    background: var(--bg-raised);
+  }
+}

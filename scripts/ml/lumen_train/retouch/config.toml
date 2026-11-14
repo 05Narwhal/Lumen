@@ -1,0 +1,48 @@
+# Retouch training (docs/ML-TRAINING.md). Override any value on the command line:
+#   python -m lumen_train.retouch.train --config lumen_train/retouch/config.toml data.root=C:/lumen-train run.dir=C:/lumen-train/runs/r1
+
+[data]
+root = ""
+# Folder names under `root`, each a source in datasets/registry.toml. Finished photos only:
+# unedited RAWs would teach that a flat render is the goal, and Flickr Commons is mostly
+# historical scans (see docs/ML-TRAINING.md).
+# "all" = every source with prepared photos (python -m lumen_train.data status), only
+# commercial ones when shipping, never one of kind "raw"; a resumed run keeps the list it
+# started with.
+sources = ["all"]
+workers = 6
+# Keep each decoded photo in RAM (float16, ~0.4 MB a photo) after its first read; with
+# workers > 0 each worker keeps its own copy, so use it with workers = 0.
+cache = false
+
+[run]
+dir = "runs/retouch"
+ship = false
+resume = true
+
+[train]
+epochs = 60
+batch = 64
+lr = 1e-3
+weight_decay = 0.02
+warmup = 2
+amp = true
+seed = 0
+device = "auto"
+init = ""  # a checkpoint to start from (weights only; fresh optimiser and schedule)
+val_every = 1  # validate every n epochs (and always after the last)
+
+[loss]
+param = 1.0     # L1 on the slider values a sample knows
+de = 1.0        # CIEDE2000 between Lumen's render of the prediction and the target, / 10
+iou = 0.5       # 1 − IoU of the crop, where the target crops
+presence = 0.2  # crop on/off
+# The colour metric training steps use: "de2000", or "oklab" (about a tenth of the kernels,
+# for the first 1 − de2000_tail of the epochs). Validation always scores CIEDE2000.
+train_metric = "de2000"
+de2000_tail = 0.1
+
+[synth]
+# The share of synthetic samples left undamaged ("already fine"): the target is the input and
+# every global slider is known at neutral, so Auto learns to leave a good photo alone.
+identity_p = 0.15

@@ -1,0 +1,73 @@
+.theme-picker {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-6);
+
+  &__grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: var(--space-4);
+    width: 100%;
+    @include above(lg) { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+  }
+
+  &__card {
+    position: relative;
+    isolation: isolate;
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-2);
+    text-align: left;
+    padding: var(--space-2);
+    border-radius: var(--radius-lg);
+    color: var(--fg-primary);
+  }
+
+  // The selection ring is a shared-layout element, so it glides between cards.
+  &__ring {
+    position: absolute;
+    inset: 0;
+    border: 2px solid var(--accent);
+    border-radius: var(--radius-lg);
+    box-shadow: 0 0 0 4px var(--accent-soft);
+    z-index: -1;
+    pointer-events: none;
+  }
+
+  &__name { font-weight: 600; margin-top: var(--space-1); }
+  &__tagline { font-size: var(--text-sm); color: var(--fg-muted); }
+
+  &__scheme {
+    display: inline-flex;
+    padding: 3px;
+    gap: 2px;
+    background: var(--bg-sunken);
+    border-radius: var(--radius-pill);
+  }
+
+  &__scheme-btn {
+    position: relative;
+    isolation: isolate;
+    padding: 6px 16px;
+    border-radius: var(--radius-pill);
+    color: var(--fg-muted);
+    font-size: var(--text-sm);
+    font-weight: 500;
+    transition: color var(--motion-fast) var(--ease);
+
+    &:hover { color: var(--fg-primary); }
+    &[aria-checked="true"] { color: var(--fg-primary); }
+  }
+
+  &__scheme-pill {
+    position: absolute;
+    inset: 0;
+    border-radius: var(--radius-pill);
+    background: var(--bg-raised);
+    box-shadow: var(--shadow-sm);
+    z-index: -1;
+  }
+
+  &__scheme-label { position: relative; }
+}

@@ -1,0 +1,42 @@
+.tone-curve {
+  padding: 0 var(--space-3) var(--space-2);
+
+  &__plot {
+    display: block;
+    width: 100%;
+    aspect-ratio: 1;
+    background: var(--bg-sunken);
+    border-radius: var(--radius-sm);
+    cursor: crosshair;
+    touch-action: none;
+    overflow: visible;
+  }
+  &__grid line,
+  &__diagonal {
+    stroke: var(--border);
+    stroke-width: 1;
+    vector-effect: non-scaling-stroke;
+  }
+  &__diagonal { stroke-dasharray: 3 3; }
+  &__luma { fill: var(--fg-faint); opacity: 0.18; }
+
+  &__line {
+    fill: none;
+    stroke: var(--fg-primary);
+    stroke-width: 1.5;
+    vector-effect: non-scaling-stroke;
+  }
+  &[data-channel="r"] &__line { stroke: var(--band-red); }
+  &[data-channel="g"] &__line { stroke: var(--band-green); }
+  &[data-channel="b"] &__line { stroke: var(--band-blue); }
+
+  &__point {
+    fill: var(--bg-raised);
+    stroke: var(--fg-primary);
+    stroke-width: 1.5;
+    vector-effect: non-scaling-stroke;
+    cursor: grab;
+    &[data-active="true"] { fill: var(--accent); stroke: var(--accent); cursor: grabbing; }
+    &:focus-visible { outline: none; stroke: var(--accent); stroke-width: 3; }
+  }
+}

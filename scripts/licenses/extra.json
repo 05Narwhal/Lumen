@@ -1,0 +1,159 @@
+{
+  "_comment": "Third-party work no package manager lists: programs Lumen runs, data it bundles or shows, services it calls. Kept by hand; generate.py merges it with the crates, the npm packages and models.json. Licence texts are in texts/ (SPDX).",
+  "groups": [
+    {
+      "id": "lumen",
+      "title": "Lumen",
+      "intro": "Lumen is free software. You may use, study, share and change it under the licence below.",
+      "items": [
+        {
+          "name": "Lumen",
+          "version": "",
+          "license": "GPL-3.0-or-later",
+          "texts": [
+            "GPL-3.0-only"
+          ],
+          "url": "https://github.com/05Narwhal/lumen",
+          "note": "Copyright (C) 2026 Julian (JL Studios) and the Lumen contributors. The plugin SDK is MIT OR Apache-2.0. The RAW library photos-raw is LGPL-2.1."
+        }
+      ]
+    },
+    {
+      "id": "programs",
+      "title": "Programs Lumen runs",
+      "intro": "Separate programs Lumen ships beside itself and runs; each keeps its own licence. Their source code is available from the links given.",
+      "items": [
+        {
+          "name": "FFmpeg",
+          "version": "9.0.1 (gyan.dev essentials build, Windows)",
+          "license": "GPL-3.0-or-later",
+          "texts": [
+            "GPL-3.0-only"
+          ],
+          "url": "https://ffmpeg.org",
+          "note": "This FFmpeg build includes x264 and x265 and is distributed under the GNU GPL version 3. Its source code is available at https://ffmpeg.org/download.html, and the build's configuration at https://www.gyan.dev/ffmpeg/builds/. Lumen runs FFmpeg as a separate program; you may replace it with your own build."
+        },
+        {
+          "name": "ExifTool",
+          "version": "13.59",
+          "license": "Artistic-1.0-Perl OR GPL-1.0-or-later",
+          "texts": [
+            "Artistic-1.0-Perl",
+            "GPL-1.0-or-later"
+          ],
+          "url": "https://exiftool.org",
+          "note": "Copyright Phil Harvey. \"This is free software; you can redistribute it and/or modify it under the same terms as Perl itself.\" Lumen runs ExifTool as a separate program."
+        },
+        {
+          "name": "Strawberry Perl (inside ExifTool on Windows)",
+          "version": "as bundled with ExifTool",
+          "license": "Artistic-1.0-Perl OR GPL-1.0-or-later",
+          "texts": [
+            "Artistic-1.0-Perl",
+            "GPL-1.0-or-later"
+          ],
+          "url": "https://strawberryperl.com"
+        }
+      ]
+    },
+    {
+      "id": "data",
+      "title": "Maps, places and music",
+      "intro": "Data Lumen bundles, and services it asks when online detail or music search is switched on.",
+      "items": [
+        {
+          "name": "OpenStreetMap data",
+          "license": "ODbL-1.0",
+          "texts": [
+            "ODbL-1.0"
+          ],
+          "url": "https://www.openstreetmap.org/copyright",
+          "note": "Map data © OpenStreetMap contributors, available under the Open Database License."
+        },
+        {
+          "name": "OpenMapTiles",
+          "license": "CC-BY-4.0",
+          "texts": [
+            "CC-BY-4.0"
+          ],
+          "url": "https://openmaptiles.org",
+          "note": "Map tiles and styles © OpenMapTiles."
+        },
+        {
+          "name": "OpenFreeMap",
+          "license": "service",
+          "texts": [],
+          "url": "https://openfreemap.org",
+          "note": "Online map tiles: OpenFreeMap © OpenMapTiles, data from OpenStreetMap."
+        },
+        {
+          "name": "Esri World Imagery",
+          "license": "service",
+          "texts": [],
+          "url": "https://www.arcgis.com/home/item.html?id=10df2279f9684e4a9f6a7f08febac2a9",
+          "note": "Satellite imagery © Esri, Maxar, Earthstar Geographics, and the GIS User Community."
+        },
+        {
+          "name": "Photon",
+          "license": "Apache-2.0",
+          "texts": [
+            "Apache-2.0"
+          ],
+          "url": "https://photon.komoot.io",
+          "note": "Online place search by komoot, built on OpenStreetMap data."
+        },
+        {
+          "name": "Nominatim",
+          "license": "service",
+          "texts": [],
+          "url": "https://nominatim.openstreetmap.org",
+          "note": "Exact place names, when switched on: OpenStreetMap's reverse geocoder. Names © OpenStreetMap contributors (ODbL)."
+        },
+        {
+          "name": "Natural Earth",
+          "license": "Public domain",
+          "texts": [],
+          "url": "https://www.naturalearthdata.com",
+          "note": "The offline world map. Made with Natural Earth. Free vector and raster map data @ naturalearthdata.com."
+        },
+        {
+          "name": "GeoNames",
+          "license": "CC-BY-4.0",
+          "texts": [
+            "CC-BY-4.0"
+          ],
+          "url": "https://www.geonames.org",
+          "note": "Place names for photos and the offline place search come from GeoNames (cities15000 and cities500), under Creative Commons Attribution 4.0."
+        },
+        {
+          "name": "Jamendo",
+          "license": "service",
+          "texts": [],
+          "url": "https://www.jamendo.com",
+          "note": "Music found through Music search is provided by Jamendo. Each track is credited to its artist under its own Creative Commons licence, and the credit is saved beside every slideshow that uses it."
+        }
+      ]
+    },
+    {
+      "id": "notices",
+      "title": "Notices",
+      "intro": "Statements some licences ask to be shown as written.",
+      "items": [
+        {
+          "name": "Independent JPEG Group",
+          "license": "IJG",
+          "texts": [],
+          "url": "https://ijg.org",
+          "note": "This software is based in part on the work of the Independent JPEG Group (through the jpeg-encoder crate)."
+        },
+        {
+          "name": "DNG",
+          "license": "DNG Specification patent license",
+          "texts": [],
+          "url": "https://helpx.adobe.com/camera-raw/desktop/dng-and-file-formats/digital-negative.html",
+          "note": "This product includes DNG technology under license by Adobe."
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,39 @@
+# Lumen Prism (docs/ML-TRAINING.md, "Lumen Prism"). Override any value on the command line:
+#   python -m lumen_train.prism.cv folds --config lumen_train/prism/config.toml data.root=C:/lumen-train train.init=C:/lumen-train/runs/r2-pre/best_de.pt run.dir=C:/lumen-train/runs/prism-1
+
+[data]
+root = ""
+pairs = "julian-pairs"  # his RAW + edit pairs: the style to learn (never the contributor's pairs)
+wiki = ["wikimedia-cc0-pd", "wikimedia-cc-by"]  # synthetic pairs that keep Retouch general
+views = 8      # augmented views of each pair per epoch
+workers = 6
+cache = false  # see retouch/config.toml
+
+[run]
+dir = "runs/prism"
+
+[train]
+init = ""          # a checkpoint that never saw julian-pairs, nor did any it started from (r2-pre)
+folds = 5
+epochs = 30
+batch = 16         # a quarter his pairs, the rest Wikimedia
+pair_weight = 3.0  # his rows' weight in the loss
+lr = 2e-4          # the heads'; low: the warm start already knows Retouch
+encoder_lr = 0.1   # the encoder's share of it once unfrozen
+freeze = 0.333     # share of the epochs with the encoder frozen
+weight_decay = 0.02
+ema = 0.998        # decay of the weights' moving average (what is scored and saved): ~4 epochs of ~120 steps
+amp = true
+seed = 0
+device = "auto"
+
+[loss]
+param = 1.0
+de = 1.0
+iou = 0.5
+presence = 0.2
+train_metric = "de2000"
+de2000_tail = 0.1
+
+[synth]
+identity_p = 0.15

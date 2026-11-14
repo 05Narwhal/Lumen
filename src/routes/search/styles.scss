@@ -1,0 +1,123 @@
+.search-route {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+
+  &__top {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-3);
+    padding: 0 var(--space-6) var(--space-3);
+  }
+
+  // Every section in one short strip, side by side, so the photos stay in view.
+  &__strip {
+    display: flex;
+    gap: var(--space-6);
+    overflow-x: auto;
+    scrollbar-width: thin;
+
+    &:empty { display: none; }
+  }
+
+  &__section {
+    flex: none;
+  }
+
+  &__section-head {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: var(--space-4);
+    margin-bottom: var(--space-2);
+  }
+
+  &__section-title {
+    font-size: var(--text-sm);
+    font-weight: 600;
+    color: var(--fg-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+  }
+
+  &__see-all {
+    font-size: var(--text-sm);
+    color: var(--accent);
+  }
+
+  &__row {
+    display: flex;
+    gap: var(--space-3);
+  }
+
+  &__person {
+    display: flex;
+    flex: none;
+    flex-direction: column;
+    align-items: center;
+    gap: var(--space-1);
+    width: 72px;
+    text-align: center;
+  }
+
+  &__face {
+    width: 56px;
+    height: 56px;
+    border-radius: 50%;
+    object-fit: cover;
+    background: var(--bg-sunken);
+
+    // A pet is the whole animal, in a rounded square (Round 4C).
+    &--pet { border-radius: var(--radius-md); }
+  }
+
+  &__card {
+    display: flex;
+    flex: none;
+    flex-direction: column;
+    gap: 2px;
+    width: 160px;
+  }
+
+  &__card-media {
+    display: block;
+    width: 160px;
+    height: 96px;
+    overflow: hidden;
+    border-radius: var(--radius-md);
+    background: var(--bg-sunken);
+  }
+
+  &__cover {
+    display: block;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+
+  &__memory {
+    flex: none;
+    width: 144px;
+  }
+
+  &__name {
+    font-size: var(--text-sm);
+    font-weight: 500;
+    color: var(--fg-primary);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 100%;
+  }
+
+  &__meta {
+    font-size: var(--text-xs);
+    color: var(--fg-muted);
+  }
+
+  &__grid {
+    position: relative;
+    flex: 1;
+    min-height: 0;
+  }
+}

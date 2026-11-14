@@ -1,0 +1,33 @@
+.hidden-route {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
+
+  &--locked { display: grid; place-items: center; }
+
+  &__grid { flex: 1; min-height: 0; }
+
+  &__lock {
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    gap: var(--space-3);
+    width: min(360px, calc(100% - 2 * var(--space-4)));
+    text-align: center;
+    h2 { margin: 0; font-size: var(--text-lg); }
+    p { margin: 0; color: var(--fg-muted); font-size: var(--text-sm); }
+    // The heading is centred; a field's label sits over its field.
+    .mantine-PasswordInput-root { text-align: start; }
+  }
+  &__lock-icon { align-self: center; color: var(--fg-muted); }
+  &__error { color: var(--danger); font-size: var(--text-sm); }
+
+  &__forgot {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-4);
+    p { margin: 0; color: var(--fg-muted); }
+  }
+  &__forgot-actions { display: flex; justify-content: flex-end; gap: var(--space-2); }
+}

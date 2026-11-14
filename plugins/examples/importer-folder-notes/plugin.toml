@@ -1,0 +1,20 @@
+id = "example.importer-folder-notes"
+name = "Folder with notes (example importer)"
+version = "1.0.0"
+author = "JL Studios"
+description = "Imports the photos in a folder and its sub-folders. A photo's title and caption come from a .txt file with the same name, and each folder can become an album."
+license = "MIT"
+lumen = ">=26.2.0"
+api = 1
+permissions = ["import.read-chosen"]
+
+[importer]
+label = "Folder with notes"
+pick = "folder"
+hint = "Choose a folder of photos. IMG_1.jpg gets its title and caption from IMG_1.txt next to it."
+
+[[settings]]
+key = "albums_from_folders"
+label = "Make an album of each folder"
+type = "bool"
+default = true

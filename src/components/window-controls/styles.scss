@@ -1,0 +1,25 @@
+.window-controls {
+  display: flex;
+  height: var(--titlebar-h);
+  -webkit-app-region: no-drag;
+
+  &__btn {
+    width: 46px;
+    height: 100%;
+    display: grid;
+    place-items: center;
+    color: var(--fg-muted);
+    transition: background var(--motion-fast) var(--ease), color var(--motion-fast) var(--ease);
+
+    &:hover {
+      background: var(--bg-sunken);
+      color: var(--fg-primary);
+    }
+
+    // The one colour outside globals.scss: every OS user expects a red close button.
+    &--close:hover {
+      background: oklch(58% 0.22 25);
+      color: oklch(100% 0 0);
+    }
+  }
+}

@@ -1,0 +1,6 @@
+// A grid filtered by *Has text* with nothing in it (Round 13-3): centred in the grid's place.
+.text-empty {
+  display: grid;
+  place-items: center;
+  min-height: 100%;
+}

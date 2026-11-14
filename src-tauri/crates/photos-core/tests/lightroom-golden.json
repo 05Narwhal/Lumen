@@ -1,0 +1,1223 @@
+{
+  "catalog-develop.lua": {
+    "asShotKelvin": null,
+    "settings": {
+      "AutoGrayscaleMix": true,
+      "AutoLateralCA": 0.0,
+      "BlueHue": 0.0,
+      "BlueSaturation": 0.0,
+      "CameraProfile": "Adobe Color",
+      "Clarity2012": 12.0,
+      "ColorGradeBlending": 50.0,
+      "ColorNoiseReduction": 25.0,
+      "Contrast2012": 15.0,
+      "CropAngle": 0.0,
+      "CropBottom": 1.0,
+      "CropLeft": 0.0,
+      "CropRight": 1.0,
+      "CropTop": 0.0,
+      "Exposure2012": -0.25,
+      "GrainAmount": 0.0,
+      "HasCrop": false,
+      "HueAdjustmentAqua": 0.0,
+      "HueAdjustmentGreen": 15.0,
+      "IncrementalTemperature": 0.0,
+      "IncrementalTint": 0.0,
+      "LensProfileEnable": 0.0,
+      "LuminanceSmoothing": 0.0,
+      "MaskGroupBasedCorrections": [
+        {
+          "CorrectionActive": true,
+          "CorrectionAmount": 1.0,
+          "CorrectionMasks": [
+            {
+              "FullX": 0.5,
+              "FullY": 0.05,
+              "MaskActive": true,
+              "MaskBlendMode": 0.0,
+              "MaskInverted": false,
+              "MaskName": "Linear Gradient 1",
+              "MaskValue": 1.0,
+              "What": "Mask/Gradient",
+              "ZeroX": 0.5,
+              "ZeroY": 0.45
+            }
+          ],
+          "CorrectionName": "Sky",
+          "LocalExposure2012": -0.4,
+          "LocalSaturation": 0.15,
+          "What": "Correction"
+        },
+        {
+          "CorrectionActive": true,
+          "CorrectionAmount": 1.0,
+          "CorrectionMasks": [
+            {
+              "MaskActive": true,
+              "MaskBlendMode": 0.0,
+              "MaskInverted": false,
+              "MaskName": "Subject",
+              "MaskSubType": 1.0,
+              "MaskValue": 1.0,
+              "What": "Mask/Image"
+            }
+          ],
+          "CorrectionName": "Subject",
+          "LocalExposure2012": 0.2,
+          "What": "Correction"
+        }
+      ],
+      "ParametricDarks": 0.0,
+      "ParametricHighlights": 0.0,
+      "ParametricLights": 0.0,
+      "ParametricShadows": 0.0,
+      "PostCropVignetteAmount": 0.0,
+      "ProcessVersion": "11.0",
+      "SaturationAdjustmentGreen": -20.0,
+      "Sharpness": 40.0,
+      "ToneCurveName2012": "Linear",
+      "ToneCurvePV2012": [
+        0.0,
+        0.0,
+        255.0,
+        255.0
+      ],
+      "Version": "15.4",
+      "Vibrance": 8.0,
+      "WhiteBalance": "As Shot"
+    },
+    "converted": {
+      "develop": {
+        "basic": {
+          "temperature": 0.0,
+          "tint": 0.0,
+          "exposure": -0.25,
+          "contrast": 0.15,
+          "highlights": 0.0,
+          "shadows": 0.0,
+          "whites": 0.0,
+          "blacks": 0.0,
+          "texture": 0.0,
+          "clarity": 0.12,
+          "dehaze": 0.0,
+          "vibrance": 0.08,
+          "saturation": 0.0
+        },
+        "curve": {
+          "master": [],
+          "r": [],
+          "g": [],
+          "b": []
+        },
+        "hsl": [
+          {
+            "h": 0.0,
+            "s": 0.0,
+            "l": 0.0
+          },
+          {
+            "h": 0.0,
+            "s": 0.0,
+            "l": 0.0
+          },
+          {
+            "h": 0.0,
+            "s": 0.0,
+            "l": 0.0
+          },
+          {
+            "h": 0.15,
+            "s": -0.2,
+            "l": 0.0
+          },
+          {
+            "h": 0.0,
+            "s": 0.0,
+            "l": 0.0
+          },
+          {
+            "h": 0.0,
+            "s": 0.0,
+            "l": 0.0
+          },
+          {
+            "h": 0.0,
+            "s": 0.0,
+            "l": 0.0
+          },
+          {
+            "h": 0.0,
+            "s": 0.0,
+            "l": 0.0
+          }
+        ],
+        "grading": {
+          "shadows": {
+            "hue": 0.0,
+            "sat": 0.0,
+            "lum": 0.0
+          },
+          "midtones": {
+            "hue": 0.0,
+            "sat": 0.0,
+            "lum": 0.0
+          },
+          "highlights": {
+            "hue": 0.0,
+            "sat": 0.0,
+            "lum": 0.0
+          },
+          "blending": 0.5,
+          "balance": 0.0
+        },
+        "detail": {
+          "sharpen": {
+            "amount": 0.4,
+            "radius": 1.0,
+            "detail": 0.25,
+            "masking": 0.0
+          },
+          "denoise": null
+        },
+        "effects": {
+          "vignette": {
+            "amount": 0.0,
+            "midpoint": 0.5,
+            "feather": 0.5
+          },
+          "grain": {
+            "amount": 0.0,
+            "size": 0.25
+          }
+        },
+        "auto": false,
+        "masks": [
+          {
+            "id": 1,
+            "name": "Sky",
+            "shapes": [
+              {
+                "kind": "linear",
+                "add": true,
+                "from": [
+                  0.5,
+                  0.05
+                ],
+                "to": [
+                  0.5,
+                  0.45
+                ]
+              }
+            ],
+            "invert": false,
+            "opacity": 1.0,
+            "adjust": {
+              "temperature": 0.0,
+              "tint": 0.0,
+              "exposure": -0.4,
+              "contrast": 0.0,
+              "highlights": 0.0,
+              "shadows": 0.0,
+              "whites": 0.0,
+              "blacks": 0.0,
+              "texture": 0.0,
+              "clarity": 0.0,
+              "dehaze": 0.0,
+              "saturation": 0.15,
+              "sharpness": 0.0
+            },
+            "visible": true
+          }
+        ]
+      },
+      "geometry": null,
+      "panels": [
+        "basic",
+        "curve",
+        "hsl",
+        "grading",
+        "detail",
+        "effects",
+        "masks"
+      ],
+      "skipped": [
+        "AI mask (subject, sky…)"
+      ],
+      "name": null,
+      "group": null
+    }
+  },
+  "old-pv2010.lrtemplate": {
+    "asShotKelvin": null,
+    "settings": {
+      "Brightness": 60.0,
+      "Clarity": 25.0,
+      "Contrast": 50.0,
+      "ConvertToGrayscale": true,
+      "Exposure": 0.35,
+      "FillLight": 15.0,
+      "Name": "Old Punch",
+      "ProcessVersion": "6.7",
+      "Recovery": 20.0,
+      "Shadows": 8.0,
+      "Vibrance": 20.0
+    },
+    "converted": {
+      "develop": {
+        "basic": {
+          "temperature": 0.0,
+          "tint": 0.0,
+          "exposure": 0.35,
+          "contrast": 0.25,
+          "highlights": -0.2,
+          "shadows": 0.15,
+          "whites": 0.0,
+          "blacks": -0.03,
+          "texture": 0.0,
+          "clarity": 0.25,
+          "dehaze": 0.0,
+          "vibrance": 0.0,
+          "saturation": -1.0
+        },
+        "curve": {
+          "master": [],
+          "r": [],
+          "g": [],
+          "b": []
+        },
+        "hsl": [
+          {
+            "h": 0.0,
+            "s": 0.0,
+            "l": 0.0
+          },
+          {
+            "h": 0.0,
+            "s": 0.0,
+            "l": 0.0
+          },
+          {
+            "h": 0.0,
+            "s": 0.0,
+            "l": 0.0
+          },
+          {
+            "h": 0.0,
+            "s": 0.0,
+            "l": 0.0
+          },
+          {
+            "h": 0.0,
+            "s": 0.0,
+            "l": 0.0
+          },
+          {
+            "h": 0.0,
+            "s": 0.0,
+            "l": 0.0
+          },
+          {
+            "h": 0.0,
+            "s": 0.0,
+            "l": 0.0
+          },
+          {
+            "h": 0.0,
+            "s": 0.0,
+            "l": 0.0
+          }
+        ],
+        "grading": {
+          "shadows": {
+            "hue": 0.0,
+            "sat": 0.0,
+            "lum": 0.0
+          },
+          "midtones": {
+            "hue": 0.0,
+            "sat": 0.0,
+            "lum": 0.0
+          },
+          "highlights": {
+            "hue": 0.0,
+            "sat": 0.0,
+            "lum": 0.0
+          },
+          "blending": 0.5,
+          "balance": 0.0
+        },
+        "detail": {
+          "sharpen": {
+            "amount": 0.0,
+            "radius": 1.0,
+            "detail": 0.25,
+            "masking": 0.0
+          },
+          "denoise": null
+        },
+        "effects": {
+          "vignette": {
+            "amount": 0.0,
+            "midpoint": 0.5,
+            "feather": 0.5
+          },
+          "grain": {
+            "amount": 0.0,
+            "size": 0.25
+          }
+        },
+        "auto": false
+      },
+      "geometry": null,
+      "panels": [
+        "basic"
+      ],
+      "skipped": [
+        "Process version 2010 (approximated)",
+        "Black & white (approximated)",
+        "Brightness"
+      ],
+      "name": "Old Punch",
+      "group": null
+    }
+  },
+  "preset-vibrance-only.xmp": {
+    "asShotKelvin": null,
+    "settings": {
+      "HasSettings": true,
+      "Name": "Vibrance +25",
+      "PresetType": "Normal",
+      "ProcessVersion": 11.0,
+      "SupportsAmount": false,
+      "UUID": 2.0,
+      "Version": 15.0,
+      "Vibrance": 25.0
+    },
+    "converted": {
+      "develop": {
+        "basic": {
+          "temperature": 0.0,
+          "tint": 0.0,
+          "exposure": 0.0,
+          "contrast": 0.0,
+          "highlights": 0.0,
+          "shadows": 0.0,
+          "whites": 0.0,
+          "blacks": 0.0,
+          "texture": 0.0,
+          "clarity": 0.0,
+          "dehaze": 0.0,
+          "vibrance": 0.25,
+          "saturation": 0.0
+        },
+        "curve": {
+          "master": [],
+          "r": [],
+          "g": [],
+          "b": []
+        },
+        "hsl": [
+          {
+            "h": 0.0,
+            "s": 0.0,
+            "l": 0.0
+          },
+          {
+            "h": 0.0,
+            "s": 0.0,
+            "l": 0.0
+          },
+          {
+            "h": 0.0,
+            "s": 0.0,
+            "l": 0.0
+          },
+          {
+            "h": 0.0,
+            "s": 0.0,
+            "l": 0.0
+          },
+          {
+            "h": 0.0,
+            "s": 0.0,
+            "l": 0.0
+          },
+          {
+            "h": 0.0,
+            "s": 0.0,
+            "l": 0.0
+          },
+          {
+            "h": 0.0,
+            "s": 0.0,
+            "l": 0.0
+          },
+          {
+            "h": 0.0,
+            "s": 0.0,
+            "l": 0.0
+          }
+        ],
+        "grading": {
+          "shadows": {
+            "hue": 0.0,
+            "sat": 0.0,
+            "lum": 0.0
+          },
+          "midtones": {
+            "hue": 0.0,
+            "sat": 0.0,
+            "lum": 0.0
+          },
+          "highlights": {
+            "hue": 0.0,
+            "sat": 0.0,
+            "lum": 0.0
+          },
+          "blending": 0.5,
+          "balance": 0.0
+        },
+        "detail": {
+          "sharpen": {
+            "amount": 0.0,
+            "radius": 1.0,
+            "detail": 0.25,
+            "masking": 0.0
+          },
+          "denoise": null
+        },
+        "effects": {
+          "vignette": {
+            "amount": 0.0,
+            "midpoint": 0.5,
+            "feather": 0.5
+          },
+          "grain": {
+            "amount": 0.0,
+            "size": 0.25
+          }
+        },
+        "auto": false
+      },
+      "geometry": null,
+      "panels": [
+        "basic"
+      ],
+      "skipped": [],
+      "name": "Vibrance +25",
+      "group": null
+    }
+  },
+  "preset-warm-portrait.xmp": {
+    "asShotKelvin": null,
+    "settings": {
+      "Blacks2012": -8.0,
+      "CameraModelRestriction": "",
+      "Clarity2012": -5.0,
+      "Cluster": "",
+      "ColorGradeBlending": 60.0,
+      "ColorGradeGlobalHue": 0.0,
+      "ColorGradeGlobalLum": 0.0,
+      "ColorGradeGlobalSat": 0.0,
+      "ColorGradeHighlightLum": -3.0,
+      "ColorGradeMidtoneHue": 30.0,
+      "ColorGradeMidtoneLum": 0.0,
+      "ColorGradeMidtoneSat": 6.0,
+      "ColorGradeShadowLum": 4.0,
+      "ContactInfo": "",
+      "Contrast2012": -10.0,
+      "Copyright": "",
+      "Dehaze": 0.0,
+      "Exposure2012": 0.15,
+      "GrainAmount": 8.0,
+      "GrainFrequency": 50.0,
+      "GrainSize": 25.0,
+      "Group": "Portrait",
+      "HasSettings": true,
+      "Highlights2012": -35.0,
+      "HueAdjustmentOrange": -6.0,
+      "HueAdjustmentRed": 4.0,
+      "IncrementalTemperature": 12.0,
+      "IncrementalTint": 3.0,
+      "LuminanceAdjustmentOrange": 10.0,
+      "Name": "Warm Portrait",
+      "ParametricDarks": 10.0,
+      "ParametricHighlightSplit": 75.0,
+      "ParametricHighlights": -15.0,
+      "ParametricLights": 0.0,
+      "ParametricMidtoneSplit": 50.0,
+      "ParametricShadowSplit": 25.0,
+      "ParametricShadows": 0.0,
+      "PostCropVignetteAmount": -12.0,
+      "PostCropVignetteFeather": 60.0,
+      "PostCropVignetteHighlightContrast": 0.0,
+      "PostCropVignetteMidpoint": 50.0,
+      "PostCropVignetteRoundness": 0.0,
+      "PostCropVignetteStyle": 1.0,
+      "PresetType": "Normal",
+      "ProcessVersion": 11.0,
+      "Saturation": -4.0,
+      "SaturationAdjustmentBlue": -20.0,
+      "SaturationAdjustmentOrange": -12.0,
+      "Shadows2012": 25.0,
+      "SplitToningBalance": 20.0,
+      "SplitToningHighlightHue": 40.0,
+      "SplitToningHighlightSaturation": 18.0,
+      "SplitToningShadowHue": 210.0,
+      "SplitToningShadowSaturation": 12.0,
+      "SupportsAmount": false,
+      "SupportsColor": true,
+      "SupportsHighDynamicRange": true,
+      "SupportsMonochrome": true,
+      "SupportsNormalDynamicRange": true,
+      "SupportsOutputReferred": false,
+      "SupportsSceneReferred": true,
+      "Texture": -10.0,
+      "ToneCurvePV2012": [
+        "0, 12",
+        "64, 60",
+        "192, 196",
+        "255, 250"
+      ],
+      "UUID": 1.0,
+      "Version": 15.0,
+      "Vibrance": 12.0,
+      "Whites2012": 5.0
+    },
+    "converted": {
+      "develop": {
+        "basic": {
+          "temperature": 12.0,
+          "tint": 3.0,
+          "exposure": 0.15,
+          "contrast": -0.1,
+          "highlights": -0.35,
+          "shadows": 0.25,
+          "whites": 0.05,
+          "blacks": -0.08,
+          "texture": -0.1,
+          "clarity": -0.05,
+          "dehaze": 0.0,
+          "vibrance": 0.12,
+          "saturation": -0.04
+        },
+        "curve": {
+          "master": [
+            [
+              0.0,
+              0.048941176
+            ],
+            [
+              0.2509804,
+              0.24470587
+            ],
+            [
+              0.5,
+              0.50987744
+            ],
+            [
+              0.7529412,
+              0.7547451
+            ],
+            [
+              1.0,
+              0.9792157
+            ]
+          ],
+          "r": [],
+          "g": [],
+          "b": []
+        },
+        "hsl": [
+          {
+            "h": 0.04,
+            "s": 0.0,
+            "l": 0.0
+          },
+          {
+            "h": -0.06,
+            "s": -0.12,
+            "l": 0.1
+          },
+          {
+            "h": 0.0,
+            "s": 0.0,
+            "l": 0.0
+          },
+          {
+            "h": 0.0,
+            "s": 0.0,
+            "l": 0.0
+          },
+          {
+            "h": 0.0,
+            "s": 0.0,
+            "l": 0.0
+          },
+          {
+            "h": 0.0,
+            "s": -0.2,
+            "l": 0.0
+          },
+          {
+            "h": 0.0,
+            "s": 0.0,
+            "l": 0.0
+          },
+          {
+            "h": 0.0,
+            "s": 0.0,
+            "l": 0.0
+          }
+        ],
+        "grading": {
+          "shadows": {
+            "hue": 210.0,
+            "sat": 0.12,
+            "lum": 0.04
+          },
+          "midtones": {
+            "hue": 30.0,
+            "sat": 0.06,
+            "lum": 0.0
+          },
+          "highlights": {
+            "hue": 40.0,
+            "sat": 0.18,
+            "lum": -0.03
+          },
+          "blending": 0.6,
+          "balance": 0.2
+        },
+        "detail": {
+          "sharpen": {
+            "amount": 0.0,
+            "radius": 1.0,
+            "detail": 0.25,
+            "masking": 0.0
+          },
+          "denoise": null
+        },
+        "effects": {
+          "vignette": {
+            "amount": -0.12,
+            "midpoint": 0.5,
+            "feather": 0.6
+          },
+          "grain": {
+            "amount": 0.08,
+            "size": 0.25
+          }
+        },
+        "auto": false
+      },
+      "geometry": null,
+      "panels": [
+        "basic",
+        "curve",
+        "hsl",
+        "grading",
+        "effects"
+      ],
+      "skipped": [],
+      "name": "Warm Portrait",
+      "group": "Portrait"
+    }
+  },
+  "sidecar-classic-13.xmp": {
+    "asShotKelvin": 5250.0,
+    "settings": {
+      "AlreadyApplied": false,
+      "AutoLateralCA": 1.0,
+      "Blacks2012": -12.0,
+      "CameraProfile": "Adobe Standard",
+      "CircularGradientBasedCorrections": [
+        {
+          "CorrectionActive": true,
+          "CorrectionAmount": 0.8,
+          "CorrectionMasks": [
+            {
+              "Angle": 10.0,
+              "Bottom": 0.7,
+              "Feather": 60.0,
+              "Flipped": true,
+              "Left": 0.35,
+              "MaskValue": 1.0,
+              "Midpoint": 50.0,
+              "Right": 0.65,
+              "Roundness": 0.0,
+              "Top": 0.3,
+              "Version": 2.0,
+              "What": "Mask/CircularGradient"
+            }
+          ],
+          "LocalClarity2012": 0.1,
+          "LocalExposure2012": 0.3,
+          "What": "Correction"
+        }
+      ],
+      "Clarity2012": 10.0,
+      "ColorNoiseReduction": 25.0,
+      "ColorNoiseReductionDetail": 50.0,
+      "ColorNoiseReductionSmoothness": 50.0,
+      "Contrast2012": 8.0,
+      "CropAngle": -1.35,
+      "CropBottom": 0.97,
+      "CropConstrainToWarp": 0.0,
+      "CropLeft": 0.06,
+      "CropRight": 0.95,
+      "CropTop": 0.04,
+      "Dehaze": 5.0,
+      "Exposure2012": 0.4,
+      "GradientBasedCorrections": [
+        {
+          "CorrectionActive": true,
+          "CorrectionAmount": 1.0,
+          "CorrectionMasks": [
+            {
+              "FullX": 0.5,
+              "FullY": 0.15,
+              "MaskValue": 1.0,
+              "What": "Mask/Gradient",
+              "ZeroX": 0.5,
+              "ZeroY": 0.55
+            }
+          ],
+          "CorrectionName": "Sky",
+          "LocalDehaze": 0.15,
+          "LocalExposure2012": -0.65,
+          "LocalHighlights2012": -0.2,
+          "LocalHue": 0.0,
+          "LocalTemperature": -0.1,
+          "What": "Correction"
+        }
+      ],
+      "HasCrop": true,
+      "Highlights2012": -60.0,
+      "LensManualDistortionAmount": 0.0,
+      "LensProfileEnable": 1.0,
+      "LuminanceNoiseReductionContrast": 0.0,
+      "LuminanceNoiseReductionDetail": 50.0,
+      "LuminanceSmoothing": 20.0,
+      "PaintBasedCorrections": [
+        {
+          "CorrectionActive": true,
+          "CorrectionAmount": 1.0,
+          "CorrectionMasks": [
+            {
+              "CenterWeight": 0.0,
+              "Dabs": [
+                "d 0.400000 0.500000"
+              ],
+              "Flow": 1.0,
+              "MaskValue": 1.0,
+              "Radius": 0.05,
+              "What": "Mask/Paint"
+            }
+          ],
+          "LocalExposure2012": 0.25,
+          "What": "Correction"
+        }
+      ],
+      "PerspectiveAspect": 0.0,
+      "PerspectiveHorizontal": 0.0,
+      "PerspectiveRotate": 0.0,
+      "PerspectiveScale": 100.0,
+      "PerspectiveUpright": 0.0,
+      "PerspectiveVertical": 0.0,
+      "ProcessVersion": 11.0,
+      "RawFileName": "IMG_0412.CR3",
+      "Saturation": 0.0,
+      "Shadows2012": 40.0,
+      "SharpenDetail": 25.0,
+      "SharpenEdgeMasking": 30.0,
+      "SharpenRadius": 1.0,
+      "Sharpness": 40.0,
+      "Temperature": 6100.0,
+      "Texture": 6.0,
+      "Tint": 9.0,
+      "ToneCurvePV2012": [
+        "0, 0",
+        "255, 255"
+      ],
+      "Version": 16.0,
+      "Vibrance": 18.0,
+      "WhiteBalance": "Custom",
+      "Whites2012": 10.0
+    },
+    "converted": {
+      "develop": {
+        "basic": {
+          "temperature": 18.040989,
+          "tint": 6.0,
+          "exposure": 0.4,
+          "contrast": 0.08,
+          "highlights": -0.6,
+          "shadows": 0.4,
+          "whites": 0.1,
+          "blacks": -0.12,
+          "texture": 0.06,
+          "clarity": 0.1,
+          "dehaze": 0.05,
+          "vibrance": 0.18,
+          "saturation": 0.0
+        },
+        "curve": {
+          "master": [],
+          "r": [],
+          "g": [],
+          "b": []
+        },
+        "hsl": [
+          {
+            "h": 0.0,
+            "s": 0.0,
+            "l": 0.0
+          },
+          {
+            "h": 0.0,
+            "s": 0.0,
+            "l": 0.0
+          },
+          {
+            "h": 0.0,
+            "s": 0.0,
+            "l": 0.0
+          },
+          {
+            "h": 0.0,
+            "s": 0.0,
+            "l": 0.0
+          },
+          {
+            "h": 0.0,
+            "s": 0.0,
+            "l": 0.0
+          },
+          {
+            "h": 0.0,
+            "s": 0.0,
+            "l": 0.0
+          },
+          {
+            "h": 0.0,
+            "s": 0.0,
+            "l": 0.0
+          },
+          {
+            "h": 0.0,
+            "s": 0.0,
+            "l": 0.0
+          }
+        ],
+        "grading": {
+          "shadows": {
+            "hue": 0.0,
+            "sat": 0.0,
+            "lum": 0.0
+          },
+          "midtones": {
+            "hue": 0.0,
+            "sat": 0.0,
+            "lum": 0.0
+          },
+          "highlights": {
+            "hue": 0.0,
+            "sat": 0.0,
+            "lum": 0.0
+          },
+          "blending": 0.5,
+          "balance": 0.0
+        },
+        "detail": {
+          "sharpen": {
+            "amount": 0.4,
+            "radius": 1.0,
+            "detail": 0.25,
+            "masking": 0.3
+          },
+          "denoise": {
+            "strength": 0.2,
+            "model": ""
+          }
+        },
+        "effects": {
+          "vignette": {
+            "amount": 0.0,
+            "midpoint": 0.5,
+            "feather": 0.5
+          },
+          "grain": {
+            "amount": 0.0,
+            "size": 0.25
+          }
+        },
+        "auto": false,
+        "masks": [
+          {
+            "id": 1,
+            "name": "Sky",
+            "shapes": [
+              {
+                "kind": "linear",
+                "add": true,
+                "from": [
+                  0.5,
+                  0.15
+                ],
+                "to": [
+                  0.5,
+                  0.55
+                ]
+              }
+            ],
+            "invert": false,
+            "opacity": 1.0,
+            "adjust": {
+              "temperature": -10.0,
+              "tint": 0.0,
+              "exposure": -0.65,
+              "contrast": 0.0,
+              "highlights": -0.2,
+              "shadows": 0.0,
+              "whites": 0.0,
+              "blacks": 0.0,
+              "texture": 0.0,
+              "clarity": 0.0,
+              "dehaze": 0.15,
+              "saturation": 0.0,
+              "sharpness": 0.0
+            },
+            "visible": true
+          },
+          {
+            "id": 2,
+            "name": "Radial 1",
+            "shapes": [
+              {
+                "kind": "radial",
+                "add": true,
+                "center": [
+                  0.5,
+                  0.5
+                ],
+                "radius": [
+                  0.14999999,
+                  0.19999999
+                ],
+                "angle": 10.0,
+                "feather": 0.6,
+                "inside": true
+              }
+            ],
+            "invert": false,
+            "opacity": 0.8,
+            "adjust": {
+              "temperature": 0.0,
+              "tint": 0.0,
+              "exposure": 0.3,
+              "contrast": 0.0,
+              "highlights": 0.0,
+              "shadows": 0.0,
+              "whites": 0.0,
+              "blacks": 0.0,
+              "texture": 0.0,
+              "clarity": 0.1,
+              "dehaze": 0.0,
+              "saturation": 0.0,
+              "sharpness": 0.0
+            },
+            "visible": true
+          }
+        ]
+      },
+      "geometry": {
+        "crop": {
+          "x": 0.06,
+          "y": 0.04,
+          "w": 0.89,
+          "h": 0.93
+        },
+        "straighten": -1.35
+      },
+      "panels": [
+        "basic",
+        "curve",
+        "detail",
+        "masks"
+      ],
+      "skipped": [
+        "Temperature (approximated)",
+        "Tint (approximated)",
+        "Brush mask",
+        "AutoLateralCA",
+        "LensProfileEnable"
+      ],
+      "name": null,
+      "group": null
+    }
+  },
+  "soft-matte.lrtemplate": {
+    "asShotKelvin": null,
+    "settings": {
+      "Clarity2012": -8.0,
+      "Contrast2012": -20.0,
+      "ConvertToGrayscale": false,
+      "GrainAmount": 15.0,
+      "GrainSize": 30.0,
+      "Highlights2012": -25.0,
+      "LensProfileEnable": 0.0,
+      "Name": "Soft Matte",
+      "ProcessVersion": "10.0",
+      "Shadows2012": 15.0,
+      "SplitToningBalance": 0.0,
+      "SplitToningShadowHue": 190.0,
+      "SplitToningShadowSaturation": 10.0,
+      "ToneCurvePV2012": [
+        0.0,
+        30.0,
+        128.0,
+        128.0,
+        255.0,
+        240.0
+      ],
+      "ToneCurvePV2012Red": [
+        0.0,
+        0.0,
+        255.0,
+        255.0
+      ],
+      "Vibrance": 10.0
+    },
+    "converted": {
+      "develop": {
+        "basic": {
+          "temperature": 0.0,
+          "tint": 0.0,
+          "exposure": 0.0,
+          "contrast": -0.2,
+          "highlights": -0.25,
+          "shadows": 0.15,
+          "whites": 0.0,
+          "blacks": 0.0,
+          "texture": 0.0,
+          "clarity": -0.08,
+          "dehaze": 0.0,
+          "vibrance": 0.1,
+          "saturation": 0.0
+        },
+        "curve": {
+          "master": [
+            [
+              0.0,
+              0.11764706
+            ],
+            [
+              0.5019608,
+              0.5019608
+            ],
+            [
+              1.0,
+              0.9411765
+            ]
+          ],
+          "r": [],
+          "g": [],
+          "b": []
+        },
+        "hsl": [
+          {
+            "h": 0.0,
+            "s": 0.0,
+            "l": 0.0
+          },
+          {
+            "h": 0.0,
+            "s": 0.0,
+            "l": 0.0
+          },
+          {
+            "h": 0.0,
+            "s": 0.0,
+            "l": 0.0
+          },
+          {
+            "h": 0.0,
+            "s": 0.0,
+            "l": 0.0
+          },
+          {
+            "h": 0.0,
+            "s": 0.0,
+            "l": 0.0
+          },
+          {
+            "h": 0.0,
+            "s": 0.0,
+            "l": 0.0
+          },
+          {
+            "h": 0.0,
+            "s": 0.0,
+            "l": 0.0
+          },
+          {
+            "h": 0.0,
+            "s": 0.0,
+            "l": 0.0
+          }
+        ],
+        "grading": {
+          "shadows": {
+            "hue": 190.0,
+            "sat": 0.1,
+            "lum": 0.0
+          },
+          "midtones": {
+            "hue": 0.0,
+            "sat": 0.0,
+            "lum": 0.0
+          },
+          "highlights": {
+            "hue": 0.0,
+            "sat": 0.0,
+            "lum": 0.0
+          },
+          "blending": 0.5,
+          "balance": 0.0
+        },
+        "detail": {
+          "sharpen": {
+            "amount": 0.0,
+            "radius": 1.0,
+            "detail": 0.25,
+            "masking": 0.0
+          },
+          "denoise": null
+        },
+        "effects": {
+          "vignette": {
+            "amount": 0.0,
+            "midpoint": 0.5,
+            "feather": 0.5
+          },
+          "grain": {
+            "amount": 0.15,
+            "size": 0.3
+          }
+        },
+        "auto": false
+      },
+      "geometry": null,
+      "panels": [
+        "basic",
+        "curve",
+        "grading",
+        "effects"
+      ],
+      "skipped": [],
+      "name": "Soft Matte",
+      "group": null
+    }
+  }
+}

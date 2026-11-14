@@ -1,0 +1,9 @@
+[package]
+name = "wit_hash"
+version = "0.0.0"
+edition = "2021"
+publish = false
+
+# Native helper (not a fixture): prints the blake3 of the WIT with CRLF folded to LF.
+[dependencies]
+blake3 = "1"

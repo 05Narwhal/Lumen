@@ -1,0 +1,39 @@
+// A shape in the person's colour with a white icon on its face. The shape's own 120 × 90 box
+// is the 4:3 cover, so the icon's place is a percentage of it per shape.
+.icon-cover {
+  --x: 50%;
+  --y: 58%;
+  position: absolute;
+  inset: 0;
+  display: block;
+  transition: transform var(--motion-base) var(--ease);
+
+  &[data-shape="book"] { --x: 52.5%; --y: 49%; }
+  &[data-shape="box"] { --x: 50%; --y: 59%; }
+  &[data-shape="binder"] { --x: 56.5%; --y: 50%; }
+
+  &__shape {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    filter: var(--cover-drop);
+  }
+
+  &__icon {
+    position: absolute;
+    top: var(--y);
+    left: var(--x);
+    height: 26%;
+    aspect-ratio: 1;
+    color: var(--cover-ink);
+    transform: translate(-50%, -50%);
+    svg { display: block; width: 100%; height: 100%; }
+  }
+
+  @media (prefers-reduced-motion: no-preference) {
+    :root:not([data-reduced-motion="true"]) :where(a, button):is(:hover, :focus-visible) & {
+      transform: translateY(-3%) rotate(-2deg);
+    }
+  }
+}

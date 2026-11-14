@@ -1,0 +1,6 @@
+{
+  "bundle": {
+    "externalBin": ["binaries/ffmpeg", "binaries/ffprobe", "binaries/exiftool"],
+    "resources": { "binaries/exiftool_files/": "exiftool_files/" }
+  }
+}

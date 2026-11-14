@@ -1,0 +1,234 @@
+<title>Lumen Setup mockups</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap">
+<style>
+/* Layout: a page of real-size installer windows (640 × 420) in flow order, each with a caption; a switch flips the look. */
+:root {
+  --page: oklch(97% 0.006 260); --ink: oklch(22% 0.02 260); --muted: oklch(50% 0.02 260); --rule: oklch(88% 0.01 260);
+  /* Glass (default look) */
+  --win: oklch(95% 0.01 260); --wash1: oklch(84% 0.09 250); --wash2: oklch(86% 0.08 300);
+  --panel: color-mix(in oklch, white 62%, transparent); --panel-b: color-mix(in oklch, white 80%, transparent);
+  --fg: oklch(22% 0.02 260); --fg2: oklch(48% 0.02 260); --fg3: oklch(62% 0.015 260);
+  --accent: oklch(58% 0.19 270); --accent2: oklch(60% 0.2 300); --on-accent: white;
+  --sunken: color-mix(in oklch, oklch(90% 0.01 260) 70%, transparent);
+  --radius: 12px; --pill: 999px; --blur: 20px; --shadow: 0 18px 50px oklch(30% 0.05 260 / 0.22);
+  --ok: oklch(58% 0.14 155);
+  --font: "Inter", "Inter Variable", system-ui, sans-serif;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --page: oklch(17% 0.015 260); --ink: oklch(93% 0.01 260); --muted: oklch(70% 0.015 260); --rule: oklch(30% 0.015 260);
+  --win: oklch(20% 0.02 260); --wash1: oklch(36% 0.1 250); --wash2: oklch(34% 0.1 300);
+  --panel: color-mix(in oklch, oklch(26% 0.02 260) 62%, transparent); --panel-b: color-mix(in oklch, white 12%, transparent);
+  --fg: oklch(95% 0.01 260); --fg2: oklch(74% 0.015 260); --fg3: oklch(58% 0.015 260);
+  --accent: oklch(70% 0.15 270); --accent2: oklch(70% 0.16 300); --on-accent: oklch(16% 0.02 260);
+  --sunken: color-mix(in oklch, black 30%, transparent); --shadow: 0 18px 50px black;
+  --ok: oklch(72% 0.14 155); color-scheme: dark; } }
+:root[data-theme="dark"] {
+  --page: oklch(17% 0.015 260); --ink: oklch(93% 0.01 260); --muted: oklch(70% 0.015 260); --rule: oklch(30% 0.015 260);
+  --win: oklch(20% 0.02 260); --wash1: oklch(36% 0.1 250); --wash2: oklch(34% 0.1 300);
+  --panel: color-mix(in oklch, oklch(26% 0.02 260) 62%, transparent); --panel-b: color-mix(in oklch, white 12%, transparent);
+  --fg: oklch(95% 0.01 260); --fg2: oklch(74% 0.015 260); --fg3: oklch(58% 0.015 260);
+  --accent: oklch(70% 0.15 270); --accent2: oklch(70% 0.16 300); --on-accent: oklch(16% 0.02 260);
+  --sunken: color-mix(in oklch, black 30%, transparent); --shadow: 0 18px 50px black;
+  --ok: oklch(72% 0.14 155); color-scheme: dark; }
+/* Gallery look: monochrome, hairlines, 4 px radius, no wash. */
+.look-gallery {
+  --win: white; --wash1: white; --wash2: white; --panel: white; --panel-b: oklch(90% 0 0);
+  --fg: oklch(15% 0 0); --fg2: oklch(45% 0 0); --fg3: oklch(62% 0 0);
+  --accent: oklch(15% 0 0); --accent2: oklch(15% 0 0); --on-accent: white; --sunken: oklch(96% 0 0);
+  --radius: 4px; --pill: 4px; --blur: 0px; --ok: oklch(15% 0 0);
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .look-gallery {
+  --win: oklch(15% 0 0); --wash1: oklch(15% 0 0); --wash2: oklch(15% 0 0); --panel: oklch(17% 0 0); --panel-b: oklch(28% 0 0);
+  --fg: oklch(96% 0 0); --fg2: oklch(70% 0 0); --fg3: oklch(52% 0 0); --accent: white; --accent2: white; --on-accent: oklch(12% 0 0);
+  --sunken: oklch(20% 0 0); --ok: white; } }
+:root[data-theme="dark"] .look-gallery {
+  --win: oklch(15% 0 0); --wash1: oklch(15% 0 0); --wash2: oklch(15% 0 0); --panel: oklch(17% 0 0); --panel-b: oklch(28% 0 0);
+  --fg: oklch(96% 0 0); --fg2: oklch(70% 0 0); --fg3: oklch(52% 0 0); --accent: white; --accent2: white; --on-accent: oklch(12% 0 0);
+  --sunken: oklch(20% 0 0); --ok: white; }
+
+* { box-sizing: border-box; }
+body { background: var(--page); color: var(--ink); font-family: var(--font); font-size: 14px; margin: 0;
+  padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); padding-block: 32px 64px; }
+.page { max-width: 1400px; margin: 0 auto; display: grid; gap: 28px; }
+.intro { display: flex; flex-wrap: wrap; gap: 16px 32px; align-items: end; justify-content: space-between; }
+.intro h1 { margin: 0 0 6px; font-size: 26px; letter-spacing: -0.02em; text-wrap: balance; }
+.intro p { margin: 0; color: var(--muted); max-width: 64ch; line-height: 1.5; }
+.switch { display: inline-flex; border: 1px solid var(--rule); border-radius: 999px; padding: 3px; gap: 2px; }
+.switch button { font: inherit; border: 0; background: none; color: var(--muted); padding: 6px 14px; border-radius: 999px; cursor: pointer; }
+.switch button[aria-pressed="true"] { background: var(--ink); color: var(--page); }
+.switch button:focus-visible, .w button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.flow { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 640px), 1fr)); gap: 36px 28px; }
+figure { margin: 0; display: grid; gap: 10px; min-width: 0; }
+figcaption { color: var(--muted); line-height: 1.45; max-width: 640px; }
+figcaption b { color: var(--ink); font-weight: 600; }
+
+/* The installer window */
+.w { width: 100%; max-width: 640px; aspect-ratio: 640 / 420; position: relative; overflow: hidden; border-radius: 10px;
+  background: var(--win); color: var(--fg); box-shadow: var(--shadow); display: grid; grid-template-rows: 38px 1fr; container-type: inline-size; }
+.look-gallery .w { outline: 1px solid var(--panel-b); }
+.w::before { content: ""; position: absolute; inset: -20%; pointer-events: none;
+  background: radial-gradient(40% 50% at 18% 20%, var(--wash1), transparent 70%), radial-gradient(45% 55% at 90% 85%, var(--wash2), transparent 70%);
+  opacity: var(--light, 0.55); transition: opacity 0.6s; }
+.bar { position: relative; display: flex; align-items: center; padding-left: 14px; gap: 8px; font-size: 12px; color: var(--fg2); }
+.bar .mark { width: 14px; height: 14px; border-radius: 50%; background: conic-gradient(from 200deg, var(--accent), var(--accent2), var(--accent)); }
+.bar .ctl { margin-left: auto; display: flex; height: 100%; }
+.bar .ctl span { width: 46px; display: grid; place-items: center; color: var(--fg2); font-size: 13px; }
+.body { position: relative; padding: 18px 40px 26px; display: flex; flex-direction: column; min-height: 0; }
+.wordmark { font-size: 44px; font-weight: 700; letter-spacing: -0.035em; line-height: 1; }
+.h { font-size: 22px; font-weight: 600; letter-spacing: -0.02em; margin: 0; text-wrap: balance; }
+.lead { color: var(--fg2); font-size: 14px; line-height: 1.5; margin: 0; max-width: 46ch; }
+.small { color: var(--fg3); font-size: 12px; line-height: 1.45; }
+.grow { flex: 1; }
+.actions { display: flex; gap: 8px; align-items: center; margin-top: auto; }
+.actions .left { margin-right: auto; }
+.btn { font: inherit; font-size: 13px; font-weight: 500; padding: 8px 18px; border-radius: var(--pill); border: 1px solid var(--panel-b); background: var(--panel); color: var(--fg); backdrop-filter: blur(var(--blur)); cursor: pointer; }
+.btn.primary { background: linear-gradient(120deg, var(--accent), var(--accent2)); color: var(--on-accent); border-color: transparent; font-weight: 600; }
+.btn.link { background: none; border-color: transparent; color: var(--fg2); padding-inline: 6px; backdrop-filter: none; }
+.btn.danger { background: var(--fg); color: var(--win); border-color: transparent; }
+.card { background: var(--panel); border: 1px solid var(--panel-b); border-radius: var(--radius); backdrop-filter: blur(var(--blur)); }
+.rows { display: grid; }
+.row { display: grid; grid-template-columns: 1fr auto; gap: 2px 16px; align-items: center; padding: 11px 14px; }
+.row + .row { border-top: 1px solid var(--panel-b); }
+.row b { font-weight: 500; font-size: 13px; }
+.row .small { grid-column: 1; }
+.path { display: flex; gap: 10px; align-items: center; padding: 8px 8px 8px 12px; background: var(--sunken); border-radius: calc(var(--radius) - 4px); }
+.path code { flex: 1; min-width: 0; font: 12px "Cascadia Mono", ui-monospace, Consolas, monospace; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.tog { width: 34px; height: 20px; border-radius: 999px; background: var(--sunken); border: 1px solid var(--panel-b); position: relative; grid-row: 1 / span 2; grid-column: 2; }
+.tog::after { content: ""; position: absolute; top: 2px; left: 2px; width: 14px; height: 14px; border-radius: 50%; background: var(--fg3); }
+.tog.on { background: linear-gradient(120deg, var(--accent), var(--accent2)); border-color: transparent; }
+.tog.on::after { left: 16px; background: var(--on-accent); }
+.check { display: flex; gap: 10px; align-items: flex-start; padding: 12px 14px; }
+.box { flex: none; width: 16px; height: 16px; margin-top: 1px; border-radius: 4px; border: 1.5px solid var(--fg3); }
+.box.on { background: var(--accent); border-color: var(--accent); }
+.meter { height: 6px; border-radius: 999px; background: var(--sunken); overflow: hidden; }
+.meter i { display: block; height: 100%; width: var(--p); background: linear-gradient(90deg, var(--accent), var(--accent2)); border-radius: inherit; }
+.task { display: grid; grid-template-columns: 18px 1fr auto; gap: 6px 10px; align-items: center; padding: 10px 14px; }
+.task + .task { border-top: 1px solid var(--panel-b); }
+.task .meter { grid-column: 2 / 4; }
+.task .n { font-variant-numeric: tabular-nums; color: var(--fg2); font-size: 12px; }
+.dot { width: 18px; height: 18px; border-radius: 50%; border: 1.5px solid var(--fg3); display: grid; place-items: center; font-size: 11px; }
+.dot.done { background: var(--ok); border-color: var(--ok); color: var(--win); }
+.dot.run { border-color: var(--accent); border-right-color: transparent; }
+.keep { display: flex; gap: 10px; padding: 10px 14px; align-items: flex-start; }
+.keep .lock { flex: none; width: 16px; height: 16px; margin-top: 1px; border-radius: 50%; background: var(--ok); }
+.center { align-items: center; text-align: center; justify-content: center; gap: 12px; }
+.ver { font-variant-numeric: tabular-nums; }
+@container (max-width: 480px) { .body { padding: 12px 18px 16px; } .wordmark { font-size: 32px; } .h { font-size: 18px; } .row, .task, .check, .keep { padding: 7px 10px; } .lead { font-size: 12px; } }
+@media (prefers-reduced-motion: reduce) { .w::before { transition: none; } }
+</style>
+
+<div class="page" id="page">
+  <header class="intro">
+    <div>
+      <h1>Lumen Setup</h1>
+      <p>Mockups for Round 18 A2: the windows a person sees when they install, update, repair or remove Lumen on Windows. Real size is 640 × 420. The background light grows as the install goes on.</p>
+    </div>
+    <div class="switch" role="group" aria-label="Look">
+      <button type="button" id="look-glass" aria-pressed="true">Glass look</button>
+      <button type="button" id="look-gallery" aria-pressed="false">Gallery look</button>
+    </div>
+  </header>
+
+  <section class="flow">
+    <figure>
+      <div class="w" style="--light:.45">
+        <div class="bar"><i class="mark"></i>Lumen Setup<div class="ctl"><span>─</span><span>✕</span></div></div>
+        <div class="body center">
+          <div class="wordmark">Lumen</div>
+          <p class="lead">Your photos, on your machine, fast.</p>
+          <div style="display:flex;gap:8px;margin-top:10px"><button class="btn primary" type="button">Install</button><button class="btn" type="button">Options…</button></div>
+          <p class="small" style="margin-top:6px">Version <span class="ver">26.1.2-alpha</span> · 288 MB on this PC · no account, nothing leaves your computer</p>
+        </div>
+      </div>
+      <figcaption><b>1 · Welcome.</b> One click installs with the defaults below. <i>Options…</i> opens the next screen.</figcaption>
+    </figure>
+
+    <figure>
+      <div class="w" style="--light:.5">
+        <div class="bar"><i class="mark"></i>Lumen Setup<div class="ctl"><span>─</span><span>✕</span></div></div>
+        <div class="body" style="gap:12px">
+          <p class="h">Install options</p>
+          <div class="path"><code>C:\Users\Sample\AppData\Local\Lumen</code><button class="btn" type="button">Change…</button></div>
+          <div class="card rows">
+            <div class="row"><b>Desktop shortcut</b><i class="tog on"></i><span class="small">An icon on the desktop.</span></div>
+            <div class="row"><b>Start with Windows</b><i class="tog"></i><span class="small">Lumen opens when you sign in.</span></div>
+            <div class="row"><b>Download smart features now</b><i class="tog on"></i><span class="small">500 MB: search by description, faces, pets, music beats, denoise. Otherwise Lumen fetches them later.</span></div>
+          </div>
+          <div class="actions"><span class="small left">Needs 788 MB · 214 GB free</span><button class="btn link" type="button">Back</button><button class="btn primary" type="button">Install</button></div>
+        </div>
+      </div>
+      <figcaption><b>2 · Options.</b> Per-user install, no admin prompt. A folder that needs admin rights says so under the path and keeps Install off.</figcaption>
+    </figure>
+
+    <figure>
+      <div class="w" style="--light:.8">
+        <div class="bar"><i class="mark"></i>Lumen Setup<div class="ctl"><span>─</span><span>✕</span></div></div>
+        <div class="body" style="gap:14px">
+          <p class="h">Installing Lumen</p>
+          <div class="card">
+            <div class="task"><i class="dot done">✓</i><b style="font-weight:500;font-size:13px">Lumen</b><span class="n">done</span></div>
+            <div class="task"><i class="dot run"></i><b style="font-weight:500;font-size:13px">Smart features</b><span class="n">212 of 500 MB · 1 min left</span><div class="meter" style="--p:42%"><i></i></div></div>
+          </div>
+          <p class="small">You can open Lumen now. Smart features keep downloading here, or Lumen finishes them.</p>
+          <div class="actions"><button class="btn left link" type="button">Skip smart features</button><button class="btn primary" type="button">Open Lumen</button></div>
+        </div>
+      </div>
+      <figcaption><b>3 · Progress.</b> Lumen installs first (about 15 s), then the models download with real numbers. Nothing here can fail the install.</figcaption>
+    </figure>
+
+    <figure>
+      <div class="w" style="--light:1">
+        <div class="bar"><i class="mark"></i>Lumen Setup<div class="ctl"><span>─</span><span>✕</span></div></div>
+        <div class="body center">
+          <p class="h">Lumen is ready</p>
+          <p class="lead">Smart features will finish downloading the next time Lumen is open. Nothing else is needed.</p>
+          <div class="card check" style="text-align:left;margin-top:6px"><i class="box on"></i><span style="font-size:13px">Open Lumen now</span></div>
+          <div style="margin-top:8px"><button class="btn primary" type="button">Finish</button></div>
+        </div>
+      </div>
+      <figcaption><b>4 · Done.</b> Shown here after a model download that stopped (offline). With every model in place the line reads <i>Everything is installed.</i> Lumen's own first-launch screen (theme, library, first import) follows.</figcaption>
+    </figure>
+
+    <figure>
+      <div class="w" style="--light:.45">
+        <div class="bar"><i class="mark"></i>Lumen Setup<div class="ctl"><span>─</span><span>✕</span></div></div>
+        <div class="body" style="gap:12px">
+          <p class="h">Lumen is already installed</p>
+          <p class="lead">This PC has <span class="ver">26.1.0-alpha</span>. This setup has <span class="ver">26.1.2-alpha</span>.</p>
+          <div class="card rows">
+            <div class="row"><b>Update to 26.1.2-alpha</b><button class="btn primary" type="button">Update</button><span class="small">Keeps your settings, libraries and shortcuts.</span></div>
+            <div class="row"><b>Remove Lumen</b><button class="btn" type="button">Remove…</button><span class="small">Your photos and libraries stay.</span></div>
+          </div>
+          <p class="small">Lumen is open. It closes itself before the update and reopens after.</p>
+        </div>
+      </div>
+      <figcaption><b>5 · Over an existing install.</b> Same version: the first row is <i>Repair</i>. A newer version installed: <i>This PC already has a newer Lumen</i> with Open Lumen only, since an older Lumen can't open a library a newer one has updated.</figcaption>
+    </figure>
+
+    <figure>
+      <div class="w" style="--light:.3">
+        <div class="bar"><i class="mark"></i>Remove Lumen<div class="ctl"><span>─</span><span>✕</span></div></div>
+        <div class="body" style="gap:12px">
+          <p class="h">Remove Lumen from this PC?</p>
+          <div class="card">
+            <div class="keep"><i class="lock"></i><span style="font-size:13px">Your photos and libraries are not touched.<br><span class="small">C:\Users\Sample\Pictures\Lumen Library</span></span></div>
+          </div>
+          <div class="card check"><i class="box"></i><span style="font-size:13px">Also remove Lumen's settings, caches and downloaded models (1.9 GB)<br><span class="small">Lumen then starts fresh if you install it again. Library folders are skipped even here.</span></span></div>
+          <div class="actions"><button class="btn link left" type="button">Cancel</button><button class="btn danger" type="button">Remove Lumen</button></div>
+        </div>
+      </div>
+      <figcaption><b>6 · Uninstall.</b> Opened from Windows' Installed apps or from screen 5. The box is off by default. Every registered library path is listed and excluded.</figcaption>
+    </figure>
+  </section>
+</div>
+<script>
+  const page = document.getElementById("page");
+  const set = (g) => {
+    page.classList.toggle("look-gallery", g);
+    document.getElementById("look-glass").setAttribute("aria-pressed", String(!g));
+    document.getElementById("look-gallery").setAttribute("aria-pressed", String(g));
+  };
+  document.getElementById("look-glass").addEventListener("click", () => set(false));
+  document.getElementById("look-gallery").addEventListener("click", () => set(true));
+</script>

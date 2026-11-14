@@ -1,0 +1,21 @@
+.star-rating {
+  display: inline-flex;
+  align-items: center;
+  gap: 1px;
+
+  &__star {
+    display: grid;
+    place-items: center;
+    padding: 1px;
+    border-radius: var(--radius-sm);
+    color: var(--fg-subtle);
+    transition: color var(--motion-fast) var(--ease), transform var(--motion-fast) var(--ease);
+    &[data-filled="true"] { color: var(--star); }
+  }
+
+  button.star-rating__star {
+    cursor: pointer;
+    &:hover { color: var(--star); transform: scale(1.12); }
+    &:active { transform: scale(0.94); }
+  }
+}

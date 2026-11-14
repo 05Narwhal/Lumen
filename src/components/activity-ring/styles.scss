@@ -1,0 +1,72 @@
+.activity-ring {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  height: 32px;
+  padding: 0 var(--space-2);
+  border-radius: var(--radius-md);
+  color: var(--fg-muted);
+  font-size: var(--text-sm);
+  width: 100%;
+
+  &:hover { background: var(--bg-sunken); }
+
+  &__track { fill: none; stroke: var(--border); stroke-width: 2; }
+
+  // The arc eases toward each new value (reports come every 250 ms, so a slow ease reads as
+  // steady motion). It no longer spins: a turning arc on top of a filling one read as a
+  // glitch, and the fill alone says the app is busy (Round 9B).
+  &__fill {
+    fill: none;
+    stroke: var(--accent);
+    stroke-width: 2;
+    stroke-linecap: round;
+    transform: rotate(-90deg);
+    transform-origin: center;
+    transition:
+      stroke-dashoffset var(--motion-slow) var(--ease),
+      opacity var(--motion-base) var(--ease);
+  }
+
+  // Idle: the arc fades where it is. Its jump back to empty happens unseen, without a
+  // transition, so the next work starts from zero rather than unwinding.
+  &[data-active="false"] &__fill { opacity: 0; transition: opacity var(--motion-base) var(--ease); }
+  :root[data-reduced-motion="true"] & &__fill { transition: none; }
+
+  &__empty { margin: 0; color: var(--fg-muted); font-size: var(--text-sm); }
+
+  &__job {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-1);
+    font-size: var(--text-sm);
+
+    & + & { margin-top: var(--space-3); }
+  }
+
+  &__bar {
+    display: block;
+    height: 4px;
+    border-radius: 2px;
+    background: var(--bg-sunken);
+    overflow: hidden;
+  }
+
+  &__bar-fill {
+    display: block;
+    height: 100%;
+    background: var(--accent);
+    transform-origin: left center;
+    transition: transform var(--motion-slow) var(--ease);
+  }
+
+  :root[data-reduced-motion="true"] & &__bar-fill { transition: none; }
+}
+
+// The job lines name the work and show how far it has to go.
+.activity-ring__job-label { font-weight: 600; }
+.activity-ring__job-detail {
+  font-size: var(--text-xs);
+  color: var(--fg-muted);
+  font-variant-numeric: tabular-nums;
+}

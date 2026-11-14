@@ -1,0 +1,49 @@
+.progress {
+  &__task {
+    display: grid;
+    grid-template-columns: 18px 1fr auto;
+    gap: 6px 10px;
+    align-items: center;
+    padding: 10px 14px;
+
+    & + & { border-top: var(--border-width) solid var(--border); }
+    b { font-weight: 500; font-size: var(--text-sm); }
+    .s-meter { grid-column: 2 / 4; }
+  }
+
+  &__n {
+    font-size: var(--text-xs);
+    color: var(--fg-muted);
+    font-variant-numeric: tabular-nums;
+  }
+
+  &__dot {
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    border: 1.5px solid var(--fg-subtle);
+    display: grid;
+    place-items: center;
+    font-size: 11px;
+    font-style: normal;
+
+    &--done { background: var(--accent); border-color: var(--accent); color: var(--accent-fg); }
+    &--running { border-color: var(--accent); border-right-color: transparent; animation: progress-spin var(--motion-spin) linear infinite; }
+    &--failed { border-color: var(--danger); }
+  }
+
+  &__error {
+    margin: 0;
+    color: var(--danger);
+    font-size: var(--text-sm);
+    line-height: 1.45;
+  }
+}
+
+@keyframes progress-spin {
+  to { transform: rotate(360deg); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .progress__dot--running { animation: none; }
+}

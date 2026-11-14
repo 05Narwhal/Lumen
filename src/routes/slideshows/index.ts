@@ -1,0 +1,1 @@
+export { SlideshowsRoute } from "./gui";

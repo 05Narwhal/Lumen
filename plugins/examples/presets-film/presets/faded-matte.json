@@ -1,0 +1,9 @@
+{
+  "recipeVersion": 3,
+  "name": "Faded matte",
+  "develop": {
+    "basic": { "contrast": -0.2, "blacks": 0.2, "saturation": -0.15 },
+    "effects": { "grain": { "amount": 0.2, "size": 0.3 } }
+  },
+  "panels": ["basic", "effects"]
+}

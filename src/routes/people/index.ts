@@ -1,0 +1,1 @@
+export { PeopleRoute } from "./gui";

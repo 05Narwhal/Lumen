@@ -1,0 +1,1 @@
+export { MemoriesRoute } from "./gui";

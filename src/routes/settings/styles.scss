@@ -1,0 +1,524 @@
+// Settings (Round 5): a list of sections and one pane. Rows are grouped on one surface each,
+// label and one sentence on the left, the control on the right.
+.settings {
+  // Settings is a fixed page (`fixedPage`): the header, the sidebar and the page's tabs stay
+  // put, and the sidebar and the page body each scroll on their own.
+  height: 100%;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+
+  &__layout {
+    flex: 1;
+    min-height: 0;
+    display: grid;
+    grid-template-columns: 256px minmax(0, 1fr);
+    gap: var(--space-6);
+    padding: 0 0 0 var(--space-6);
+  }
+
+  &__nav {
+    min-height: 0;
+    overflow-y: auto;
+    padding: var(--space-1) 0 var(--space-6);
+    scrollbar-width: thin;
+  }
+
+  &__pane {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+    min-height: 0;
+  }
+
+  &__pane-head {
+    display: flex;
+    align-items: baseline;
+    flex-wrap: wrap;
+    gap: var(--space-1) var(--space-3);
+    h2 { margin: 0; }
+  }
+
+  // The page's body: the one scroller of the page. Its own section cross-fades in with a small
+  // rise on a click in the list; exits are not animated.
+  &__body {
+    flex: 1;
+    min-height: 0;
+    overflow-y: auto;
+    scrollbar-width: thin;
+    padding: var(--space-1) var(--space-6) var(--space-8) 0;
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-4);
+    animation: settings-pane-in var(--motion-slow) var(--ease) both;
+  }
+
+  // Sample B (2026-11): one column of one-line rows beside a sticky inspector, so the window's
+  // width is used without cards of different heights side by side.
+  &__split {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(260px, 32%);
+    gap: var(--space-5, 20px);
+    align-items: start;
+  }
+  &__list { display: flex; flex-direction: column; gap: var(--space-4); min-width: 0; }
+  &__list--full { max-width: 1100px; }
+
+  &__empty {
+    display: grid;
+    justify-items: center;
+    gap: var(--space-2);
+    padding: 60px 0;
+    color: var(--fg-muted);
+    font-size: var(--text-sm);
+  }
+
+  // Search: rows that do not match are left out, so a group or a section with none is hidden,
+  // and so is anything in a section that is not a row (a picker, a list of tasks).
+  &__body--search .settings-group__rows > :not(.settings-row) { display: none; }
+  &__body--search .settings-group:not(:has(.settings-row)),
+  &__body--search .settings-result:not(:has(.settings-row)) { display: none; }
+
+  &__intro { margin: 0; color: var(--fg-muted); font-size: var(--text-sm); max-width: 60ch; }
+
+  // A value read off the app beside its control ("ExifTool 13.59", "1.2 GB").
+  &__app-name { display: inline-flex; align-items: center; gap: 8px; }
+  &__app-icon { flex: none; width: 20px; height: 20px; object-fit: contain; }
+  &__plugin-name { display: inline-flex; align-items: center; gap: 8px; }
+  &__plugin-icon { flex: none; width: 28px; height: 28px; object-fit: contain; border-radius: var(--radius-sm); }
+  &__plugin-icon--empty { border: 1px solid var(--border); }
+  &__plugin-version { color: var(--fg-muted); font-weight: 400; }
+  &__plugin-badge, &__plugin-chip { padding: 0 6px; border: 1px solid var(--border); border-radius: var(--radius-sm); font-size: 11px; color: var(--fg-muted); }
+  &__plugin-problem { color: var(--danger); }
+  &__value { color: var(--fg-muted); font-size: var(--text-sm); font-variant-numeric: tabular-nums; white-space: nowrap; }
+  // About: the app icon beside the name and version (Round 8B).
+  &__about { display: inline-flex; align-items: center; gap: var(--space-2); }
+  &__about-credit { display: inline-flex; flex-direction: column; align-items: flex-end; gap: var(--space-1); }
+  // Backup (Round 5A): a destination's path may be long; it wraps under its label.
+  .settings-row__hint &__value { white-space: normal; overflow-wrap: anywhere; }
+  // A destination that is not connected: a state to notice, not an error.
+  &__warning { color: var(--fg-primary); }
+  &__note { margin: 0; color: var(--fg-muted); font-size: var(--text-sm); max-width: 60ch; }
+  // Updates (Round 17): a build's notes, as written, and the Alpha/Beta warning beside the choice.
+  &__notes { margin: 0; color: var(--fg-muted); font-size: var(--text-sm); max-width: 60ch; white-space: pre-wrap; }
+  &__unstable { margin: 0; color: var(--fg-primary); font-size: var(--text-sm); max-width: 60ch; padding-left: var(--space-3); border-left: 2px solid var(--accent); }
+
+  // A text field keeps its own width beside a long explanation.
+  &__field { width: 240px; }
+
+  &__inline { display: inline-flex; align-items: center; gap: var(--space-2); }
+  &__face { width: 28px; height: 28px; border-radius: 50%; object-fit: cover; background: var(--bg-sunken); }
+  &__face--large { width: 64px; height: 64px; }
+  &__faces { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(80px, 1fr)); gap: var(--space-3); }
+  &__faces-item { display: flex; flex-direction: column; align-items: center; gap: var(--space-1); }
+  &__face-restore {
+    padding: 2px 8px;
+    border: var(--border-width) solid var(--border);
+    border-radius: var(--radius-sm);
+    background: var(--bg-base);
+    color: var(--fg-muted);
+    font-size: var(--text-xs);
+    &:hover { color: var(--accent); background: var(--accent-soft); }
+  }
+
+  &__code {
+    font-family: ui-monospace, "Cascadia Mono", Menlo, monospace;
+    font-size: var(--text-xs);
+    color: var(--fg-muted);
+    user-select: text;
+    word-break: break-all;
+  }
+
+  &__snippet {
+    display: flex;
+    align-items: flex-start;
+    gap: var(--space-2);
+    &-text {
+      flex: 1;
+      min-width: 0;
+      margin: 0;
+      padding: var(--space-2) var(--space-3);
+      border: var(--border-width) solid var(--border);
+      border-radius: var(--radius-sm);
+      background: var(--bg-sunken);
+      white-space: pre-wrap;
+    }
+  }
+
+  // A narrow window: the list becomes a strip above the page.
+  @media (max-width: 720px) {
+    &__layout { grid-template-columns: minmax(0, 1fr); grid-template-rows: auto minmax(0, 1fr); gap: var(--space-2); padding: 0 0 0 var(--space-4); }
+    &__nav { overflow-y: visible; overflow-x: auto; padding-right: var(--space-4); }
+    &__pane-head { padding-right: var(--space-4); }
+    &__body { padding-right: var(--space-4); }
+  }
+  // Too narrow for two columns: the inspector goes above the rows and hints wrap again.
+  @media (max-width: 1000px) {
+    &__split { grid-template-columns: minmax(0, 1fr); }
+    .settings-inspector { position: static; order: -1; }
+    .settings-inspector__card:last-child { display: none; }
+    .settings-row__text { flex-direction: column; align-items: stretch; }
+    .settings-row__hint { white-space: normal; }
+  }
+
+  // Search results have no inspector to finish a hint, so hints wrap there.
+  &__body--search .settings-row__hint { white-space: normal; }
+
+  mark { background: color-mix(in oklab, var(--accent) 30%, transparent); color: inherit; border-radius: 2px; padding: 0 1px; }
+
+  // Switches on a slight spring (2026-11); the tokens are 0 under Reduce motion.
+  .mantine-Switch-root .mantine-Switch-thumb { transition: transform var(--motion-slow) var(--ease-spring), background-color var(--motion-base) var(--ease); }
+}
+
+.settings-result {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  &__head {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+    margin: var(--space-2) 0 0 2px;
+    font-size: var(--text-sm);
+    font-weight: 600;
+    color: var(--fg-primary);
+    span { display: inline-flex; color: var(--fg-muted); }
+    button { border: 0; padding: 0; background: none; color: var(--accent); font: inherit; font-size: var(--text-xs); font-weight: 500; cursor: pointer; }
+  }
+}
+
+// Sample B's right-hand panel: the section's state, and the pointed row's whole explanation.
+.settings-inspector {
+  position: sticky;
+  top: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+
+  &__card {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-2);
+    padding: 14px;
+    border: var(--border-width) solid var(--border);
+    border-radius: var(--radius-lg);
+    background: var(--bg-raised);
+    backdrop-filter: var(--surface-blur, none);
+  }
+  &__key { font-size: 11px; font-weight: 600; letter-spacing: 0.05em; text-transform: uppercase; color: var(--fg-subtle); }
+  &__big { font-size: 20px; font-weight: 600; letter-spacing: -0.01em; font-variant-numeric: tabular-nums; color: var(--fg-primary); }
+  &__text { font-size: var(--text-xs); line-height: 1.5; color: var(--fg-muted); }
+  &__card > .mantine-Button-root { align-self: flex-start; }
+  // Per-section cards (2026-11): a theme miniature, label–value pairs, a thin meter.
+  &__preview {
+    border-radius: var(--radius-md);
+    overflow: hidden;
+    box-shadow: inset 0 0 0 var(--border-width) var(--border);
+    .theme-preview { width: 100%; }
+  }
+  &__facts {
+    display: grid;
+    gap: 3px;
+    margin: 0;
+    font-size: var(--text-xs);
+    > div { display: flex; justify-content: space-between; gap: var(--space-3); }
+    dt { color: var(--fg-subtle); }
+    dd { margin: 0; color: var(--fg-primary); font-weight: 500; font-variant-numeric: tabular-nums; text-align: right; }
+  }
+  &__meter {
+    height: 4px;
+    border-radius: 999px;
+    background: var(--bg-sunken);
+    overflow: hidden;
+    > i {
+      display: block;
+      height: 100%;
+      border-radius: inherit;
+      background: var(--accent);
+      transform-origin: left;
+      animation: settings-meter-grow var(--motion-slow) var(--ease) both;
+    }
+  }
+  &__about {
+    min-height: 3em;
+    font-size: var(--text-xs);
+    line-height: 1.5;
+    color: var(--fg-muted);
+    animation: fade-in var(--motion-fast) var(--ease);
+    b { display: block; margin-bottom: 2px; font-weight: 500; color: var(--fg-primary); }
+  }
+}
+
+// Settings → People (2026-11): faces as tiles; click selects, Restore shows on hover or focus.
+.settings-faces {
+  &__tools { display: flex; align-items: center; gap: var(--space-3); flex-wrap: wrap; margin-bottom: var(--space-2); }
+  &__count { flex: 1; color: var(--fg-muted); font-size: var(--text-xs); }
+  &__grid { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(92px, 1fr)); gap: 6px; }
+  &__tile {
+    position: relative;
+    border-radius: var(--radius-md);
+    // Fades in and out with motion (people.tsx), so a restored face leaves gently.
+    transition: background-color var(--motion-fast) var(--ease), box-shadow var(--motion-fast) var(--ease);
+    &:hover, &:focus-within { background: var(--accent-soft); }
+    &[data-picked] { background: var(--accent-soft); box-shadow: inset 0 0 0 1px var(--accent); }
+  }
+  &__pick {
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    padding: 10px 4px 8px;
+    border: 0;
+    border-radius: inherit;
+    background: none;
+    color: inherit;
+    font: inherit;
+    cursor: pointer;
+    &:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+  }
+  &__face { width: 52px; height: 52px; border-radius: 50%; object-fit: cover; background: var(--bg-sunken); }
+  &__name { max-width: 100%; font-size: var(--text-xs); font-weight: 500; color: var(--fg-primary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  &__sub { font-size: 11px; color: var(--fg-subtle); font-variant-numeric: tabular-nums; }
+  &__check {
+    position: absolute;
+    top: 6px;
+    left: 6px;
+    width: 16px;
+    height: 16px;
+    display: grid;
+    place-items: center;
+    border-radius: 50%;
+    border: 1.5px solid var(--fg-faint);
+    background: var(--bg-base);
+    color: var(--accent-fg);
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity var(--motion-fast) var(--ease);
+  }
+  &__tile:hover &__check, &__grid[data-picking] &__check { opacity: 1; }
+  &__tile[data-picked] &__check { opacity: 1; background: var(--accent); border-color: var(--accent); }
+  &__restore {
+    position: absolute;
+    top: 6px;
+    right: 6px;
+    height: 20px;
+    padding: 0 7px;
+    border: var(--border-width) solid var(--border);
+    border-radius: var(--radius-sm);
+    background: var(--bg-base);
+    color: var(--fg-primary);
+    font: inherit;
+    font-size: 11px;
+    font-weight: 500;
+    cursor: pointer;
+    opacity: 0;
+    transform: scale(0.9);
+    transition: opacity var(--motion-fast) var(--ease), transform var(--motion-fast) var(--ease);
+    &:hover { border-color: var(--fg-faint); }
+    &:focus-visible { opacity: 1; transform: none; outline: 2px solid var(--accent); }
+  }
+  &__tile:hover &__restore { opacity: 1; transform: none; }
+  // The selection's bar floats at the bottom of the page.
+  &__bar {
+    position: sticky;
+    bottom: var(--space-2);
+    display: flex;
+    align-items: center;
+    gap: var(--space-3);
+    margin-top: var(--space-3);
+    padding: var(--space-2) var(--space-3);
+    border: var(--border-width) solid var(--border);
+    border-radius: var(--radius-lg);
+    background: var(--bg-base);
+    box-shadow: var(--shadow-md);
+    animation: settings-pane-in var(--motion-base) var(--ease) both;
+    > span { flex: 1; font-size: var(--text-sm); }
+  }
+}
+
+.settings-group {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+
+  &__title { margin: 0; padding-left: var(--space-1); font-size: var(--text-sm); font-weight: 600; color: var(--fg-muted); }
+
+  &__rows {
+    display: flex;
+    flex-direction: column;
+    border: var(--border-width) solid var(--border);
+    border-radius: var(--radius-lg);
+    background: var(--bg-raised);
+    overflow: hidden;
+  }
+}
+
+.settings-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-4);
+  min-height: 38px;
+  padding: 5px var(--space-3);
+  transition: background-color var(--motion-fast) var(--ease);
+  &:hover { background: color-mix(in oklab, var(--accent-soft) 45%, transparent); }
+
+  & + & { border-top: var(--border-width) solid var(--border); }
+
+  // One line, never wrapping (Round 9B): in a wrapping column the control's height is taken at
+  // its shrink-to-fit width, so the Keyboard grid was measured as one 340 px column (4,484 px
+  // tall), then stretched to two columns that end 1,300 px above the box's bottom.
+  &--wide { flex-direction: column; flex-wrap: nowrap; align-items: stretch; }
+
+  // Text takes what is left beside the control, and the control drops below it when that
+  // would be too narrow to read.
+  // One line (sample B): the label, then its sentence ellipsized; the inspector shows it whole.
+  &__text { display: flex; align-items: baseline; gap: var(--space-3); min-width: min(100%, 260px); flex: 1 1 260px; }
+  &__label { flex: none; font-size: var(--text-sm); font-weight: 500; color: var(--fg-primary); }
+  &__hint { min-width: 0; font-size: var(--text-xs); line-height: 1.45; color: var(--fg-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  &--wide &__text { flex-direction: column; align-items: stretch; gap: 2px; }
+  &--wide &__hint { white-space: normal; }
+  &__control { display: inline-flex; align-items: center; gap: var(--space-2); flex: 0 0 auto; }
+  &--wide &__control { display: block; }
+  // Stacked, the text's 260 px basis would be its height: an empty box above the list.
+  &--wide &__text { flex: 0 0 auto; }
+}
+
+@keyframes settings-pane-in {
+  from { opacity: 0; transform: translateY(4px); }
+  to { opacity: 1; transform: none; }
+}
+
+@keyframes settings-meter-grow {
+  from { transform: scaleX(0); }
+  to { transform: none; }
+}
+
+// Settings → Experimental (Round 14): one block per AI task, its switch row above the Model and
+// Performance pickers, a status line under them.
+.settings-task {
+  display: flex;
+  flex-direction: column;
+  padding-bottom: var(--space-3);
+
+  & + &,
+  & + .settings-row { border-top: var(--border-width) solid var(--border); }
+
+  &__picks {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: var(--space-3);
+    padding: 0 var(--space-4);
+
+    // Repeated five times: quieter than the task name it belongs to.
+    .mantine-Select-label { font-size: var(--text-xs); font-weight: 400; color: var(--fg-muted); }
+  }
+
+  &__status { padding: var(--space-2) var(--space-4) 0; color: var(--fg-primary); }
+
+  @media (max-width: 560px) {
+    &__picks { grid-template-columns: minmax(0, 1fr); }
+  }
+}
+
+// Settings → Storage: a bar per disk (library, other used, free) and a bar per folder.
+.settings-storage {
+  &__loading { color: var(--fg-muted); font-size: var(--text-sm); }
+
+  &__warn {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+    margin: 0;
+    padding: var(--space-3) var(--space-4);
+    border: var(--border-width) solid var(--border);
+    border-radius: var(--radius-lg);
+    background: var(--bg-raised);
+    color: var(--fg-primary);
+    font-size: var(--text-sm);
+    svg { flex: none; color: var(--danger); }
+  }
+
+  &__temp { display: inline-flex; align-items: center; gap: var(--space-3); font-size: var(--text-sm); }
+
+  &__disk {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-2);
+    padding: var(--space-3) var(--space-4);
+    & + & { border-top: var(--border-width) solid var(--border); }
+  }
+
+  &__disk-head {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+    color: var(--fg-muted);
+  }
+  &__disk-name { flex: 1; min-width: 0; font-weight: 600; font-size: var(--text-sm); color: var(--fg-primary); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  &__disk-free { font-size: var(--text-sm); color: var(--fg-muted); white-space: nowrap; }
+  &__disk-kind { font-size: var(--text-xs); color: var(--fg-subtle); }
+
+  &__bar {
+    display: flex;
+    height: 10px;
+    border-radius: var(--radius-sm);
+    background: var(--bg-sunken);
+    overflow: hidden;
+  }
+  &__fill {
+    height: 100%;
+    &[data-part="library"] { background: var(--accent); }
+    &[data-part="used"] { background: var(--fg-faint); }
+  }
+
+  &__part {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: var(--space-3);
+    width: min(320px, 40vw);
+    font-size: var(--text-sm);
+    color: var(--fg-muted);
+    font-variant-numeric: tabular-nums;
+    > span:last-child { flex: none; width: 72px; text-align: right; }
+  }
+  &__part-bar {
+    height: 6px;
+    border-radius: var(--radius-sm);
+    background: var(--accent);
+    &[data-i="1"] { opacity: 0.75; }
+    &[data-i="2"] { opacity: 0.6; }
+    &[data-i="3"] { opacity: 0.45; }
+    &[data-i="4"], &[data-i="5"] { opacity: 0.3; }
+  }
+}
+
+.plugin-details {
+  border: var(--border-width) solid var(--border);
+  border-radius: var(--radius-lg) !important;
+  box-shadow: var(--shadow-lg);
+
+  &__header { background: transparent !important; }
+  &__pane { display: flex; flex-direction: column; gap: var(--space-2); padding-top: var(--space-3); }
+  &__form { gap: var(--space-3); }
+  &__title { font-weight: 600; }
+  &__muted { color: var(--fg-muted); font-weight: 400; }
+  &__label { color: var(--fg-muted); font-size: var(--text-sm); margin-top: var(--space-2); }
+  &__list { margin: 0; padding-left: var(--space-4); }
+  &__text { margin: 0; line-height: 1.5; }
+  &__log {
+    margin-top: var(--space-3);
+    max-height: 320px;
+    overflow: auto;
+    padding: var(--space-2);
+    background: var(--bg-raised);
+    border: var(--border-width) solid var(--border);
+    border-radius: var(--radius-md);
+    font-family: var(--font-mono, monospace);
+    font-size: var(--text-sm);
+  }
+  &__log-line { white-space: pre-wrap; word-break: break-word; }
+}

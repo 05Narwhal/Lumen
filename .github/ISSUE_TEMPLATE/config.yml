@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Question or idea to talk through
+    url: https://github.com/05Narwhal/lumen/discussions
+    about: Use Discussions for questions and early ideas. Open an issue when it is a bug or a scoped feature.
+  - name: Report a security problem
+    url: https://github.com/05Narwhal/lumen/security/advisories/new
+    about: Private vulnerability reporting. Please do not open a public issue.

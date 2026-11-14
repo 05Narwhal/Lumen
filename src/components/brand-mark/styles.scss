@@ -1,0 +1,8 @@
+// The app icon as an image: never stretched, never a drag target, never picked up as a file.
+.brand-mark {
+  flex: none;
+  display: block;
+  object-fit: contain;
+  user-select: none;
+  pointer-events: none;
+}

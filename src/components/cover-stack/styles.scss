@@ -1,0 +1,67 @@
+// Three prints fanned like a small pile: same-size square photos with rounded corners and a soft
+// shadow (2026-11-09; no paper border), the cover in front, two behind it turned a few degrees.
+// The hover spreads them a little (not wide) through custom properties, so one transition
+// covers every print.
+.cover-stack {
+  position: absolute;
+  inset: 0;
+  display: block;
+  // Its prints stack among themselves; badges on the card still paint above them.
+  isolation: isolate;
+
+  &__print {
+    // The print's width in the stack: 52 % of a 4:3 cover is 69 % of its height, and the
+    // outer prints, fanned out and turned, still end inside it. `--dx` / `--dy` are fractions
+    // of the print itself (a translate's own box).
+    --w: 52%;
+    --dx: 0%;
+    --dy: 0%;
+    --rot: 0deg;
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: var(--w);
+    aspect-ratio: 1;
+    overflow: hidden;
+    border-radius: var(--radius-md);
+    box-shadow: var(--print-shadow);
+    transform: translate(-50%, -50%) translate(var(--dx), var(--dy)) rotate(var(--rot));
+    transition: transform var(--motion-base) var(--ease);
+
+    img {
+      display: block;
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      object-position: center;
+    }
+
+    // An album's or collection's icon cover (in a collection's stack) lies on a raised card the
+    // size of a photo print, so it reads as one of the pile rather than hiding behind the front.
+    &[data-kind="icon"] { background: var(--bg-raised); }
+
+    &[data-pos="front"] { z-index: 3; --rot: -2deg; }
+    &[data-pos="left"] { z-index: 2; --dx: -27%; --dy: 2%; --rot: -9deg; }
+    &[data-pos="right"] { z-index: 1; --dx: 27%; --dy: -1%; --rot: 8deg; }
+  }
+
+  // One print sits straight; two lean apart from the middle.
+  &[data-count="1"] &__print[data-pos="front"] { --rot: -1.5deg; }
+  &[data-count="2"] &__print[data-pos="front"] { --dx: -10%; }
+  &[data-count="2"] &__print[data-pos="left"] { --dx: 12%; --rot: 7deg; }
+
+  // The fan-out: the link or button holding the stack is hovered or focused. With reduced
+  // motion the prints stay where they lie.
+  @media (prefers-reduced-motion: no-preference) {
+    :root:not([data-reduced-motion="true"]) :where(a, button):is(:hover, :focus-visible) & {
+      // A little wider, not wide: the outer prints stay inside the 4:3 cover.
+      .cover-stack__print[data-pos="front"] { --dy: -3%; --rot: 0deg; }
+      .cover-stack__print[data-pos="left"] { --dx: -35%; --rot: -13deg; }
+      .cover-stack__print[data-pos="right"] { --dx: 35%; --rot: 12deg; }
+    }
+    :root:not([data-reduced-motion="true"]) :where(a, button):is(:hover, :focus-visible) &[data-count="2"] {
+      .cover-stack__print[data-pos="front"] { --dx: -16%; --rot: -4deg; }
+      .cover-stack__print[data-pos="left"] { --dx: 18%; --rot: 11deg; }
+    }
+  }
+}

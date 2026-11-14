@@ -1,0 +1,65 @@
+// Lumen's plugin API 1 (spec Round 23 §2, §3, §10). A plugin imports only the interfaces its
+// permissions grant: `host` is free, `chosen` needs import.read-chosen, `photos` photos.read,
+// `drafts` develop.write-drafts, `storage` storage. Changing this file changes WIT_HASH: run
+// `node scripts/plugins/build-fixtures.mjs`.
+package lumen:plugin@1.0.0;
+
+interface types {
+  record entry { name: string, is-dir: bool, size: u64, modified: option<s64> }
+  record item { key: string, name: string, size: u64, modified: option<s64>, path: option<string> }
+  record extras { favourite: bool, albums: list<string>, title: option<string>, caption: option<string>,
+                  keywords: list<string>, captured-at: option<string>, lat: option<f64>, lon: option<f64> }
+  record photo-meta { id: s64, captured-at: option<string>, camera: option<string>, lens: option<string>,
+                      width: u32, height: u32, rating: u8, label: option<string>, flag: option<string>, place: option<string> }
+  record tool { name: string, input-schema: string }
+}
+
+interface host {
+  log: func(line: string);
+  setting: func(key: string) -> option<string>;
+}
+
+interface chosen {
+  use types.{entry};
+  %list: func(dir: string) -> result<list<entry>, string>;
+  stat: func(path: string) -> result<entry, string>;
+  read: func(path: string, offset: u64, len: u32) -> result<list<u8>, string>;
+  progress: func(done: u64, total: option<u64>) -> result<_, string>;
+}
+
+interface storage {
+  read: func(name: string) -> result<option<list<u8>>, string>;
+  write: func(name: string, bytes: list<u8>) -> result<_, string>;
+  remove: func(name: string) -> result<_, string>;
+  names: func() -> list<string>;
+}
+
+interface photos {
+  use types.{photo-meta};
+  scope: func() -> list<s64>;
+  metadata: func(id: s64) -> result<photo-meta, string>;
+  preview: func(id: s64, max: u32) -> result<list<u8>, string>;
+  recipe: func(id: s64) -> result<string, string>;
+}
+
+interface drafts {
+  patch: func(id: s64, merge-patch: string, label: string) -> result<_, string>;
+}
+
+interface importer {
+  use types.{item, extras as item-extras};
+  enumerate: func() -> result<list<item>, string>;
+  read: func(key: string, offset: u64, len: u32) -> result<list<u8>, string>;
+  extras: func(key: string) -> option<item-extras>;
+  sidecars: func(key: string) -> list<item>;
+}
+
+interface tools {
+  use types.{tool};
+  tools: func() -> list<tool>;
+  call: func(name: string, args-json: string) -> result<string, string>;
+}
+
+world importer-plugin { import host; import chosen; import storage; export importer; }
+world tools-plugin    { import host; import photos; import drafts; import storage; export tools; }
+world full-plugin     { import host; import chosen; import photos; import drafts; import storage; export importer; export tools; }

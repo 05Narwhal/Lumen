@@ -1,0 +1,84 @@
+// Setup's tokens are Lumen's own (src/styles via setup.scss); nothing here names a colour.
+.setup-window {
+  position: relative;
+  width: 100vw;
+  height: 100vh;
+  overflow: hidden;
+  display: grid;
+  grid-template-rows: var(--titlebar-h) 1fr;
+  // `minmax(0, …)`: a long folder path must never widen the window past 640 px.
+  grid-template-columns: minmax(0, 1fr);
+  background: var(--bg-base);
+  color: var(--fg-primary);
+  container-type: inline-size;
+
+  // The wash brightens with progress; reduced motion jumps instead of fading.
+  &::before {
+    content: "";
+    position: absolute;
+    inset: -20%;
+    pointer-events: none;
+    background: var(--wash);
+    opacity: var(--light, 0.45);
+    transition: opacity 0.6s var(--ease);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .setup-window::before { transition: none; }
+}
+
+.setup-bar {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding-left: 14px;
+  font-size: var(--text-xs);
+  color: var(--fg-muted);
+  user-select: none;
+
+  &__mark {
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    background: conic-gradient(from 200deg, var(--accent), var(--accent-hover), var(--accent));
+  }
+
+  &__controls {
+    margin-left: auto;
+    display: flex;
+    height: 100%;
+
+    button {
+      width: 46px;
+      display: grid;
+      place-items: center;
+      border: 0;
+      background: none;
+      color: var(--fg-muted);
+      cursor: pointer;
+
+      &:hover { background: var(--accent-soft); color: var(--fg-primary); }
+      &:focus-visible { @include focus-ring; outline-offset: -2px; }
+    }
+  }
+}
+
+.setup-body {
+  position: relative;
+  z-index: 1;
+  padding: 14px 40px 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  min-height: 0;
+  min-width: 0;
+
+  &--center {
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+  }
+}

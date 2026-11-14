@@ -1,0 +1,13 @@
+{
+  "_comment": "Licence questions that block a -stable release only (Round 17; docs/LICENSING-AUDIT.md). Set resolved to true, with what was decided, once each is settled.",
+  "jamendo": {
+    "resolved": false,
+    "decision": "",
+    "why": "Jamendo's API is free for non-commercial use only and forbids offline caching; Lumen saves tracks into the library."
+  },
+  "esri": {
+    "resolved": false,
+    "decision": "",
+    "why": "The map's satellite layer fetches Esri World Imagery with no key; a commercial app needs an ArcGIS account and key, or another provider."
+  }
+}

@@ -1,0 +1,39 @@
+@use "sass:map";
+
+$bp: (xs: 36em, sm: 48em, md: 62em, lg: 75em, xl: 88em);
+
+@mixin above($name) {
+  @media (min-width: map.get($bp, $name)) { @content; }
+}
+
+@mixin below($name) {
+  @media (max-width: calc(#{map.get($bp, $name)} - 0.02em)) { @content; }
+}
+
+@mixin focus-ring {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+// The page's own backdrop — base colour, the theme's wash, pinned to the window — for a
+// layer that must hide what scrolls beneath it and still look like the page. A flat colour
+// cannot: over Glass's wash it showed as a dark slab. Painting the same background at the
+// same fixed position makes the layer line up with the page pixel for pixel; a mask then
+// dissolves its lower edge.
+@mixin page-backdrop {
+  background-color: var(--bg-base);
+  background-image: var(--wash);
+  background-attachment: fixed;
+}
+
+@mixin surface($level: raised) {
+  background: var(--bg-#{$level});
+  border: var(--border-width) solid var(--border);
+  border-radius: var(--radius-md);
+}
+
+@mixin truncate {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}

@@ -1,0 +1,10 @@
+.closing {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.closing__text {
+  flex: 1;
+  min-width: 0;
+}

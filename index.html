@@ -1,0 +1,78 @@
+<!doctype html>
+<html lang="en" data-theme="gallery">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Lumen</title>
+    <!--
+      Boot screen: painted on the first frame, before any module loads, so the window never
+      shows white while the app starts. React replaces #root's contents with its own splash,
+      which looks the same. Colours are the last theme's (remembered by useApplyTheme under
+      "lumen.boot-colours"); the fallbacks are Gallery's light/dark --bg-base/--fg-primary.
+    -->
+    <style>
+      :root { --boot-bg: oklch(100% 0 0); --boot-fg: oklch(16% 0 0); --boot-accent: oklch(20% 0 0); color-scheme: light dark; }
+      @media (prefers-color-scheme: dark) {
+        :root { --boot-bg: oklch(12% 0 0); --boot-fg: oklch(95% 0 0); --boot-accent: oklch(95% 0 0); }
+      }
+      .boot-screen {
+        position: fixed; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center;
+        gap: 24px; background: var(--boot-bg); color: var(--boot-fg); font-family: system-ui, sans-serif;
+      }
+      .boot-screen__wordmark { font-weight: 700; font-size: 64px; letter-spacing: -0.03em; line-height: 1; }
+      .boot-screen__bar { width: 120px; height: 2px; border-radius: 999px; overflow: hidden; background: color-mix(in oklch, var(--boot-fg) 15%, transparent); }
+      .boot-screen__bar i { display: block; width: 40%; height: 100%; background: var(--boot-accent); animation: boot-slide 1.1s cubic-bezier(0.2, 0.8, 0.2, 1) infinite; }
+      .boot-screen__controls { position: absolute; top: 0; right: 0; display: none; height: 38px; }
+      .boot-screen__controls[data-mac] { right: auto; left: 0; flex-direction: row-reverse; }
+      .boot-screen__controls button {
+        width: 46px; height: 100%; display: grid; place-items: center; padding: 0; border: 0; background: none;
+        color: var(--boot-fg); opacity: 0.6; cursor: default;
+      }
+      .boot-screen__controls button:hover { opacity: 1; background: color-mix(in oklch, var(--boot-fg) 12%, transparent); }
+      .boot-screen__controls button[data-act="close"]:hover { background: oklch(58% 0.22 25); color: oklch(100% 0 0); }
+      @keyframes boot-slide { from { transform: translateX(-120%); } to { transform: translateX(300%); } }
+    </style>
+    <script>
+      try {
+        var c = JSON.parse(localStorage.getItem("lumen.boot-colours") || "null");
+        if (c && c.bg && c.fg) {
+          var s = document.documentElement.style;
+          s.setProperty("--boot-bg", c.bg);
+          s.setProperty("--boot-fg", c.fg);
+          s.setProperty("--boot-accent", c.accent || c.fg);
+          if (c.scheme) s.colorScheme = c.scheme;
+        }
+      } catch (e) {}
+      // Window buttons for a start that sticks (Round 21 §11): only inside Tauri; Close is the title
+      // bar's own call and is never awaited.
+      document.addEventListener("DOMContentLoaded", function () {
+        var box = document.querySelector(".boot-screen__controls");
+        var t = window.__TAURI_INTERNALS__;
+        if (!box || !t) return;
+        if (/^Mac/.test(navigator.platform)) box.setAttribute("data-mac", "");
+        box.style.display = "flex";
+        var cmd = { minimize: "plugin:window|minimize", maximize: "plugin:window|toggle_maximize", close: "plugin:window|close" };
+        box.addEventListener("click", function (e) {
+          var b = e.target.closest("button");
+          if (b) t.invoke(cmd[b.getAttribute("data-act")], { label: "main" });
+        });
+      });
+    </script>
+  </head>
+
+  <body>
+    <div id="root">
+      <div class="boot-screen" role="status" aria-label="Loading Lumen" data-tauri-drag-region>
+        <div class="boot-screen__controls" role="group" aria-label="Window">
+          <button type="button" data-act="minimize" aria-label="Minimize"><svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 7h10" /></svg></button>
+          <button type="button" data-act="maximize" aria-label="Maximize"><svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="2.5" y="2.5" width="9" height="9" rx="1" /></svg></button>
+          <button type="button" data-act="close" aria-label="Close"><svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 3l8 8M11 3l-8 8" /></svg></button>
+        </div>
+        <img src="/src/assets/brand/lumen-512.png" width="96" height="96" alt="" draggable="false" />
+        <div class="boot-screen__wordmark">Lumen</div>
+        <div class="boot-screen__bar" aria-hidden="true"><i></i></div>
+      </div>
+    </div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>

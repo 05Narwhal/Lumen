@@ -1,0 +1,19 @@
+.quick-look {
+  position: fixed;
+  inset: 0;
+  z-index: var(--z-overlay);
+  display: grid;
+  place-items: center;
+  padding: var(--space-8);
+  background: var(--bg-overlay);
+  backdrop-filter: blur(var(--blur));
+
+  &__img {
+    max-width: 100%;
+    max-height: 100%;
+    object-fit: contain;
+    border-radius: var(--radius-md);
+    box-shadow: var(--shadow-lg);
+    background: var(--bg-sunken);
+  }
+}

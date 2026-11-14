@@ -1,0 +1,117 @@
+// The crop tool, shared by the viewer's quick editor and Develop: the picture laid out
+// with CSS transforms in the renderer's order, and the crop rectangle over it.
+
+// The crop tool: a layer the size of the photo, the crop rectangle cut out of a dimmed
+// surround (a huge shadow, so nothing outside needs its own element), thirds inside.
+.crop-overlay {
+  position: absolute;
+  inset: 0;
+  touch-action: none;
+
+  &__rect {
+    position: absolute;
+    box-shadow: 0 0 0 100vmax var(--crop-dim);
+    outline: 1px solid var(--crop-line);
+    cursor: move;
+    &:focus-visible { outline-width: 2px; }
+  }
+
+  &__thirds {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    background:
+      linear-gradient(to right, transparent calc(100% / 3 - 0.5px), var(--crop-guide) calc(100% / 3 - 0.5px), var(--crop-guide) calc(100% / 3 + 0.5px), transparent calc(100% / 3 + 0.5px), transparent calc(200% / 3 - 0.5px), var(--crop-guide) calc(200% / 3 - 0.5px), var(--crop-guide) calc(200% / 3 + 0.5px), transparent calc(200% / 3 + 0.5px)),
+      linear-gradient(to bottom, transparent calc(100% / 3 - 0.5px), var(--crop-guide) calc(100% / 3 - 0.5px), var(--crop-guide) calc(100% / 3 + 0.5px), transparent calc(100% / 3 + 0.5px), transparent calc(200% / 3 - 0.5px), var(--crop-guide) calc(200% / 3 - 0.5px), var(--crop-guide) calc(200% / 3 + 0.5px), transparent calc(200% / 3 + 0.5px));
+  }
+
+  &__handle {
+    position: absolute;
+    width: 14px;
+    height: 14px;
+    margin: -7px 0 0 -7px;
+    padding: 0;
+    border: 2px solid var(--crop-line);
+    border-radius: var(--radius-pill);
+    background: var(--crop-dim);
+    &:focus-visible { background: var(--crop-line); }
+    // Drawn at 14 px, grabbed at 26: the desktop minimum for a pointer target is 20.
+    &::after { content: ""; position: absolute; inset: -8px; border-radius: var(--radius-pill); }
+
+    &[data-handle="nw"] { left: 0; top: 0; cursor: nwse-resize; }
+    &[data-handle="n"] { left: 50%; top: 0; cursor: ns-resize; }
+    &[data-handle="ne"] { left: 100%; top: 0; cursor: nesw-resize; }
+    &[data-handle="e"] { left: 100%; top: 50%; cursor: ew-resize; }
+    &[data-handle="se"] { left: 100%; top: 100%; cursor: nwse-resize; }
+    &[data-handle="s"] { left: 50%; top: 100%; cursor: ns-resize; }
+    &[data-handle="sw"] { left: 0; top: 100%; cursor: nesw-resize; }
+    &[data-handle="w"] { left: 0; top: 50%; cursor: ew-resize; }
+  }
+}
+
+.edit-canvas {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+
+  &__viewport {
+    position: relative;
+    border-radius: var(--radius-sm);
+    box-shadow: var(--shadow-lg);
+  }
+
+  &__clip {
+    position: absolute;
+    inset: 0;
+    overflow: hidden;
+    border-radius: inherit;
+  }
+
+  &__frame { position: absolute; }
+
+  &__img {
+    position: absolute;
+    display: block;
+    max-width: none;
+    user-select: none;
+    transform-origin: center;
+  }
+
+  // Everything that moves, eases — once the first frame is painted, and not while a control
+  // is being dragged (then it follows the pointer exactly).
+  &__viewport[data-animate="true"],
+  &__viewport[data-animate="true"] &__frame,
+  &__viewport[data-animate="true"] &__img {
+    transition: width var(--motion-slow) var(--ease), height var(--motion-slow) var(--ease), left var(--motion-slow) var(--ease),
+      top var(--motion-slow) var(--ease), transform var(--motion-slow) var(--ease);
+  }
+
+  // Guides over the picture: two lines each way for thirds, eight divisions for the fine grid.
+  // Each line is drawn twice — light over a dark hairline — so it reads on any photo.
+  &__grid {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    --line: var(--edit-grid-line);
+    --shade: var(--edit-grid-shade);
+
+    &[data-grid="thirds"] {
+      background:
+        linear-gradient(to right, transparent calc(100% / 3 - 1px), var(--line) calc(100% / 3 - 1px), var(--line) calc(100% / 3), transparent calc(100% / 3)),
+        linear-gradient(to right, transparent calc(200% / 3 - 1px), var(--line) calc(200% / 3 - 1px), var(--line) calc(200% / 3), transparent calc(200% / 3)),
+        linear-gradient(to bottom, transparent calc(100% / 3 - 1px), var(--line) calc(100% / 3 - 1px), var(--line) calc(100% / 3), transparent calc(100% / 3)),
+        linear-gradient(to bottom, transparent calc(200% / 3 - 1px), var(--line) calc(200% / 3 - 1px), var(--line) calc(200% / 3), transparent calc(200% / 3));
+      filter: drop-shadow(0 0 1px var(--shade));
+    }
+
+    &[data-grid="fine"] {
+      background-image:
+        linear-gradient(to right, var(--line) 1px, transparent 1px),
+        linear-gradient(to bottom, var(--line) 1px, transparent 1px);
+      background-size: 12.5% 12.5%;
+      filter: drop-shadow(0 0 1px var(--shade));
+      opacity: 0.8;
+    }
+  }
+}

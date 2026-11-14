@@ -1,0 +1,58 @@
+.search-chips {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+
+  &__list {
+    display: contents;
+    list-style: none;
+  }
+
+  &__chip {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-1);
+    padding: 2px var(--space-1) 2px var(--space-2);
+    border-radius: var(--radius-pill);
+    border: var(--border-width) solid var(--border);
+    background: var(--bg-raised);
+    color: var(--fg-primary);
+    font-size: var(--text-sm);
+    font-weight: 500;
+  }
+
+  &__icon {
+    color: var(--fg-muted);
+  }
+
+  // `or` / `and` / `not` / brackets between term chips: small, quiet, no border.
+  &__op {
+    padding: 0 var(--space-1);
+    color: var(--fg-muted);
+    font-size: var(--text-xs);
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+  }
+
+  &__button {
+    display: inline-grid;
+    place-items: center;
+    width: 20px;
+    height: 20px;
+    border-radius: var(--radius-pill);
+    color: var(--fg-muted);
+    transition: background-color var(--motion-fast) var(--ease), color var(--motion-fast) var(--ease);
+
+    &:hover {
+      background: var(--bg-sunken);
+      color: var(--fg-primary);
+    }
+  }
+
+  &__rest {
+    color: var(--fg-muted);
+    font-size: var(--text-sm);
+  }
+}

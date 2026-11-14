@@ -1,0 +1,25 @@
+[package]
+name = "photos-raw"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+description = "Lumen's RAW decoding, a replaceable library around rawler"
+# Its own licence, not the workspace's: it links rawler (LGPL-2.1) and can be rebuilt alone.
+license = "LGPL-2.1"
+
+[lib]
+name = "photos_raw"
+crate-type = ["cdylib"]
+
+# No workspace dependency, ever: anyone can rebuild this from its source alone.
+[dependencies]
+rawler = "0.8"
+image = { version = "0.25", default-features = false }
+rayon = "1"
+serde_json.workspace = true
+
+[target.'cfg(windows)'.dependencies]
+windows-sys = { version = "0.61", features = ["Win32_System_Threading"] }
+
+[target.'cfg(target_os = "linux")'.dependencies]
+libc = "0.2"

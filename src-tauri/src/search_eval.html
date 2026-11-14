@@ -1,0 +1,88 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Search marks</title>
+<style>
+  :root { color-scheme: light dark; --bg: #f6f6f4; --fg: #1b1b1b; --muted: #6b6b6b; --wrong: #d23b2f; --card: #fff; }
+  @media (prefers-color-scheme: dark) { :root { --bg: #151515; --fg: #eee; --muted: #9a9a9a; --card: #222; } }
+  body { margin: 0; background: var(--bg); color: var(--fg); font: 14px/1.4 system-ui, sans-serif; }
+  header { position: sticky; top: 0; z-index: 2; background: var(--bg); padding: 12px 16px; border-bottom: 1px solid #8884; display: flex; gap: 12px; align-items: center; flex-wrap: wrap; }
+  header h1 { font-size: 16px; margin: 0 auto 0 0; }
+  button { font: inherit; padding: 6px 12px; border-radius: 6px; border: 1px solid #8886; background: var(--card); color: var(--fg); cursor: pointer; }
+  section { padding: 16px; border-bottom: 1px solid #8883; }
+  h2 { margin: 0 0 4px; font-size: 18px; }
+  .chips { color: var(--muted); margin-bottom: 8px; }
+  .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); gap: 6px; }
+  .tile { position: relative; aspect-ratio: 1; background: var(--card); border-radius: 4px; overflow: hidden; cursor: pointer; border: 3px solid transparent; }
+  .tile img { width: 100%; height: 100%; object-fit: cover; display: block; }
+  .tile.wrong { border-color: var(--wrong); }
+  .tile.wrong img { opacity: 0.35; }
+  .tile.wrong::after { content: "✕"; position: absolute; inset: 0; display: grid; place-items: center; font-size: 42px; color: var(--wrong); font-weight: 700; }
+  label.skip { display: inline-flex; gap: 6px; align-items: center; color: var(--muted); margin-bottom: 8px; }
+  section.skipped .grid { opacity: 0.3; pointer-events: none; }
+</style>
+</head>
+<body>
+<header>
+  <h1>Click every photo that is <em>wrong</em> for its search</h1>
+  <span id="count"></span>
+  <button id="copy">Copy marks</button>
+  <button id="save">Save marks…</button>
+</header>
+<main id="main"></main>
+<script>
+const DATA = /*DATA*/[];
+const KEY = "lumen-search-marks";
+let marks = {};
+try { marks = JSON.parse(localStorage.getItem(KEY) || "{}"); } catch { marks = {}; }
+const main = document.getElementById("main");
+function persist() {
+  try { localStorage.setItem(KEY, JSON.stringify(marks)); } catch {}
+  const n = Object.values(marks).reduce((s, m) => s + (m.wrong ? m.wrong.length : 0), 0);
+  document.getElementById("count").textContent = n + " marked wrong";
+}
+for (const q of DATA) {
+  const m = (marks[q.q] ||= { wrong: [], skip: false });
+  const sec = document.createElement("section");
+  sec.innerHTML = `<h2></h2><div class="chips"></div><label class="skip"><input type="checkbox"> This search can't be judged (skip it)</label><div class="grid"></div>`;
+  sec.querySelector("h2").textContent = `${q.q} — ${q.tiles.length} photos`;
+  sec.querySelector(".chips").textContent = q.chips.length ? "Read as: " + q.chips.join(" · ") : "Read as: free text";
+  const skip = sec.querySelector("input");
+  skip.checked = m.skip;
+  sec.classList.toggle("skipped", m.skip);
+  skip.onchange = () => { m.skip = skip.checked; sec.classList.toggle("skipped", m.skip); persist(); };
+  const grid = sec.querySelector(".grid");
+  for (const t of q.tiles) {
+    const d = document.createElement("div");
+    d.className = "tile" + (m.wrong.includes(t.id) ? " wrong" : "");
+    d.title = "#" + t.id;
+    const img = document.createElement("img");
+    img.loading = "lazy";
+    img.src = t.src;
+    d.appendChild(img);
+    d.onclick = () => {
+      const i = m.wrong.indexOf(t.id);
+      if (i >= 0) m.wrong.splice(i, 1); else m.wrong.push(t.id);
+      d.classList.toggle("wrong", i < 0);
+      persist();
+    };
+    grid.appendChild(d);
+  }
+  main.appendChild(sec);
+}
+persist();
+document.getElementById("copy").onclick = async () => {
+  await navigator.clipboard.writeText(JSON.stringify(marks));
+  document.getElementById("copy").textContent = "Copied";
+};
+document.getElementById("save").onclick = () => {
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(new Blob([JSON.stringify(marks, null, 1)], { type: "application/json" }));
+  a.download = "search-marks.json";
+  a.click();
+};
+</script>
+</body>
+</html>

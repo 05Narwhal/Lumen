@@ -1,0 +1,16 @@
+# Test fixtures for photos-plugins' wasm host (Round 23 A2). Built by
+# `node scripts/plugins/build-fixtures.mjs` for wasm32-wasip2; the .wasm files are checked in
+# under src-tauri/crates/photos-plugins/tests/wasm/ so `cargo test --workspace` needs no wasm
+# toolchain. Not part of the src-tauri workspace.
+[workspace]
+resolver = "2"
+members = ["importer_ok", "tools_ok", "socket", "file", "endless", "memory_hog", "undeclared", "trap", "wit_hash"]
+
+[workspace.dependencies]
+wit-bindgen = "0.63"
+
+[profile.release]
+opt-level = "s"
+lto = true
+strip = true
+codegen-units = 1

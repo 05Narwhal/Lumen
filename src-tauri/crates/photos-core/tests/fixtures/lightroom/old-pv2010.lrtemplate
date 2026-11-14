@@ -1,0 +1,22 @@
+s = {
+	id = "6A2B0000-0000-4000-8000-000000000004",
+	internalName = "Old Punch",
+	title = "Old Punch",
+	type = "Develop",
+	value = {
+		settings = {
+			ProcessVersion = "6.7",
+			Exposure = 0.35,
+			Contrast = 50,
+			Brightness = 60,
+			Recovery = 20,
+			FillLight = 15,
+			Shadows = 8,
+			Clarity = 25,
+			Vibrance = 20,
+			ConvertToGrayscale = true,
+		},
+		uuid = "6A2B0000-0000-4000-8000-000000000004",
+	},
+	version = 0,
+}

@@ -1,0 +1,19 @@
+Third-party code linked into the Takeout plugin (the wasm component). Everything here allows
+commercial use; the full texts are in each crate's repository and in Lumen's Settings -> Licences.
+
+miniz_oxide 0.8 (inflate/deflate)  MIT OR Zlib OR Apache-2.0   https://github.com/Frommi/miniz_oxide
+  with adler2                       0BSD OR MIT OR Apache-2.0   https://github.com/oyvindln/adler2
+serde_json 1                       MIT OR Apache-2.0           https://github.com/serde-rs/json
+  with serde / serde_core          MIT OR Apache-2.0           https://github.com/serde-rs/serde
+  with itoa, memchr, zmij          MIT OR Apache-2.0 (memchr: Unlicense OR MIT; zmij: MIT)
+
+Test-only (not shipped): zip 2 (MIT), flate2 (MIT OR Apache-2.0).
+
+MIT licence (miniz_oxide, serde_json, serde): Permission is hereby granted, free of charge, to any
+person obtaining a copy of the software and associated documentation files, to deal in the software
+without restriction, including without limitation the rights to use, copy, modify, merge, publish,
+distribute, sublicense, and/or sell copies, subject to the copyright notice and this permission
+notice being included in all copies or substantial portions of the software. THE SOFTWARE IS
+PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND.
+Copyrights: miniz_oxide (c) Frommi and contributors; serde_json and serde (c) Erick Tryzelaar and
+David Tolnay.

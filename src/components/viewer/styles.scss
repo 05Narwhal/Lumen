@@ -1,0 +1,885 @@
+.viewer {
+  position: fixed;
+  inset: 0;
+  z-index: var(--z-overlay);
+  color: var(--fg-primary);
+
+  // Full screen: the picture takes the whole display on black, and the chrome floats over
+  // it only while the pointer moves.
+  &[data-fullscreen="true"] &__backdrop { background: var(--viewer-fullscreen-bg); backdrop-filter: none; }
+  &[data-fullscreen="true"] &__stage { inset: 0; }
+  &[data-fullscreen="true"] .zoom-pan__img { box-shadow: none; border-radius: 0; }
+  // A full-screen video fills the whole display and never resizes; all the chrome floats
+  // over it. At the bottom the playback bar sits lowest with the filmstrip just above it,
+  // so the two never overlap. (Stacked in the stage, the bar used to push the picture up
+  // under the top bar and leave the filmstrip lying on it.)
+  &[data-fullscreen="true"] .video-player__video { max-height: 100%; border-radius: 0; }
+  &[data-fullscreen="true"] .video-player .media-controls {
+    // Centred by margin, not transform: its own idle slide uses `transform`.
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: var(--space-4);
+    margin: 0 auto;
+  }
+  &[data-fullscreen="true"][data-info="true"] .video-player .media-controls { right: 320px; }
+  // Above the bar: its 40px height plus a gap.
+  &[data-fullscreen="true"]:has(.video-player) &__strip { bottom: calc(var(--space-4) + 40px + var(--space-3)); }
+  // Nothing sits below the picture in full screen, so the loading pill goes to the corner.
+  &[data-fullscreen="true"] &__loading { bottom: var(--space-4); }
+
+  &__backdrop {
+    position: absolute;
+    inset: 0;
+    background: var(--bg-overlay);
+    backdrop-filter: blur(var(--blur));
+  }
+
+  // Definite box for the image: percentages resolve, so the picture letterboxes (fit, never cover).
+  &__stage {
+    position: absolute;
+    top: 56px;
+    right: var(--space-8);
+    bottom: 96px;
+    left: var(--space-8);
+    transition: right var(--motion-base) var(--ease);
+  }
+  &[data-info="true"] &__stage { right: calc(320px + var(--space-8)); }
+  // The toolbar, filmstrip and loading pill live over the stage, so they have to step
+  // aside for the info panel too, or the buttons end up underneath it.
+  &[data-info="true"] &__top { right: calc(320px + var(--space-3)); }
+  &[data-info="true"] &__strip { transform: translateX(calc(-50% - 160px)); }
+  &[data-info="true"][data-idle="true"] &__strip { transform: translate(calc(-50% - 160px), 8px); }
+
+  &__image {
+    position: absolute;
+    inset: 0;
+  }
+
+  &__loading {
+    position: absolute;
+    left: var(--space-4);
+    bottom: calc(96px + var(--space-3));
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-2);
+    padding: 6px 10px;
+    border-radius: var(--radius-pill);
+    background: var(--bg-raised);
+    border: var(--border-width) solid var(--border);
+    box-shadow: var(--shadow-md);
+    font-size: var(--text-xs);
+    color: var(--fg-muted);
+    z-index: 2;
+  }
+
+  &__unsupported { position: absolute; inset: 0; margin: auto; }
+
+  &__rating { display: inline-flex; align-items: center; padding: 0 var(--space-1); }
+
+  &__unsupported {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: var(--space-3);
+    color: var(--fg-muted);
+    span { font-size: var(--text-2xl); font-weight: 700; letter-spacing: 0.1em; color: var(--fg-subtle); }
+    p { margin: 0; }
+  }
+
+  &__top {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 56px;
+    transition: right var(--motion-base) var(--ease), opacity var(--motion-base) var(--ease), transform var(--motion-base) var(--ease);
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+    padding: 0 var(--space-4);
+    // Nothing sits under the window controls (Round 15).
+    padding-right: calc(var(--space-4) + var(--window-controls-w));
+    background: linear-gradient(var(--bg-base), transparent);
+    transition: opacity var(--motion-base) var(--ease), transform var(--motion-base) var(--ease);
+    -webkit-app-region: no-drag;
+  }
+
+  &__meta { display: flex; flex-direction: column; min-width: 0; margin-left: var(--space-2); }
+  &__title-row { display: flex; align-items: center; gap: var(--space-2); min-width: 0; }
+  &__name { font-weight: 600; @include truncate; }
+
+  // What kind of original this is, beside its name.
+  &__tag {
+    flex: none;
+    padding: 0 5px;
+    border-radius: var(--radius-sm);
+    border: var(--border-width) solid var(--border);
+    color: var(--fg-muted);
+    font-size: var(--text-xs);
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    line-height: 1.5;
+
+  }
+
+  &__live-button {
+    flex: none;
+    display: inline-flex;
+    align-items: center;
+    gap: 3px;
+    padding: 0 6px;
+    border-radius: var(--radius-pill);
+    border: var(--border-width) solid var(--border);
+    color: var(--fg-muted);
+    font-size: var(--text-xs);
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    line-height: 1.5;
+    transition: color var(--motion-fast) var(--ease), border-color var(--motion-fast) var(--ease), background var(--motion-fast) var(--ease);
+    &:hover:not(:disabled),
+    &[data-playing="true"] { color: var(--accent); border-color: var(--accent); background: var(--accent-soft); }
+    &:disabled { opacity: 0.5; cursor: default; }
+  }
+
+  // The motion sits exactly over the still (both contain-fit in the same box) and fades,
+  // so start and stop read as the photo coming alive rather than a player appearing.
+  &__live {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity var(--motion-base) var(--ease);
+    &[data-playing="true"] { opacity: 1; }
+  }
+  &__sub { font-size: var(--text-sm); color: var(--fg-muted); @include truncate; }
+  &__spacer { flex: 1; }
+
+  &__icon {
+    width: 32px;
+    height: 32px;
+    display: grid;
+    place-items: center;
+    border-radius: var(--radius-md);
+    color: var(--fg-muted);
+    transition: background var(--motion-fast) var(--ease), color var(--motion-fast) var(--ease), transform var(--motion-fast) var(--ease);
+    &:hover { background: var(--bg-sunken); color: var(--fg-primary); }
+    &:active { transform: scale(0.94); }
+    &[aria-pressed="true"] { background: var(--accent-soft); color: var(--accent); }
+    &[data-danger="true"]:hover { color: oklch(62% 0.2 25); }
+  }
+  &__star { color: var(--star); }
+
+  &__nav {
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 44px;
+    height: 44px;
+    display: grid;
+    place-items: center;
+    border-radius: 50%;
+    background: var(--bg-raised);
+    border: var(--border-width) solid var(--border);
+    box-shadow: var(--shadow-md);
+    color: var(--fg-primary);
+    transition: opacity var(--motion-base) var(--ease), transform var(--motion-fast) var(--ease);
+    &:disabled { opacity: 0.25; cursor: default; }
+    &:not(:disabled):hover { transform: translateY(-50%) scale(1.06); }
+    &--prev { left: var(--space-4); }
+    &--next { right: var(--space-4); }
+  }
+  &[data-info="true"] &__nav--next { right: calc(320px + var(--space-4)); }
+
+  &__strip {
+    position: absolute;
+    left: 50%;
+    bottom: var(--space-4);
+    transform: translateX(-50%);
+    display: flex;
+    gap: var(--space-2);
+    padding: var(--space-1);
+    border-radius: var(--radius-md);
+    background: var(--bg-raised);
+    border: var(--border-width) solid var(--border);
+    box-shadow: var(--shadow-md);
+    transition: opacity var(--motion-base) var(--ease), transform var(--motion-base) var(--ease);
+  }
+
+  &__strip-item {
+    width: 56px;
+    height: 56px;
+    object-fit: cover;
+    border-radius: var(--radius-sm);
+    cursor: pointer;
+    opacity: 0.6;
+    transition: opacity var(--motion-fast) var(--ease);
+    &:hover, &[data-current="true"] { opacity: 1; }
+    &[data-current="true"] { outline: 2px solid var(--accent); outline-offset: -2px; }
+    &--empty { background: var(--bg-sunken); opacity: 0.4; }
+  }
+
+  &__panel {
+    position: absolute;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    width: 320px;
+    background: var(--bg-raised);
+    border-left: var(--border-width) solid var(--border);
+    box-shadow: var(--shadow-lg);
+    overflow-y: auto;
+  }
+
+  // Chrome hides when idle; the info panel stays.
+  &[data-idle="true"] &__top,
+  &[data-idle="true"] &__nav,
+  &[data-idle="true"] &__strip {
+    opacity: 0;
+    pointer-events: none;
+  }
+  &[data-idle="true"] &__top { transform: translateY(-8px); }
+  // The cursor goes with the controls (Round 8B); any move brings both back.
+  &[data-idle="true"] &__stage,
+  &[data-idle="true"] &__stage * { cursor: none; }
+  &[data-idle="true"] &__strip { transform: translate(-50%, 8px); }
+}
+
+.zoom-pan {
+  position: absolute;
+  inset: 0;
+  // Flex, not grid: a percentage max-size on a grid item resolves against the grid area,
+  // and `place-items: center` makes that area content-sized — so `max-height: 100%` below
+  // was indefinite and CSS dropped it, leaving a portrait picture at its natural height
+  // (1600px in a 656px box) with the middle cropped out by `overflow: hidden`. A flex
+  // container has a definite cross size, so the constraint resolves and the whole
+  // picture fits.
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  touch-action: none;
+  cursor: zoom-in;
+  &[data-zoomed="true"] { cursor: grab; }
+  &[data-dragging="true"] { cursor: grabbing; }
+
+  &__img {
+    max-width: 100%;
+    max-height: 100%;
+    object-fit: contain;
+    user-select: none;
+    // No `will-change: transform`. With it, Chromium rasterises the image once at its fitted
+    // size and stretches that bitmap when zoomed: measured in the real WebView2, a 1:1 view
+    // of a 4032px original carried a 1/11th of the original's detail. Without it the image
+    // is re-rasterised at the settled scale and 1:1 is the original's own pixels.
+    transition: transform var(--motion-fast) var(--ease);
+    box-shadow: var(--shadow-lg);
+    border-radius: var(--radius-sm);
+  }
+  &[data-dragging="true"] &__img { transition: none; }
+
+  // Lies exactly on the fitted picture and takes the same transform (`ZoomPan`'s overlay).
+  &__overlay {
+    position: absolute;
+    transition: transform var(--motion-fast) var(--ease);
+    pointer-events: none;
+  }
+  &[data-dragging="true"] &__overlay { transition: none; }
+}
+
+// The text over the photo (Round 13-3): fades as a whole; hidden, it is out of the way of
+// the pointer, the selection and screen readers.
+.viewer__text-layer {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity var(--motion-base) var(--ease), visibility 0s linear var(--motion-base);
+
+  &[data-shown] {
+    opacity: 1;
+    visibility: visible;
+    transition-delay: 0s;
+  }
+}
+
+.face-boxes {
+  position: absolute;
+  inset: 0;
+
+  &__box {
+    position: absolute;
+    padding: 0;
+    background: transparent;
+    // Lines stay one CSS pixel whatever the zoom.
+    border: calc(1.5px / var(--zoom, 1)) solid var(--face-box-line);
+    border-radius: calc(var(--radius-sm) / var(--zoom, 1));
+    box-shadow: 0 0 0 calc(1px / var(--zoom, 1)) var(--face-box-halo);
+    pointer-events: auto;
+    cursor: pointer;
+    opacity: 0.85;
+    transition: opacity var(--motion-fast) var(--ease), border-color var(--motion-fast) var(--ease);
+    &:hover, &[data-hovered] { opacity: 1; border-color: var(--accent); }
+    &[data-unknown] { border-style: dashed; }
+    &--drawing { border-style: dashed; opacity: 1; pointer-events: none; }
+  }
+
+  &[data-kind="pet"] &__box {
+    border-color: var(--pet-box-line);
+    &:hover, &[data-hovered] { border-color: var(--accent); }
+  }
+
+  &__name {
+    position: absolute;
+    top: 100%;
+    left: 50%;
+    margin-top: 4px;
+    padding: 2px 8px;
+    border-radius: var(--radius-pill);
+    background: var(--badge-bg);
+    color: var(--badge-fg);
+    font-size: var(--text-xs);
+    white-space: nowrap;
+    transform: translateX(-50%) scale(calc(1 / var(--zoom, 1)));
+    transform-origin: top center;
+    pointer-events: none;
+  }
+
+  &__draw {
+    position: absolute;
+    inset: 0;
+    pointer-events: auto;
+    cursor: crosshair;
+    touch-action: none;
+  }
+}
+
+// Text read in the photo over it (Round 13-3), in ZoomPan's overlay: one SVG as wide as the
+// photo. Glyphs are transparent; only the selection shows over them.
+.text-overlay {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+  pointer-events: none;
+
+  &__dim { fill: var(--photo-text-dim); pointer-events: none; }
+  &__line {
+    fill: none;
+    stroke: var(--photo-text-line);
+    stroke-width: 1.5px;
+    // One CSS pixel-ish whatever the zoom or the photo's size.
+    vector-effect: non-scaling-stroke;
+    stroke-linejoin: round;
+    filter: drop-shadow(0 0 1.5px var(--photo-text-halo));
+    pointer-events: none;
+  }
+  &__text {
+    // The SVG lets the pointer through to the zoom and pan; only the words take it.
+    pointer-events: auto;
+    fill: transparent;
+    cursor: text;
+    user-select: text;
+    -webkit-user-select: text;
+    white-space: pre;
+
+    &::selection { fill: transparent; background: var(--photo-text-selection); }
+  }
+}
+
+.info-panel {
+  padding: var(--space-5);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-5);
+  user-select: text;
+
+  &__title { word-break: break-all; }
+  // The stars and what they mean on one centred line, tucked under the file name.
+  &__rating {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+    margin-top: calc(-1 * var(--space-3));
+    span { font-size: var(--text-sm); line-height: 1; color: var(--fg-muted); font-variant-numeric: tabular-nums; }
+  }
+  &__group { display: flex; flex-direction: column; gap: var(--space-2); }
+  &__row { display: grid; grid-template-columns: 84px 1fr; gap: var(--space-3); font-size: var(--text-sm); }
+  &__label { color: var(--fg-muted); }
+  &__value { color: var(--fg-primary); word-break: break-word; }
+  &__credit { display: block; margin-top: 2px; font-size: var(--text-xs); color: var(--fg-muted); }
+  &__code { font-family: ui-monospace, "Cascadia Mono", Menlo, monospace; font-size: var(--text-xs); color: var(--fg-muted); }
+  &__reveal {
+    align-self: flex-start;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 10px;
+    border-radius: var(--radius-md);
+    background: var(--bg-sunken);
+    color: var(--fg-primary);
+    font-size: var(--text-sm);
+    &:hover { background: var(--accent-soft); color: var(--accent); }
+  }
+
+  // *Use as main photo of …* beside each name: quiet until the row is hovered or focused.
+  &__cover {
+    display: inline-grid;
+    place-items: center;
+    width: 18px;
+    height: 18px;
+    margin-left: 2px;
+    padding: 0;
+    border: 0;
+    border-radius: var(--radius-sm);
+    background: none;
+    color: var(--fg-muted);
+    vertical-align: middle;
+    opacity: 0;
+    transition: opacity var(--motion-fast) var(--ease);
+    // Drawn at 18 px, clickable at 24 (the desktop minimum is 20).
+    position: relative;
+    &::after { content: ""; position: absolute; inset: -3px; }
+    &:hover { color: var(--accent); background: var(--accent-soft); }
+    &:focus-visible { opacity: 1; }
+  }
+  &__face:hover &__cover { opacity: 1; }
+
+  // People in the photo (Round 4I): one row per face, Unknown included.
+  &__faces-head { display: flex; align-items: center; justify-content: space-between; gap: var(--space-2); font-size: var(--text-sm); }
+  &__face-tools { display: inline-flex; gap: 4px; }
+  &__face-tool {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 3px 8px;
+    border: var(--border-width) solid var(--border);
+    border-radius: var(--radius-pill);
+    background: none;
+    color: var(--fg-muted);
+    font-size: var(--text-xs);
+    cursor: pointer;
+    transition: background var(--motion-fast) var(--ease), color var(--motion-fast) var(--ease);
+    &:hover { color: var(--fg-primary); }
+    &[aria-pressed="true"] { background: var(--accent-soft); border-color: transparent; color: var(--accent); }
+  }
+  &__faces { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 2px; }
+  &__face {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+    padding: 4px;
+    margin: 0 -4px;
+    border-radius: var(--radius-md);
+    font-size: var(--text-sm);
+    &:hover { background: var(--bg-sunken); }
+  }
+  &__face-crop { width: 28px; height: 28px; border-radius: 50%; object-fit: cover; flex: none; background: var(--bg-sunken); }
+  &__face-name {
+    flex: 1;
+    min-width: 0;
+    @include truncate;
+    color: var(--fg-primary);
+    &[data-unknown] { color: var(--fg-muted); }
+  }
+  &__face-action {
+    flex: none;
+    padding: 2px 8px;
+    border: 0;
+    border-radius: var(--radius-pill);
+    background: none;
+    color: var(--fg-muted);
+    font-size: var(--text-xs);
+    cursor: pointer;
+    opacity: 0;
+    transition: opacity var(--motion-fast) var(--ease), background var(--motion-fast) var(--ease);
+    &:hover { background: var(--accent-soft); color: var(--accent); }
+    &:focus-visible { opacity: 1; }
+    // *Tag…* on an Unknown face is always visible: it is the reason to look here.
+    &[data-primary] { opacity: 1; color: var(--accent); }
+  }
+  &__face:hover &__face-action { opacity: 1; }
+  &__faces-empty { margin: 0; color: var(--fg-muted); font-size: var(--text-sm); }
+  // Text read in the photo (Round 18 C2): a head line, an inset with the first sentences, and
+  // text actions under it. *Show all* swaps the inset's paragraphs for every line, scrolling.
+  &__text { gap: var(--space-2); }
+  &__text-head {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+    font-size: var(--text-sm);
+    svg { color: var(--fg-muted); flex: none; }
+  }
+  &__text-count { margin-inline-start: auto; color: var(--fg-muted); font-size: var(--text-xs); font-variant-numeric: tabular-nums; }
+  &__text-inset {
+    margin: 0;
+    padding: var(--space-2) var(--space-3);
+    list-style: none;
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-1);
+    border-radius: var(--radius-sm);
+    background: var(--bg-sunken);
+    color: var(--fg-primary);
+    font-size: var(--text-sm);
+    line-height: 1.45;
+    overflow-wrap: anywhere;
+    user-select: text;
+    p { margin: 0; }
+  }
+  // About ten lines, then it scrolls inside.
+  &__text-all { max-height: calc(10 * 1.45em + 2 * var(--space-2)); overflow-y: auto; gap: 2px; overscroll-behavior: contain; }
+  &__text-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 2px var(--space-1); margin-inline: calc(-1 * var(--space-2)); }
+  &__text-action {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    min-height: 28px;
+    padding: 0 var(--space-2);
+    border: 0;
+    border-radius: var(--radius-sm);
+    background: none;
+    color: var(--fg-muted);
+    font: inherit;
+    font-size: var(--text-xs);
+    cursor: pointer;
+    transition: background var(--motion-fast) var(--ease), color var(--motion-fast) var(--ease);
+    &:hover { color: var(--fg-primary); background: var(--accent-soft); }
+    &:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
+    &[aria-pressed="true"] { color: var(--accent); background: var(--accent-soft); }
+    kbd {
+      min-width: 16px;
+      padding: 0 4px;
+      border: var(--border-width) solid var(--border);
+      border-radius: var(--radius-sm);
+      font: inherit;
+      font-size: 10px;
+      line-height: 14px;
+      text-align: center;
+      color: var(--fg-subtle);
+    }
+  }
+
+  // "Exported from …": a link in the row's value, not a button's chrome.
+  &__link {
+    padding: 0;
+    border: 0;
+    background: none;
+    color: var(--accent);
+    font: inherit;
+    text-align: left;
+    overflow-wrap: anywhere;
+    cursor: pointer;
+    &:hover { text-decoration: underline; }
+  }
+}
+
+.video-player {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-3);
+
+  &__video {
+    max-width: 100%;
+    max-height: calc(100% - 48px);
+    border-radius: var(--radius-md);
+    background: black;
+    cursor: pointer;
+  }
+
+
+  &--waiting, &--preparing { color: var(--fg-muted); }
+  &__poster {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    opacity: 0.35;
+    filter: blur(2px);
+  }
+  &__preparing {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: var(--space-2);
+    padding: var(--space-4) var(--space-6);
+    border-radius: var(--radius-lg);
+    background: var(--bg-raised);
+    color: var(--fg-primary);
+    box-shadow: var(--shadow-lg);
+    font-variant-numeric: tabular-nums;
+  }
+  &__preparing-sub { font-size: var(--text-sm); color: var(--fg-muted); }
+}
+
+// Edit mode's stage: the whole viewer under the top bar. The toolbar floats over its lower
+// edge; while cropping the stage steps up so the bottom handles stay reachable.
+.viewer[data-editing] .edit-stage {
+  left: var(--space-6);
+  right: var(--space-6);
+  bottom: var(--space-4);
+  transition: bottom var(--motion-slow) var(--ease);
+}
+.viewer[data-editing]:has(.edit-toolbar__row--crop) .edit-stage { bottom: 150px; }
+.viewer[data-editing] .trim-stage { bottom: var(--space-5); }
+
+.edit-bar {
+  gap: var(--space-2);
+  padding-right: var(--space-4);
+
+  &__history {
+    display: flex;
+    gap: 2px;
+    margin-right: var(--space-2);
+
+    .viewer__icon:disabled { opacity: 0.35; pointer-events: none; }
+  }
+}
+
+// The floating toolbar: a glass pill centred over the bottom of the picture.
+.edit-dock {
+  position: absolute;
+  left: 50%;
+  bottom: var(--space-5);
+  transform: translateX(-50%);
+  max-width: calc(100% - var(--space-8));
+  z-index: 2;
+}
+
+.edit-toolbar {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-2);
+
+  &__row {
+    display: flex;
+    align-items: center;
+    gap: 2px;
+    padding: var(--space-1);
+    border-radius: var(--radius-lg);
+    background: var(--bg-raised);
+    backdrop-filter: blur(var(--blur)) saturate(1.4);
+    border: var(--border-width) solid var(--border);
+    box-shadow: var(--shadow-lg);
+    animation: edit-rise var(--motion-base) var(--ease);
+
+    &--crop { gap: var(--space-2); padding: var(--space-1) var(--space-2); }
+  }
+
+  &__tool {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: var(--space-1);
+    height: 34px;
+    min-width: 34px;
+    padding: 0 var(--space-2);
+    border-radius: var(--radius-md);
+    color: var(--fg-primary);
+    font-size: var(--text-sm);
+    transition: background var(--motion-fast) var(--ease), color var(--motion-fast) var(--ease), transform var(--motion-fast) var(--ease);
+
+    &[data-wide] { padding: 0 var(--space-3); }
+    &:hover { background: var(--bg-sunken); }
+    &:active { transform: scale(0.94); }
+    &[aria-pressed="true"] { background: var(--accent); color: var(--accent-fg); }
+    &:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+  }
+
+  &__rule {
+    width: var(--border-width);
+    height: 20px;
+    margin: 0 var(--space-1);
+    background: var(--border);
+  }
+
+  &__straighten {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+    padding: 0 var(--space-2);
+  }
+  &__label { font-size: var(--text-xs); color: var(--fg-muted); }
+  &__slider { width: 150px; }
+  &__bar { display: none; }
+
+  &__angle {
+    display: inline-flex;
+    align-items: center;
+    height: 26px;
+    padding: 0 var(--space-1);
+    border-radius: var(--radius-sm);
+    background: var(--bg-sunken);
+    font-size: var(--text-sm);
+    font-variant-numeric: tabular-nums;
+    color: var(--fg-muted);
+
+    &[data-changed="true"] { color: var(--accent); }
+
+    input {
+      width: 44px;
+      border: 0;
+      background: transparent;
+      color: inherit;
+      font: inherit;
+      text-align: right;
+      outline: none;
+      -moz-appearance: textfield;
+      &::-webkit-inner-spin-button,
+      &::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
+    }
+  }
+
+  &__chips { display: flex; gap: 2px; }
+  &__chip {
+    height: 28px;
+    padding: 0 var(--space-3);
+    border-radius: var(--radius-pill);
+    font-size: var(--text-sm);
+    color: var(--fg-muted);
+    transition: background var(--motion-fast) var(--ease), color var(--motion-fast) var(--ease);
+
+    &:hover { color: var(--fg-primary); background: var(--bg-sunken); }
+    &[aria-checked="true"] { color: var(--accent-fg); background: var(--accent); }
+  }
+
+  &__size {
+    font-size: var(--text-sm);
+    font-variant-numeric: tabular-nums;
+    color: var(--fg-muted);
+    padding: 0 var(--space-2);
+    border-left: var(--border-width) solid var(--border);
+  }
+
+  &__text {
+    height: 28px;
+    padding: 0 var(--space-2);
+    border-radius: var(--radius-md);
+    font-size: var(--text-sm);
+    color: var(--fg-muted);
+    &:hover:not(:disabled) { color: var(--fg-primary); background: var(--bg-sunken); }
+    &:disabled { opacity: 0.4; }
+  }
+}
+
+@keyframes edit-rise {
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: none; }
+}
+
+// The trimmer: the video over its timeline and controls, all inside the stage.
+.trim-stage {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+
+  &__video {
+    position: relative;
+    flex: 1;
+    min-height: 0;
+  }
+
+  &__controls {
+    flex: none;
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-2);
+    padding: var(--space-2);
+    border-radius: var(--radius-lg);
+    background: var(--bg-raised);
+    backdrop-filter: blur(var(--blur));
+    border: var(--border-width) solid var(--border);
+    box-shadow: var(--shadow-lg);
+  }
+}
+
+.trim-timeline {
+  position: relative;
+  flex: none;
+  height: 56px;
+  border-radius: var(--radius-md);
+  border: var(--border-width) solid var(--border);
+  background-color: var(--bg-sunken);
+  background-repeat: repeat-x;
+  background-size: auto 100%;
+  cursor: pointer;
+  touch-action: none;
+  user-select: none;
+  overflow: hidden;
+
+  &:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+  &__cut {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    background: repeating-linear-gradient(135deg, var(--bg-overlay) 0 6px, var(--bg-sunken) 6px 12px);
+    opacity: 0.85;
+  }
+
+  &__sel {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    border: 2px solid var(--accent);
+    border-radius: var(--radius-sm);
+    background: var(--accent-soft);
+  }
+
+  &__handle {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    width: 12px;
+    background: var(--accent);
+    cursor: ew-resize;
+
+    &[data-edge="a"] { left: -2px; border-radius: var(--radius-sm) 0 0 var(--radius-sm); }
+    &[data-edge="b"] { right: -2px; border-radius: 0 var(--radius-sm) var(--radius-sm) 0; }
+  }
+
+  &__head {
+    position: absolute;
+    top: -2px;
+    bottom: -2px;
+    width: 2px;
+    margin-left: -1px;
+    background: var(--fg-primary);
+    box-shadow: var(--shadow-sm);
+    pointer-events: none;
+  }
+}
+
+.trim-bar {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+
+  &__summary { margin: 0; font-size: var(--text-sm); color: var(--fg-primary); font-variant-numeric: tabular-nums; }
+  &__rule { width: var(--border-width); height: 18px; background: var(--border); }
+  &__tool {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-1);
+    height: 28px;
+    padding: 0 var(--space-2);
+    border-radius: var(--radius-md);
+    font-size: var(--text-sm);
+    color: var(--fg-primary);
+    &:hover { background: var(--bg-sunken); }
+  }
+  &__selection { flex: 1; min-width: 120px; font-size: var(--text-xs); color: var(--fg-muted); font-variant-numeric: tabular-nums; }
+  &__actions { display: flex; gap: var(--space-2); }
+}

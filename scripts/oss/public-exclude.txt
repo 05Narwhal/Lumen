@@ -1,0 +1,8 @@
+# Files that are not part of the public snapshot (gitignore-style globs).
+docs/superpowers/plans/**
+CLAUDE.local.md
+**/__pycache__/**
+scripts/oss/*.local.json
+graphify-out/**
+# A one-off migration script for the maintainer's own machine (Claude Code, Codex and CPM settings).
+scripts/dev/after-rename.ps1

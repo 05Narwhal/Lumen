@@ -1,0 +1,79 @@
+# Logs
+logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+node_modules
+dist
+dist-ssr
+*.local
+
+# Editor directories and files
+.vscode/*
+!.vscode/extensions.json
+.idea
+.DS_Store
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+
+# Brainstorming companion sessions
+.superpowers/
+
+# FFmpeg sidecars (fetched by scripts/fetch-ffmpeg.*)
+src-tauri/binaries/
+
+# Natural Earth downloads for scripts/build-map-data.py
+.map-cache/
+
+# Phase 7 model export: venv, clones, checkpoints and ONNX files
+.venv-ml/
+# Round 11B training kit: venv and prepared data, checkpoints, runs
+.venv-train/
+scripts/ml/lumen_train/runs/
+build/
+__pycache__/
+
+# Stray ts-rs output (cargo test run without src-tauri/.cargo/config.toml's TS_RS_EXPORT_DIR);
+# the real types are generated into src/types/generated/
+src-tauri/bindings/
+src-tauri/crates/*/bindings/
+
+# Mobile icons from `tauri icon`; Lumen ships desktop only
+src-tauri/icons/android/
+src-tauri/icons/ios/
+
+# graphify knowledge graph and local Claude Code settings/worktrees
+graphify-out/
+.claude/
+
+# Round 17: the release script's build output and third-party source
+dist-release/
+# Discord Application ID (Round 17): per-deployment, never committed
+discord_client_id.txt
+.discord_client_id
+plugin-pubkey.txt
+
+# Lumen Setup (installer/)
+installer/src-tauri/target/
+installer/src-tauri/gen/
+
+# Round 23 A2: wasm fixture build output
+plugins/fixtures/target/
+
+# Round 23 D1: plugin SDK, examples and any other plugin workspace build output
+plugins/**/target
+
+# Round 23 D1: built code examples (node scripts/plugins/build-examples.mjs)
+plugins/examples/*/plugin.wasm
+
+# Personal notes and scrub rules (never published)
+CLAUDE.local.md
+scripts/oss/*.local.json
+__pycache__/
