@@ -39,4 +39,4 @@ libc = "0.2"
 [dev-dependencies]
 wasmtime = { version = "50", default-features = false, features = ["wat"] }
 tempfile = "3"
-minisign = "0.7"
+minisign = "0.10"
