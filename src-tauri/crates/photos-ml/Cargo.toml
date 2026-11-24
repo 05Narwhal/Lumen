@@ -8,7 +8,7 @@ license.workspace = true
 [dependencies]
 photos-core = { path = "../photos-core" }
 photos-models = { path = "../photos-models" }
-ort = "=2.0.0-rc.10"
+ort = "=2.0.0-rc.15"
 serde.workspace = true
 serde_json.workspace = true
 thiserror.workspace = true
