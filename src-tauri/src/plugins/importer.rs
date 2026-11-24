@@ -735,7 +735,10 @@ default = ""
         // Two more trapping imports make three trips: the plugin stops, and says why.
         for _ in 0..2 {
             let (s, _) = r.import(&lib, &r.source());
-            assert_eq!(s.failed, 3);
+            if s.failed != 3 {
+                let why = lib.db.with_conn(|c| photos_core::batches::list_failures(c, s.batch_id)).unwrap();
+                panic!("expected 3 failures, got {}: {s:?} {why:?}", s.failed);
+            }
         }
         assert_eq!(engine.trips(ID), 3);
         let info = r.plugins.read().get(ID).unwrap().info.clone();

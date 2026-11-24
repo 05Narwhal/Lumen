@@ -481,7 +481,9 @@ mod tests {
             })
             .collect();
         times.sort();
-        assert!(times[2] < std::time::Duration::from_millis(20), "median boot {:?}", times[2]);
+        // 20 ms on a developer machine; a shared CI runner (2-4 slow cores) gets three times that.
+        let budget = if std::env::var_os("CI").is_some() { 60 } else { 20 };
+        assert!(times[2] < std::time::Duration::from_millis(budget), "median boot {:?} (budget {budget} ms)", times[2]);
     }
 
     #[test]
