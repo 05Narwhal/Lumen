@@ -1,0 +1,54 @@
+id = "jl.disk-atlas"
+name = "Disk Atlas"
+version = "1.0.0"
+author = "JL Studios"
+description = "Uses Disk Atlas for Lumen's file and folder dialogs and for Show in folder, when Disk Atlas is installed."
+license = "MIT"
+lumen = ">=26.2.0"
+api = "1.2.0"
+author_url = "https://github.com/05Narwhal"
+repository = "https://github.com/05Narwhal/lumen-plugins"
+
+[[detect]]
+id = "disk-atlas"
+name = "Disk Atlas"
+windows = { exe = "disk-atlas.exe", paths = ["%LOCALAPPDATA%/Programs/Disk Atlas", "%ProgramFiles%/Disk Atlas"], path_env = true, registry = ["HKCU/Software/Microsoft/Windows/CurrentVersion/App Paths/disk-atlas.exe", "HKLM/Software/Microsoft/Windows/CurrentVersion/App Paths/disk-atlas.exe"] }
+linux   = { exe = "disk-atlas", path_env = true }
+macos   = { app = "Disk Atlas.app" }
+
+[[providers]]
+kind = "file-picker"
+app = "disk-atlas"
+args = ["--pick", "{mode}", "--title", "{title}", "--start", "{start}", "--name", "{name}", "{filters...}", "--parent", "{parent}"]
+modes = { open-file = "open", open-multiple = "open-multiple", open-folder = "folder", save = "save" }
+output = "json-stdout"
+enabled_by = "use_picker"
+
+[[providers]]
+kind = "reveal"
+app = "disk-atlas"
+args = ["--select", "{path}"]
+enabled_by = "use_reveal"
+
+[[ui.section]]
+title = "Dialogs and folders"
+description = "Where Lumen asks Disk Atlas instead of the system. Both need Disk Atlas to be installed."
+
+[[ui.section.control]]
+type = "toggle"
+key = "use_picker"
+label = "Use Disk Atlas for file dialogs"
+help = "Choosing a file, files or a folder, and saving."
+default = true
+app = "disk-atlas"
+
+[[ui.section.control]]
+type = "toggle"
+key = "use_reveal"
+label = "Use Disk Atlas for Show in folder"
+help = "Opens the photo's folder in Disk Atlas."
+default = true
+app = "disk-atlas"
+
+[listing]
+screenshots = ["screenshots/settings.png"]

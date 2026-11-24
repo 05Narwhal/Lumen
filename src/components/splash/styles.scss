@@ -34,6 +34,15 @@
     animation: splash-sweep 1.8s var(--ease) infinite, rise-in var(--motion-slow) var(--ease);
   }
 
+  &__note {
+    max-width: 480px;
+    margin: 0;
+    padding: 0 var(--space-4);
+    text-align: center;
+    font-size: 13px;
+    color: var(--fg-muted);
+  }
+
   &__bar {
     width: 120px;
     height: 2px;

@@ -5,7 +5,7 @@ import "maplibre-gl/dist/maplibre-gl.css";
 // rather than resolved next to the library, which breaks under Vite's dependency bundling.
 import workerUrl from "maplibre-gl/dist/maplibre-gl-worker.mjs?worker&url";
 import { forwardRef, useCallback, useEffect, useImperativeHandle, useLayoutEffect, useRef, useState } from "react";
-import { buildStyle, clusterZoom, SATELLITE_MAX_ZOOM, toBounds, type MapColours } from "@/lib/map-style";
+import { buildStyle, clusterZoom, toBounds, type MapColours } from "@/lib/map-style";
 import type { Bounds } from "@/types/generated/Bounds";
 import type { Cluster } from "@/types/generated/Cluster";
 import type { MapStyle } from "@/types/generated/MapStyle";
@@ -24,6 +24,8 @@ export interface MapViewProps {
   clusters: Cluster[];
   online: boolean;
   style: MapStyle;
+  /** The person's own Esri key; satellite imagery is EOX's without one. */
+  esriKey?: string | null;
   /** Where the map opens before anything else is known. */
   initial?: { lat: number; lon: number; zoom: number };
   /** Debounced after the camera settles: the viewport and the zoom the clustering uses. */
@@ -34,6 +36,8 @@ export interface MapViewProps {
   onClusterMenu?: (c: Cluster, e: React.MouseEvent) => void;
   /** True while the online style could not be reached and the offline floor is showing. */
   onOfflineChange?: (offline: boolean) => void;
+  /** A pulsing pin on one place (Round 26 B3: *Open in Map* from the viewer). */
+  focus?: { lat: number; lon: number } | null;
 }
 
 /** The theme colours the offline floor is drawn in, resolved on the element. */
@@ -52,7 +56,7 @@ const markerKey = (c: Cluster) => `${c.coverAssetId}:${c.count}`;
  * per frame — and hover scales an inner element, so the thing under the pointer never moves.
  */
 export const MapView = forwardRef<MapViewHandle, MapViewProps>(function MapView(
-  { clusters, online, style, initial, onBoundsChange, onOpenAsset, onZoomToCluster, onClusterMenu, onOfflineChange },
+  { clusters, online, style, esriKey, initial, onBoundsChange, onOpenAsset, onZoomToCluster, onClusterMenu, onOfflineChange, focus },
   ref,
 ) {
   const host = useRef<HTMLDivElement>(null);
@@ -115,11 +119,11 @@ export const MapView = forwardRef<MapViewHandle, MapViewProps>(function MapView(
     if (!m || !host.current) return;
     let alive = true;
     const apply = () =>
-      void buildStyle({ online, style, dark: scheme === "dark", colours: colours(host.current!) }).then(({ style: s, offline }) => {
+      void buildStyle({ online, style, dark: scheme === "dark", colours: colours(host.current!), esriKey }).then(({ style: s, offline, maxZoom }) => {
         if (!alive) return;
         m.setStyle(s, { diff: false });
         // Satellite stops before the imagery runs out; the vector map goes to street level.
-        m.setMaxZoom(online && !offline && style === "satellite" ? SATELLITE_MAX_ZOOM : 19);
+        m.setMaxZoom(maxZoom);
         callbacks.current.onOfflineChange?.(online && offline);
       });
     apply();
@@ -128,7 +132,7 @@ export const MapView = forwardRef<MapViewHandle, MapViewProps>(function MapView(
       alive = false;
       window.removeEventListener("online", apply);
     };
-  }, [online, style, scheme]);
+  }, [online, style, scheme, esriKey]);
 
   useLayoutEffect(place, [clusters, ready, place]);
 
@@ -154,7 +158,7 @@ export const MapView = forwardRef<MapViewHandle, MapViewProps>(function MapView(
     [],
   );
 
-  const register = (key: string, c: Cluster) => (el: HTMLElement | null) => {
+  const register = (key: string, c: { lat: number; lon: number }) => (el: HTMLElement | null) => {
     if (el) {
       markers.current.set(key, { el, lat: c.lat, lon: c.lon });
       const p = map.current?.project([c.lon, c.lat]);
@@ -177,6 +181,7 @@ export const MapView = forwardRef<MapViewHandle, MapViewProps>(function MapView(
                 type="button"
                 className="map-view__pin"
                 data-single={single}
+                data-estimated={c.estimated > 0 && c.estimated === c.count}
                 title={single ? "Open this photo" : `${c.count.toLocaleString()} photos here · open them`}
                 aria-label={single ? "Open this photo" : `Open ${c.count} photos`}
                 onClick={() => (single && c.assetId != null ? onOpenAsset(c.assetId) : onZoomToCluster(c))}
@@ -188,6 +193,12 @@ export const MapView = forwardRef<MapViewHandle, MapViewProps>(function MapView(
             </div>
           );
         })}
+        {focus && (
+          <div key={`focus:${focus.lat}:${focus.lon}`} ref={register("focus", focus)} className="map-view__focus" data-testid="map-focus" aria-hidden>
+            <span className="map-view__focus-pulse" />
+            <span className="map-view__focus-dot" />
+          </div>
+        )}
       </div>
     </div>
   );

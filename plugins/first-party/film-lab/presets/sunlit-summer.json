@@ -1,0 +1,78 @@
+{
+  "recipeVersion": 3,
+  "name": "Sunlit Summer",
+  "develop": {
+    "basic": {
+      "temperature": 15,
+      "exposure": 0.15,
+      "saturation": 0.1,
+      "vibrance": 0.2,
+      "highlights": -0.1
+    },
+    "hsl": [
+      {
+        "h": 0,
+        "s": 0,
+        "l": 0
+      },
+      {
+        "h": 0,
+        "s": 0,
+        "l": 0.05
+      },
+      {
+        "h": 0,
+        "s": 0.15,
+        "l": 0
+      },
+      {
+        "h": -0.05,
+        "s": 0.05,
+        "l": 0
+      },
+      {
+        "h": 0,
+        "s": 0,
+        "l": 0
+      },
+      {
+        "h": 0,
+        "s": 0,
+        "l": 0
+      },
+      {
+        "h": 0,
+        "s": 0,
+        "l": 0
+      },
+      {
+        "h": 0,
+        "s": 0,
+        "l": 0
+      }
+    ],
+    "grading": {
+      "highlights": {
+        "hue": 50,
+        "sat": 0.12,
+        "lum": 0
+      }
+    }
+  },
+  "panels": [
+    "basic",
+    "hsl",
+    "grading"
+  ],
+  "look": {
+    "intent": "Bright summer afternoon on colour negative: warm, golden greens and a little extra exposure",
+    "hues": [
+      45,
+      60
+    ],
+    "mono": false,
+    "key": "high",
+    "skinSafe": true,
+    "likesSky": true
+  }
+}

@@ -15,6 +15,7 @@ import {
   IconLock,
   IconMap,
   IconPhoto,
+  IconPuzzle,
   IconSettings,
   IconTrash,
 } from "@tabler/icons-react";
@@ -22,7 +23,6 @@ import { AnimatePresence, motion } from "motion/react";
 import { useEffect, useState, type DragEvent } from "react";
 import type React from "react";
 import { NavLink, useLocation, useNavigate } from "react-router";
-import { ActivityRing } from "@/components/activity-ring";
 import { useContextMenu } from "@/components/context-menu";
 import { connectedPath, useConnectedMenu } from "@/hooks/use-connected-menu";
 import { useAlbumMenu, useCollectionMenu, usePrimaryMenu } from "@/hooks/use-library-menus";
@@ -76,6 +76,8 @@ const primary: NavItem[] = [
 const footer: NavItem[] = [
   { to: "/import", label: "Import", icon: IconDownload },
   { to: "/develop", label: "Develop", icon: IconAperture },
+  // Round 24 lane C: the plugin store, under Develop.
+  { to: "/plugins", label: "Plugins", icon: IconPuzzle },
   { to: "/trash", label: "Trash", icon: IconTrash },
   { to: "/settings", label: "Settings", icon: IconSettings },
 ];
@@ -214,6 +216,7 @@ function Item({
       to={to}
       end={end || query != null}
       className={({ isActive }) => (matches(isActive) ? "sidebar__item active" : "sidebar__item")}
+      data-part="sidebar-item"
       data-nested={nested || undefined}
       aria-label={label}
       title={collapsed ? label : undefined}
@@ -343,7 +346,7 @@ export function Sidebar({
 
   const drag = useWindowDrag();
   return (
-    <nav className="sidebar" aria-label="Primary" data-collapsed={collapsed}>
+    <nav className="sidebar" data-part="sidebar" aria-label="Primary" data-collapsed={collapsed}>
       {albumMenus.element}
       {collectionMenus.element}
       <div className="sidebar__top" {...drag}>
@@ -476,9 +479,6 @@ export function Sidebar({
           {footer.map((i) => (
             <Item key={i.to} {...i} collapsed={collapsed} onContextMenu={(e) => openMenu(e, primaryMenu(i.to))} />
           ))}
-        </div>
-        <div className="sidebar__footer">
-          <ActivityRing compact={collapsed} />
         </div>
       </div>
     </nav>

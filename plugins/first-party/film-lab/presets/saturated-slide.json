@@ -1,0 +1,88 @@
+{
+  "recipeVersion": 3,
+  "name": "Saturated Slide",
+  "develop": {
+    "basic": {
+      "contrast": 0.3,
+      "saturation": 0.25,
+      "vibrance": 0.1,
+      "blacks": -0.2,
+      "highlights": -0.1
+    },
+    "curve": {
+      "master": [
+        [
+          0,
+          0
+        ],
+        [
+          0.25,
+          0.22
+        ],
+        [
+          0.75,
+          0.78
+        ],
+        [
+          1,
+          1
+        ]
+      ]
+    },
+    "hsl": [
+      {
+        "h": 0,
+        "s": 0.1,
+        "l": 0
+      },
+      {
+        "h": 0,
+        "s": 0,
+        "l": 0
+      },
+      {
+        "h": 0,
+        "s": 0,
+        "l": 0
+      },
+      {
+        "h": 0,
+        "s": 0,
+        "l": 0
+      },
+      {
+        "h": 0,
+        "s": 0,
+        "l": 0
+      },
+      {
+        "h": 0,
+        "s": 0.1,
+        "l": 0
+      },
+      {
+        "h": 0,
+        "s": 0,
+        "l": 0
+      },
+      {
+        "h": 0,
+        "s": 0,
+        "l": 0
+      }
+    ]
+  },
+  "panels": [
+    "basic",
+    "curve",
+    "hsl"
+  ],
+  "look": {
+    "intent": "Reversal-film punch: dense blacks, rich saturated colour, bright and contrasty",
+    "hues": [],
+    "mono": false,
+    "key": "mid",
+    "skinSafe": false,
+    "likesSky": true
+  }
+}

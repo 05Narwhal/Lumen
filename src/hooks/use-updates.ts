@@ -40,7 +40,7 @@ export function useUpdateNotices() {
       void invoke<UpdateReceipt | null>("take_update_receipt")
         .catch(() => null)
         .then((r) => {
-          if (r) toast({ message: `Updated to ${r.version}`, action: { label: "What's new", run: () => navigate("/settings?section=updates") }, durationMs: 10_000 });
+          if (r) toast({ message: r.security ? `Lumen installed a security fix (${r.version})` : `Updated to ${r.version}`, action: { label: "What's new", run: () => navigate("/settings?section=updates") }, durationMs: 10_000 });
         });
     }
     const un = listen<UpdateStatus>(UPDATES_STATE, (e) => {

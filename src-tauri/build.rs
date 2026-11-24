@@ -44,41 +44,35 @@ fn main() {
 
 /// Bake the Discord Application ID (Rich Presence) into the binary.
 ///
-/// A public identifier, not a credential. It is injected rather than committed because it is
-/// per-deployment: a fork must not publish a status as Lumen. Resolved from
-/// `LUMEN_DISCORD_CLIENT_ID` or a git-ignored id file.
+/// A public identifier, not a credential: an app id every Discord client sees. It is the tracked
+/// file `src-tauri/discord_client_id.txt`, so a tag builds the same binary anywhere;
+/// `LUMEN_DISCORD_CLIENT_ID` overrides it (a fork that must not publish a status as Lumen, a
+/// test). `TRADEMARKS.md` already asks forks to rename.
 ///
 /// Absent is a supported state: `discord_presence::client_id()` returns `None`, Settings hides
 /// the Discord status section and the worker never starts. Never an error.
 fn embed_discord_client_id() {
     println!("cargo:rerun-if-env-changed=LUMEN_DISCORD_CLIENT_ID");
-
-    let id_files = ["discord_client_id.txt", ".discord_client_id", "../discord_client_id.txt", "../.discord_client_id"];
-    for f in id_files {
-        println!("cargo:rerun-if-changed={f}");
-    }
+    println!("cargo:rerun-if-changed=discord_client_id.txt");
 
     let resolved = std::env::var("LUMEN_DISCORD_CLIENT_ID")
         .ok()
         .map(|v| v.trim().to_string())
         .filter(|v| !v.is_empty())
-        .or_else(|| {
-            id_files.iter().find_map(|f| {
-                std::fs::read_to_string(f).ok().map(|c| c.trim().to_string()).filter(|c| !c.is_empty())
-            })
-        });
+        .or_else(|| std::fs::read_to_string("discord_client_id.txt").ok().map(|c| c.trim().to_string()).filter(|c| !c.is_empty()));
 
     match resolved {
         Some(id) => println!("cargo:rustc-env=LUMEN_DISCORD_CLIENT_ID={id}"),
         None => println!(
-            "cargo:warning=LUMEN_DISCORD_CLIENT_ID not set and no id file found - the Discord status is UNAVAILABLE in this build. Create src-tauri/discord_client_id.txt or set $env:LUMEN_DISCORD_CLIENT_ID."
+            "cargo:warning=No Discord application id (src-tauri/discord_client_id.txt is missing or empty and LUMEN_DISCORD_CLIENT_ID is not set) - the Discord status is UNAVAILABLE in this build."
         ),
     }
 }
 
-/// Bake the JL Studios plugin public key into the binary (Round 23, spec §8), from
-/// `LUMEN_PLUGIN_PUBKEY` or the git-ignored `src-tauri/plugin-pubkey.txt`: a minisign public key
-/// line, the two-line `.pub` file, or the base64 text `tauri signer` writes.
+/// Bake the JL Studios plugin public key into the binary (Round 23, spec §8). A public key, so it
+/// is the tracked file `src-tauri/plugin-pubkey.txt`; `LUMEN_PLUGIN_PUBKEY` overrides it. Either
+/// is a minisign public key line, the two-line `.pub` file, or the base64 text `tauri signer`
+/// writes; the last non-empty line is the key.
 ///
 /// Absent is a supported state: no package is *From JL Studios*. Never an error.
 fn embed_plugin_pubkey() {

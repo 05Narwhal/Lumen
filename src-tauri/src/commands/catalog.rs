@@ -363,14 +363,14 @@ pub fn copy_image_to_clipboard(app: AppHandle, id: i64) -> AppResult<()> {
 }
 
 #[tauri::command(async)]
-pub fn reveal_asset(app: AppHandle, state: State<'_, AppState>, id: i64) -> AppResult<()> {
+pub fn reveal_asset(
+    app: AppHandle,
+    state: State<'_, AppState>,
+    plugins: State<'_, std::sync::Arc<crate::plugins::Plugins>>,
+    id: i64,
+) -> AppResult<()> {
     let lib = state.library()?;
     let path = lib.original_path(id)?;
-    tauri_plugin_opener::reveal_item_in_dir(&path).map_err(|e| AppError {
-        code: "reveal_failed".into(),
-        message: "Could not open the file manager.".into(),
-        detail: Some(e.to_string()),
-    })?;
-    let _ = app;
-    Ok(())
+    // Round 24 D2: a plugin's reveal provider (else the system's) shows it.
+    super::dialogs::reveal(&app, plugins.inner(), &path)
 }

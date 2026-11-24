@@ -6,14 +6,15 @@
 //! in one slot that is released when the view zooms out or the screen closes.
 
 use std::collections::{HashMap, VecDeque};
-use std::sync::{Arc, Mutex};
+use std::sync::atomic::{AtomicU64, Ordering};
+use std::sync::{Arc, Mutex, MutexGuard};
 
 use photos_core::ai_masks::{self, AiRasters};
 use photos_core::assets;
 use photos_core::edits::{Crop, Recipe};
 use photos_core::Library;
 use photos_media::develop::masks::FrameMap;
-use photos_media::develop::{self, geometry, histogram, Ctx, Linear, Region};
+use photos_media::develop::{self, geometry, histogram, Cancel, Ctx, Linear, Region};
 use photos_media::hdr::HdrKind;
 use photos_media::{encode_jpeg_bytes, kind_for_extension, Ffmpeg, MediaKind};
 use serde::Serialize;
@@ -104,7 +105,15 @@ struct FullFrame {
 #[derive(Default)]
 pub struct DevelopState {
     bases: Mutex<VecDeque<(i64, u32, Arc<Base>)>>,
-    latest: Mutex<HashMap<(i64, Channel), u64>>,
+    /// The newest request seen per photo and channel; a running render reads its own counter
+    /// at every check ([`Turn::overtaken`]).
+    latest: Mutex<HashMap<(i64, Channel), Arc<AtomicU64>>>,
+    /// One render per channel at a time (Round 24 §6.1). Each slider pause used to start a
+    /// zoomed render that ran to the end even once overtaken (seconds each with halation on a
+    /// 24 MP frame), each holding an async worker, until the pool starved and the page's
+    /// heartbeat could not land. A newer request now waits here for the one it overtook,
+    /// which stops at its next check.
+    turns: [Mutex<()>; 3],
     befores: Mutex<VecDeque<(i64, String, Arc<BeforeRender>)>>,
     full: Mutex<Option<FullFrame>>,
     /// The 100 % view's denoised frame (geometry applied), by `geometry|model`: kept beside
@@ -123,6 +132,21 @@ pub fn base_edge(full_long: u32, crop: Option<Crop>) -> u32 {
 /// Whether request `n` has been overtaken, given the newest seen.
 pub fn is_stale(newest: u64, n: u64) -> bool {
     n < newest
+}
+
+/// A render's turn on its channel ([`DevelopState::begin`]); the next request waits until
+/// it is dropped.
+pub struct Turn<'a> {
+    _held: MutexGuard<'a, ()>,
+    newest: Arc<AtomicU64>,
+    n: u64,
+}
+
+impl Turn<'_> {
+    /// A newer request on the same photo and channel has been seen: stop.
+    pub fn overtaken(&self) -> bool {
+        is_stale(self.newest.load(Ordering::Relaxed), self.n)
+    }
 }
 
 /// A string that changes exactly when the geometry does.
@@ -151,15 +175,42 @@ impl DevelopState {
     /// Record request `n` for `asset_id` on `channel` (each counts separately) and say
     /// whether it is the newest.
     pub fn note(&self, asset_id: i64, channel: Channel, n: u64) -> bool {
-        let mut l = self.latest.lock().expect("develop latest lock");
-        let newest = l.entry((asset_id, channel)).or_insert(0);
-        *newest = (*newest).max(n);
-        !is_stale(*newest, n)
+        let newest = self.counter(asset_id, channel);
+        !is_stale(newest.fetch_max(n, Ordering::SeqCst).max(n), n)
     }
 
     pub fn stale(&self, asset_id: i64, channel: Channel, n: u64) -> bool {
-        let l = self.latest.lock().expect("develop latest lock");
-        l.get(&(asset_id, channel)).is_some_and(|newest| is_stale(*newest, n))
+        let l = self.latest.lock().unwrap_or_else(|p| p.into_inner());
+        l.get(&(asset_id, channel)).is_some_and(|newest| is_stale(newest.load(Ordering::SeqCst), n))
+    }
+
+    fn counter(&self, asset_id: i64, channel: Channel) -> Arc<AtomicU64> {
+        self.latest.lock().unwrap_or_else(|p| p.into_inner()).entry((asset_id, channel)).or_default().clone()
+    }
+
+    /// Request `n`'s turn on `channel`: noted, then waits for the render running there (which
+    /// a newer request stops at its next check). `None` when `n` was overtaken, before or while
+    /// it waited: it renders nothing.
+    pub fn begin(&self, asset_id: i64, channel: Channel, n: u64) -> Option<Turn<'_>> {
+        if !self.note(asset_id, channel, n) {
+            return None;
+        }
+        let held = self.turns[channel as usize].lock().unwrap_or_else(|p| p.into_inner());
+        let newest = self.counter(asset_id, channel);
+        let turn = Turn { _held: held, newest, n };
+        (!turn.overtaken()).then_some(turn)
+    }
+
+    /// Request `n`'s turn on `channel`, waited for on the calling thread, then `render` in the
+    /// interactive pool. `None` when `n` was overtaken: it renders nothing.
+    ///
+    /// Never wait for a turn inside the pool (Round 26 B2): a render holding the turn runs
+    /// rayon stages, and while its thread waits for them rayon may hand it a queued render,
+    /// which then waits for the turn that same thread holds. Nothing returns again and
+    /// Develop's spinner turns forever.
+    pub fn in_turn<R: Send>(&self, asset_id: i64, channel: Channel, n: u64, render: impl FnOnce(&Turn<'_>) -> R + Send) -> Option<R> {
+        let turn = self.begin(asset_id, channel, n)?;
+        Some(photos_jobs::interactive(|| render(&turn)))
     }
 
     /// The photo's before for `geometry`, rendered (outside the lock) when absent.
@@ -324,7 +375,7 @@ pub struct DevelopPreview {
 }
 
 impl DevelopPreview {
-    fn superseded() -> Self {
+    pub fn superseded() -> Self {
         Self { token: String::new(), width: 0, height: 0, histogram: None, superseded: true, camera_rendering: false }
     }
 }
@@ -401,11 +452,9 @@ fn encode(img: image::RgbImage, quality: u8) -> AppResult<Vec<u8>> {
 
 /// Render `recipe` on the photo's preview base. `before` leaves out every develop setting
 /// (geometry stays); `clipping` paints clipped pixels (the histogram is measured first).
-pub fn render_preview(state: &AppState, asset_id: i64, recipe: &Recipe, request: u64, before: bool, clipping: bool) -> AppResult<DevelopPreview> {
+pub fn render_preview(state: &AppState, turn: &Turn<'_>, asset_id: i64, recipe: &Recipe, before: bool, clipping: bool) -> AppResult<DevelopPreview> {
     let d = &state.develop;
-    if !d.note(asset_id, Channel::Preview, request) {
-        return Ok(DevelopPreview::superseded());
-    }
+    let overtaken = || turn.overtaken();
     let lib = state.library()?;
     let src = source(&lib, asset_id)?;
     let recipe = recipe.clone().normalized();
@@ -414,15 +463,15 @@ pub fn render_preview(state: &AppState, asset_id: i64, recipe: &Recipe, request:
     let base = d.base(asset_id, edge, || -> AppResult<Base> {
         load_preview_base(&src, ffmpeg.as_ref(), edge)
     })?;
-    if d.stale(asset_id, Channel::Preview, request) {
+    if turn.overtaken() {
         return Ok(DevelopPreview::superseded());
     }
     let shown = if before { Recipe { develop: None, ..recipe } } else { recipe };
     let rasters = rasters_of(&lib, asset_id, &shown)?;
-    let ctx = Ctx { ai_rasters: Some(&rasters), ..Ctx::new(base.linear.long_edge() as f32 / base.full_long.max(1) as f32, develop::seed_for(&src.hash)) };
+    let ctx = Ctx { ai_rasters: Some(&rasters), cancel: Cancel(Some(&overtaken)), ..Ctx::new(base.linear.long_edge() as f32 / base.full_long.max(1) as f32, develop::seed_for(&src.hash)) };
     let linear = base.for_recipe(&photos_media::store::DerivativeStore::new(&lib.root), &src.hash, &shown);
     let mut img = develop::render_base(&linear, &shown, &ctx);
-    if d.stale(asset_id, Channel::Preview, request) {
+    if turn.overtaken() {
         return Ok(DevelopPreview::superseded());
     }
     let hist = histogram::compute(&img);
@@ -453,7 +502,9 @@ pub fn render_before(state: &AppState, asset_id: i64, recipe: &Recipe) -> AppRes
         let (width, height) = img.dimensions();
         Ok(BeforeRender { jpeg: encode(img, 90)?, width, height, camera: base.camera })
     })?;
-    let token = state.edit_previews.put(before.jpeg.clone());
+    // Pinned: the key (photo + geometry) outlives any number of slider renders, so the
+    // before's token must too (Round 24 §4: Reset all left a broken image after 8 renders).
+    let token = state.edit_previews.put_pinned(before.jpeg.clone());
     Ok(DevelopPreview { token: token.to_string(), width: before.width, height: before.height, histogram: None, superseded: false, camera_rendering: before.camera })
 }
 
@@ -473,12 +524,9 @@ pub fn finish_region(part: &Linear, (ix, iy, iw, ih): PixelBox, scale: f32) -> i
 /// The zoomed view: the visible `rect` (0-1 of the edited frame) from the full-resolution
 /// frame, rendered with the frame's radii, vignette centre, grain and airlight so it matches
 /// the whole, and returned at `scale` of full resolution (1 at 100 % and above).
-pub fn render_region(state: &AppState, asset_id: i64, recipe: &Recipe, rect: Crop, scale: f32, request: u64, before: bool) -> AppResult<DevelopPreview> {
+pub fn render_region(state: &AppState, turn: &Turn<'_>, asset_id: i64, recipe: &Recipe, rect: Crop, scale: f32, before: bool) -> AppResult<DevelopPreview> {
     let d = &state.develop;
-    let channel = if before { Channel::BeforeRegion } else { Channel::Region };
-    if !d.note(asset_id, channel, request) {
-        return Ok(DevelopPreview::superseded());
-    }
+    let overtaken = || turn.overtaken();
     let lib = state.library()?;
     let src = source(&lib, asset_id)?;
     let recipe = recipe.clone().normalized();
@@ -498,7 +546,7 @@ pub fn render_region(state: &AppState, asset_id: i64, recipe: &Recipe, rect: Cro
         }),
         _ => None,
     };
-    if d.stale(asset_id, channel, request) {
+    if turn.overtaken() {
         return Ok(DevelopPreview::superseded());
     }
     let (fw, fh) = (frame.width, frame.height);
@@ -516,11 +564,12 @@ pub fn render_region(state: &AppState, asset_id: i64, recipe: &Recipe, rect: Cro
             airlight: Some(develop::frame_airlight(&frame, dv)),
             frame_map: Some(map),
             ai_rasters: Some(&rasters),
+            cancel: Cancel(Some(&overtaken)),
             ..Ctx::new(1.0, develop::seed_for(&src.hash))
         };
         develop::develop_stages(&mut part, dv, &ctx);
     }
-    if d.stale(asset_id, channel, request) {
+    if turn.overtaken() {
         return Ok(DevelopPreview::superseded());
     }
     let img = finish_region(&part, (ix, iy, iw, ih), scale);
@@ -562,6 +611,102 @@ mod tests {
         assert_eq!(base_edge(6048, Some(Crop { x: 0.0, y: 0.0, w: 0.5, h: 0.4 })), 4096);
         assert_eq!(base_edge(6048, Some(Crop { x: 0.0, y: 0.0, w: 0.8, h: 0.8 })), 2560);
         assert_eq!(base_edge(1600, None), 1600, "never beyond the photo");
+    }
+
+    /// Round 24 §6.1: a zoomed render with halation on an ellipse, overtaken while it runs,
+    /// stops at its next check; the newer request waits for it (one render per channel) and an
+    /// older one arriving later renders nothing.
+    #[test]
+    fn develop_preview_cancels_stale() {
+        use photos_core::edits::{Basic, Develop, Halation, LocalAdjust, Mask, MaskShape};
+        use std::sync::atomic::AtomicBool;
+        use std::time::{Duration, Instant};
+        let (fw, fh) = (1800, 1200);
+        let mut part = Linear::new(fw, fh, [0.0; 3]);
+        for (i, p) in part.data.iter_mut().enumerate() {
+            let l = 0.1 + 0.9 * ((i as u32 % fw) as f32 / fw as f32);
+            *p = [l, l * 0.9, l * 0.8];
+        }
+        let shape = MaskShape::Radial { add: true, center: [0.5, 0.5], radius: [0.3, 0.35], angle: 0.0, feather: 0.5, inside: true };
+        let adjust = LocalAdjust { exposure: 0.5, halation: Halation { amount: 1.0, size: 1.0 }, glow: photos_core::edits::Glow { amount: 1.0, size: 1.0 }, ..Default::default() };
+        let mask = Mask { id: 1, name: "Ellipse".into(), shapes: vec![shape], invert: false, opacity: 1.0, adjust, visible: true };
+        let dv = Develop { basic: Basic { exposure: 1.0, clarity: 0.5, ..Default::default() }, masks: vec![mask], ..Default::default() };
+        let ctx = Ctx { frame_map: Some(FrameMap::new(fw, fh, &Recipe::identity())), ..Ctx::new(1.0, 1) };
+        let t = Instant::now();
+        develop::develop_stages(&mut part.clone(), &dv, &ctx);
+        let whole = t.elapsed();
+
+        let s = DevelopState::default();
+        let started = AtomicBool::new(false);
+        let finished = AtomicBool::new(false);
+        let first_took = std::thread::scope(|scope| {
+            let first = scope.spawn(|| {
+                let turn = s.begin(1, Channel::Region, 1).expect("the first request has its turn");
+                let overtaken = || {
+                    started.store(true, Ordering::SeqCst);
+                    turn.overtaken()
+                };
+                let t = Instant::now();
+                develop::develop_stages(&mut part.clone(), &dv, &Ctx { cancel: Cancel(Some(&overtaken)), ..ctx });
+                let took = t.elapsed();
+                assert!(turn.overtaken(), "request 2 arrived while it ran");
+                finished.store(true, Ordering::SeqCst);
+                took
+            });
+            while !started.load(Ordering::SeqCst) {
+                std::thread::yield_now();
+            }
+            let second = s.begin(1, Channel::Region, 2).expect("the newest request has its turn");
+            assert!(finished.load(Ordering::SeqCst), "it waited for the render it overtook");
+            assert!(s.begin(1, Channel::Region, 1).is_none(), "an older request renders nothing");
+            drop(second);
+            first.join().unwrap()
+        });
+        assert!(first_took < whole / 2 + Duration::from_millis(50), "the overtaken render stopped early: {first_took:?} of {whole:?}");
+    }
+
+    /// Round 26 B2, the Develop spinner that never stopped: renders of other photos queued
+    /// behind one long parallel render must all come back. Waiting for the turn inside the
+    /// pool deadlocked it: while the holder's thread waited for its own rayon stages, rayon
+    /// handed it a queued render, which then waited for the turn that thread already held.
+    #[test]
+    fn renders_queued_behind_a_long_one_all_come_back() {
+        use rayon::prelude::*;
+        use std::sync::{atomic::AtomicBool, mpsc};
+        use std::time::Duration;
+        let s = Arc::new(DevelopState::default());
+        let (done, finished) = mpsc::channel();
+        let holding = Arc::new(AtomicBool::new(false));
+        {
+            let (s, done, holding) = (s.clone(), done.clone(), holding.clone());
+            std::thread::spawn(move || {
+                let r = s.in_turn(1, Channel::Preview, 1, |_| {
+                    holding.store(true, Ordering::SeqCst);
+                    (0..1500u32).into_par_iter().map(|i| {
+                        std::thread::sleep(Duration::from_millis(1));
+                        i
+                    }).sum::<u32>()
+                });
+                done.send(r.is_some()).unwrap();
+            });
+        }
+        while !holding.load(Ordering::SeqCst) {
+            std::thread::yield_now();
+        }
+        // More first renders than the pool has threads, as opening Develop on photos with edits
+        // sends (preview, region, before; the filmstrip's neighbours).
+        let queued = 4 * std::thread::available_parallelism().map_or(4, |n| n.get()) as i64 + 8;
+        for id in 2..2 + queued {
+            let (s, done) = (s.clone(), done.clone());
+            std::thread::spawn(move || {
+                let r = s.in_turn(id, Channel::Preview, 1, |_| 0u32);
+                done.send(r.is_some()).unwrap();
+            });
+        }
+        for _ in 0..=queued {
+            let rendered = finished.recv_timeout(Duration::from_secs(30)).expect("a render never came back: the pool deadlocked");
+            assert!(rendered, "each was the newest for its photo");
+        }
     }
 
     #[test]

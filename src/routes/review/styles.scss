@@ -1,0 +1,7 @@
+/* The review route's own frame, for a kind it does not know (each kind styles its own page). */
+.review-page {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
+}

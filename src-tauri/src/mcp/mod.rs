@@ -182,6 +182,8 @@ pub struct Shared {
     pub host: mcp_tools::HostSlot,
     /// The connected sessions, told when the tools or prompts change (Round 23 A4).
     pub peers: Peers,
+    /// The photos the tool call from the app that runs now was given (a grid's or the viewer's selection).
+    pub tool_selection: crate::plugins::tool_selection::ToolSelection,
 }
 
 /// How long one list-changed notification may take to send to one session.

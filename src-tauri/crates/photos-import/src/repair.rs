@@ -210,6 +210,9 @@ struct AssetRow {
     relative_path: String,
     trashed: bool,
     unreadable: bool,
+    /// Set once a metadata write changed the file (Round 24 §8.7): its size then differs from
+    /// `byte_size` (the camera's), so the file is read and compared with this instead.
+    file_hash: Option<String>,
 }
 
 fn dir_of(rel_path: &str) -> &str {
@@ -248,7 +251,7 @@ type AssetIndex = HashMap<String, Vec<AssetRow>>;
 fn load_index(lib: &Library, only: Option<&[i64]>) -> Result<(AssetIndex, HashSet<(i64, String)>), ImportError> {
     let only: Option<HashSet<i64>> = only.map(|ids| ids.iter().copied().collect());
     let rows = lib.db.with_conn(|c| {
-        let mut st = c.prepare("SELECT id, filename, byte_size, source_dir, relative_path, state, unreadable FROM assets")?;
+        let mut st = c.prepare("SELECT id, filename, byte_size, source_dir, relative_path, state, unreadable, file_hash FROM assets")?;
         let rows = st
             .query_map([], |r| {
                 Ok((
@@ -260,6 +263,7 @@ fn load_index(lib: &Library, only: Option<&[i64]>) -> Result<(AssetIndex, HashSe
                         relative_path: r.get(4)?,
                         trashed: r.get::<_, i64>(5)? == 1,
                         unreadable: r.get::<_, i64>(6)? != 0,
+                        file_hash: r.get(7)?,
                     },
                 ))
             })?
@@ -281,8 +285,12 @@ fn load_index(lib: &Library, only: Option<&[i64]>) -> Result<(AssetIndex, HashSe
     Ok((by_name, kept))
 }
 
-/// Whether the library's original is on disk at the catalogued size. A stat, not a read.
+/// Whether the library's original is on disk at the catalogued size. A stat, not a read, except
+/// for a file a metadata write changed: that one is read and compared with its `file_hash`.
 fn original_intact(lib: &Library, a: &AssetRow) -> bool {
+    if let Some(expected) = &a.file_hash {
+        return hash_file(&lib.originals_dir().join(&a.relative_path)).as_ref() == Some(expected);
+    }
     std::fs::metadata(lib.originals_dir().join(&a.relative_path)).is_ok_and(|m| m.is_file() && i64::try_from(m.len()) == Ok(a.byte_size))
 }
 
@@ -944,7 +952,7 @@ fn put_in_place(
     let updated = lib.db.with_conn(|c| {
         let tx = c.unchecked_transaction()?;
         tx.execute(
-            "UPDATE assets SET content_hash = ?2, byte_size = ?3, unreadable = 0, relative_path = ?4, recovered_pct = ?5 WHERE id = ?1",
+            "UPDATE assets SET content_hash = ?2, byte_size = ?3, unreadable = 0, relative_path = ?4, recovered_pct = ?5, file_hash = NULL, metadata_written_at = NULL WHERE id = ?1",
             rusqlite::params![asset, hash, size as i64, new_rel, recovered],
         )?;
         if new_rel != target.rel {

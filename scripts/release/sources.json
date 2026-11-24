@@ -1,5 +1,5 @@
 {
-  "_comment": "The exact source of every third-party part a release ships under the GPL or LGPL (Round 17). release.mjs refuses to publish while any entry lacks its URL and SHA-256, or the FFmpeg sidecar enables a library not listed here. FFmpeg's list comes from the sidecar's own `ffmpeg -version`; only pure Windows interfaces carry no source.",
+  "_comment": "The exact source of every third-party part a release ships under the GPL or LGPL (Round 17). the release preflight (`ffmpeg-source`, `source-bundle`) refuses to publish while any entry lacks its URL and SHA-256, or the FFmpeg sidecar enables a library not listed here. FFmpeg's list comes from the sidecar's own `ffmpeg -version`; only pure Windows interfaces carry no source.",
   "ffmpeg": {
     "version": "n9.0.2-47-gb204e94e90-20261106",
     "sidecar": "src-tauri/binaries/ffmpeg-x86_64-pc-windows-msvc.exe",

@@ -10,7 +10,7 @@ import { mapCalls } from "@/test/maplibre-mock";
 import { invokeMock, mockCommand, mockLibraryDefaults } from "@/test/tauri-mock";
 import { MapRoute } from "./gui";
 
-vi.mock("maplibre-gl", async () => ({ Map: (await import("@/test/maplibre-mock")).FakeMap, setWorkerUrl: () => {} }));
+vi.mock("maplibre-gl", async () => ({ Map: (await import("@/test/maplibre-mock")).FakeMap, setWorkerUrl: () => {}, addProtocol: () => {} }));
 
 const cluster = (lat: number, lon: number, count: number, id: number) => ({
   lat,
@@ -47,6 +47,28 @@ describe("MapRoute", () => {
   });
   afterEach(() => {
     for (const p of props) delete (HTMLElement.prototype as unknown as Record<string, unknown>)[p];
+  });
+
+  it("flies to the photo Open in Map names, pins it and clears the param (Round 26 B3)", async () => {
+    mockCommand("get_settings", () => null);
+    mockLibraryDefaults();
+    mockCommand("map_bounds", () => ({ minLat: 38.0, maxLat: 48.0, minLon: -9.5, maxLon: 12.5 }));
+    mockCommand("map_clusters", () => []);
+    mockCommand("get_asset", () => ({ id: 7, filename: "IMG_0007.HEIC", gpsLat: 46.0, gpsLon: 14.03, placeName: "Idrija, Slovenia" }));
+    render(
+      <Providers>
+        <MemoryRouter initialEntries={["/map?locate=7"]}>
+          <MapRoute />
+          <SearchProbe />
+        </MemoryRouter>
+      </Providers>,
+    );
+    await waitFor(() => expect(mapCalls.flyTo).toContainEqual(expect.objectContaining({ center: [14.03, 46.0], zoom: 15 })));
+    expect(await screen.findByRole("group", { name: "IMG_0007.HEIC on the map" })).toHaveTextContent("Idrija, Slovenia");
+    expect(screen.getByTestId("map-focus")).toBeInTheDocument();
+    await waitFor(() => expect(screen.getByTestId("search")).toHaveTextContent(/^$/));
+    // Framing the library afterwards would undo the flight.
+    expect(mapCalls.fitBounds).toHaveLength(0);
   });
 
   it("explains itself when nothing has a location", async () => {
@@ -158,5 +180,39 @@ describe("MapRoute", () => {
     );
     await userEvent.click(screen.getByRole("radio", { name: "Satellite" }));
     await waitFor(() => expect(invokeMock).toHaveBeenCalledWith("update_settings", expect.anything()));
+  });
+
+  describe("plugin contributions (Round 25 P4a)", () => {
+    const entry = { slot: "map.toolbar", label: "Find places", icon: "map-pin", action: "open-review:places" };
+    const plugin = (id: string, over: Record<string, unknown> = {}) => ({ id, name: id, enabled: true, state: { type: "ready" }, contributions: [entry], ...over });
+    function mountWith(plugins: unknown[]) {
+      mockCommand("get_settings", () => null);
+      mockLibraryDefaults();
+      mockCommand("list_plugins", () => plugins);
+      mockCommand("get_plugin_developer_mode", () => false);
+      mockCommand("map_bounds", () => ({ minLat: 38.0, maxLat: 48.0, minLon: -9.5, maxLon: 12.5 }));
+      mockCommand("map_clusters", () => [cluster(38.72, -9.14, 3, 4)]);
+      render(
+        <Providers>
+          <MemoryRouter initialEntries={["/map"]}>
+            <MapRoute />
+            <SearchProbe />
+          </MemoryRouter>
+        </Providers>,
+      );
+    }
+
+    it("shows a ready plugin's map.toolbar button, and it opens its review page", async () => {
+      mountWith([plugin("jl.x")]);
+      await userEvent.click(await screen.findByRole("button", { name: "Find places" }));
+      await waitFor(() => expect(screen.getByTestId("search")).toHaveTextContent("plugin=jl.x"));
+    });
+
+    it("shows nothing for a plugin that is off", async () => {
+      mountWith([plugin("jl.x", { enabled: false, state: { type: "off" } })]);
+      await screen.findByRole("button", { name: "Fit library" });
+      await waitFor(() => expect(invokeMock).toHaveBeenCalledWith("list_plugins", undefined));
+      expect(screen.queryByRole("button", { name: "Find places" })).not.toBeInTheDocument();
+    });
   });
 });

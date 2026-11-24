@@ -16,6 +16,7 @@ export function Field({ text, setText, clear, onEnter, placeholder }: { text: st
       <input
         id="global-search"
         className="search-field__input"
+        data-part="input"
         type="search"
         placeholder={placeholder}
         aria-label="Search"
@@ -152,7 +153,7 @@ export function PageHeader({
   const ref = useRef<HTMLElement>(null);
   const scrolled = useScrolled(ref);
   return (
-    <header ref={ref} className="page-header" data-scrolled={scrolled}>
+    <header ref={ref} className="page-header" data-part="header" data-scrolled={scrolled}>
       <div className="page-header__left">
         {back && (
           <Link className="page-header__back" to={back.to} aria-label={back.label} title={back.label}>

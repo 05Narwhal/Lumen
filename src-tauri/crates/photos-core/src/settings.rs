@@ -150,6 +150,12 @@ pub struct MapSettings {
     pub online: bool,
     #[serde(default)]
     pub style: MapStyle,
+    /// A person's own ArcGIS Location Platform API key. With it, satellite imagery comes
+    /// from Esri under Esri's terms; without it, from EOX. Sent only to Esri inside tile
+    /// requests, never logged.
+    #[serde(default)]
+    #[ts(optional = nullable)]
+    pub esri_key: Option<String>,
     #[serde(flatten)]
     #[ts(skip)]
     pub extra: Map<String, Value>,
@@ -161,7 +167,7 @@ fn yes() -> bool {
 
 impl Default for MapSettings {
     fn default() -> Self {
-        Self { online: true, style: MapStyle::Map, extra: Map::new() }
+        Self { online: true, style: MapStyle::Map, esri_key: None, extra: Map::new() }
     }
 }
 
@@ -428,6 +434,10 @@ pub struct UpdateSettings {
     pub automatic: bool,
     #[serde(default)]
     pub channel: UpdateChannel,
+    /// Security track: a build the manifest's `minSafe` marks as a security fix is downloaded and
+    /// installed (at the next launch, else at Close) even with *Automatic* off. Independent of it.
+    #[serde(default = "default_true")]
+    pub security: bool,
     #[serde(flatten)]
     #[ts(skip)]
     pub extra: Map<String, Value>,
@@ -474,7 +484,7 @@ fn default_true() -> bool {
 
 impl Default for UpdateSettings {
     fn default() -> Self {
-        Self { automatic: true, channel: UpdateChannel::Stable, extra: Map::new() }
+        Self { automatic: true, channel: UpdateChannel::Stable, security: true, extra: Map::new() }
     }
 }
 
@@ -664,6 +674,19 @@ mod tests {
         assert_eq!(back["map"]["style"], "map");
     }
 
+    #[test]
+    fn the_esri_key_is_optional_and_round_trips() {
+        let old: Settings = serde_json::from_str(r#"{"version":1,"map":{"online":true,"style":"satellite"}}"#).unwrap();
+        assert_eq!(old.map.esri_key, None);
+        assert_eq!(Settings::default().map.esri_key, None);
+        let set: Settings = serde_json::from_str(r#"{"version":1,"map":{"esriKey":"AAPK-own-key"}}"#).unwrap();
+        assert_eq!(set.map.esri_key.as_deref(), Some("AAPK-own-key"));
+        let back = serde_json::to_value(&set).unwrap();
+        assert_eq!(back["map"]["esriKey"], "AAPK-own-key");
+        let again: Settings = serde_json::from_value(back).unwrap();
+        assert_eq!(again.map.esri_key, set.map.esri_key);
+    }
+
     /// Round 16: settings from before AI assistants load with the server off and no token.
     #[test]
     fn old_settings_update_automatically_on_stable() {
@@ -676,6 +699,20 @@ mod tests {
         assert_eq!(chosen.updates.channel, UpdateChannel::Alpha);
         let off: Settings = serde_json::from_str(r#"{"version":1,"updates":{"automatic":false}}"#).unwrap();
         assert!(!off.updates.automatic);
+    }
+
+    /// Security track: `security` defaults on, independent of `automatic`, and round-trips.
+    #[test]
+    fn security_updates_default_on_and_round_trip() {
+        let old: Settings = serde_json::from_str(r#"{"version":1,"updates":{"automatic":false}}"#).unwrap();
+        assert!(old.updates.security, "a missing field means on");
+        assert!(!old.updates.automatic, "and does not follow automatic");
+        assert!(Settings::default().updates.security);
+        let off: Settings = serde_json::from_str(r#"{"version":1,"updates":{"security":false}}"#).unwrap();
+        assert!(!off.updates.security);
+        assert!(off.updates.automatic);
+        let back = serde_json::to_value(&off).unwrap();
+        assert_eq!(back["updates"]["security"], false);
     }
 
     #[test]

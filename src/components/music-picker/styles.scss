@@ -23,6 +23,7 @@
   &__title { font-weight: 600; @include truncate; }
   &__meta { color: var(--fg-muted); font-size: var(--text-sm); @include truncate; }
   &__empty { color: var(--fg-muted); font-size: var(--text-sm); margin: 0; }
+  &__credit { color: var(--fg-muted); font-size: var(--text-sm); margin: 0; }
 
   &__actions {
     display: flex;

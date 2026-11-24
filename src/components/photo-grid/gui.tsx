@@ -409,6 +409,7 @@ export function PhotoGrid({ rowHeight, scope, groupBy = "month", focusAsset = nu
     <div className="photo-grid-frame">
     <div
       className="photo-grid"
+      data-part="grid"
       ref={ref}
       role="grid"
       tabIndex={0}

@@ -78,8 +78,11 @@ export const ZERO_ADJUST: LocalAdjust = {
   sharpness: 0,
 };
 
+/** What *Copy settings* holds: the develop settings and the panels chosen to carry. */
+export type CopiedSettings = { develop: Develop; panels: Panel[] };
+
 /** What *Copy settings* holds until *Paste*. */
-export const developClipboard = createStore<{ develop: Develop; panels: Panel[] } | null>(null);
+export const developClipboard = createStore<CopiedSettings | null>(null);
 
 /** Develop's own selection in its filmstrip, apart from the library's. */
 export const developSelection = createStore<{ ids: Set<number>; anchor: number | null }>({ ids: new Set(), anchor: null });

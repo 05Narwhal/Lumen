@@ -1,6 +1,6 @@
 import { Button } from "@mantine/core";
 import { IconDeviceMobile, IconDeviceSdCard, IconFolderOpen } from "@tabler/icons-react";
-import { open } from "@tauri-apps/plugin-dialog";
+import { pickFolder as pickImportFolder } from "@/lib/dialogs";
 import { useState } from "react";
 import { useNavigate } from "react-router";
 import { toast } from "@/components/toast";
@@ -41,7 +41,7 @@ export function ImportStep({ onBack }: { onBack: () => void }) {
   };
 
   const pickFolder = async () => {
-    const dir = await open({ directory: true, multiple: false, title: "Choose a folder to import" });
+    const dir = await pickImportFolder({ title: "Choose a folder to import" });
     if (typeof dir !== "string") return;
     setBusy(true);
     try {

@@ -1,6 +1,6 @@
 //! The always-available `host` interface: logging and settings (raw JSON text).
 
-#[cfg(all(target_arch = "wasm32", any(feature = "importer", feature = "tools")))]
+#[cfg(all(target_arch = "wasm32", any(feature = "importer", feature = "tools", feature = "places", feature = "ui", feature = "proposals")))]
 mod imp {
     use crate::bindings::lumen::plugin::host;
 
@@ -13,7 +13,7 @@ mod imp {
 }
 
 // Natively (unit tests, `cargo check` on the host) there is no host to call.
-#[cfg(not(all(target_arch = "wasm32", any(feature = "importer", feature = "tools"))))]
+#[cfg(not(all(target_arch = "wasm32", any(feature = "importer", feature = "tools", feature = "places", feature = "ui", feature = "proposals"))))]
 mod imp {
     pub fn log(line: &str) {
         eprintln!("[plugin] {line}")

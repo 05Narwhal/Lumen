@@ -205,6 +205,7 @@ export function keybindGroups(): KeybindGroup[] {
         k("develop.mask-overlay-colour", ["Shift+O"], "Change the mask overlay's colour"),
         k("develop.mask-forward", ["Alt+↑"], "Move the focused mask up the list (applied later)"),
         k("develop.mask-backward", ["Alt+↓"], "Move the focused mask down the list (applied earlier)"),
+        k("develop.mask.rename", ["F2"], "Rename the selected mask"),
         k("develop.brush-smaller", ["["], "Brush smaller"),
         k("develop.brush-larger", ["]"], "Brush larger"),
         k("develop.feather-less", ["Shift+["], "Brush feather less"),

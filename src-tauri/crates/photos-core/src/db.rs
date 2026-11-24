@@ -50,6 +50,8 @@ pub const MIGRATIONS: &[(u32, &str)] = &[
     (37, include_str!("../migrations/0037_sidecars_skips.sql")),
     (38, include_str!("../migrations/0038_external_edits.sql")),
     (39, include_str!("../migrations/0039_recovered.sql")),
+    (40, include_str!("../migrations/0040_place_writes.sql")),
+    (41, include_str!("../migrations/0041_plugin_proposals.sql")),
 ];
 
 /// Refresh the query planner's statistics. Without it SQLite guesses index selectivity
@@ -651,6 +653,70 @@ mod tests {
             table_columns(&conn, "place_lookups"),
             ["key", "place_name", "locality", "country_code", "address_json", "fetched_at"]
         );
+    }
+
+    /// Round 24 lane W: 0040 on a copy of a library file keeps its rows, adds the columns and
+    /// tables, and applying again changes nothing.
+    #[test]
+    fn migration_0040_idempotent_on_copy() {
+        let dir = tempfile::tempdir().unwrap();
+        let original = dir.path().join("library.db");
+        {
+            let mut conn = Connection::open(&original).unwrap();
+            let before: Vec<(u32, &str)> = MIGRATIONS.iter().copied().filter(|(v, _)| *v <= 39).collect();
+            apply_migrations(&mut conn, &before).unwrap();
+            conn.execute_batch(
+                "INSERT INTO assets (id, content_hash, relative_path, filename, extension, media_type, byte_size, orientation, imported_at, place_source)
+                   VALUES (1, 'a', 'a.jpg', 'a.jpg', 'jpg', 0, 1, 1, 1, 'atlas');",
+            )
+            .unwrap();
+        }
+        let copy = dir.path().join("copy.db");
+        std::fs::copy(&original, &copy).unwrap();
+        let mut conn = Connection::open(&copy).unwrap();
+        apply_migrations(&mut conn, MIGRATIONS).unwrap();
+        apply_migrations(&mut conn, MIGRATIONS).unwrap();
+        let row: (String, Option<String>, Option<i64>) =
+            conn.query_row("SELECT content_hash, file_hash, metadata_written_at FROM assets WHERE id = 1", [], |r| Ok((r.get(0)?, r.get(1)?, r.get(2)?))).unwrap();
+        assert_eq!(row, ("a".into(), None, None));
+        assert_eq!(table_columns(&conn, "place_writes"), ["id", "plugin_id", "created_at"]);
+        assert_eq!(table_columns(&conn, "place_write_items"), ["write_id", "asset_id", "lat", "lon", "wrote_file", "prev_place_source"]);
+        let version: u32 = conn.query_row("SELECT MAX(version) FROM schema_version", [], |r| r.get(0)).unwrap();
+        assert_eq!(version, MIGRATIONS.last().unwrap().0);
+        // The original file is untouched by migrating its copy.
+        let orig = Connection::open(&original).unwrap();
+        assert!(!table_columns(&orig, "assets").iter().any(|c| c == "file_hash"));
+    }
+
+    /// Round 25 P4b: 0041 on a copy of a library file keeps its rows, adds `plugin_proposals`,
+    /// and applying again changes nothing.
+    #[test]
+    fn migration_0041_idempotent_on_copy() {
+        let dir = tempfile::tempdir().unwrap();
+        let original = dir.path().join("library.db");
+        {
+            let mut conn = Connection::open(&original).unwrap();
+            let before: Vec<(u32, &str)> = MIGRATIONS.iter().copied().filter(|(v, _)| *v <= 40).collect();
+            apply_migrations(&mut conn, &before).unwrap();
+            conn.execute_batch(
+                "INSERT INTO assets (id, content_hash, relative_path, filename, extension, media_type, byte_size, orientation, imported_at)
+                   VALUES (1, 'a', 'a.jpg', 'a.jpg', 'jpg', 0, 1, 1, 1);",
+            )
+            .unwrap();
+        }
+        let copy = dir.path().join("copy.db");
+        std::fs::copy(&original, &copy).unwrap();
+        let mut conn = Connection::open(&copy).unwrap();
+        apply_migrations(&mut conn, MIGRATIONS).unwrap();
+        apply_migrations(&mut conn, MIGRATIONS).unwrap();
+        let n: i64 = conn.query_row("SELECT count(*) FROM assets", [], |r| r.get(0)).unwrap();
+        assert_eq!(n, 1);
+        assert_eq!(
+            table_columns(&conn, "plugin_proposals"),
+            ["id", "plugin_id", "asset_id", "kind", "value", "confidence", "reason", "status", "created_at", "decided_at"]
+        );
+        let orig = Connection::open(&original).unwrap();
+        assert!(table_columns(&orig, "plugin_proposals").is_empty());
     }
 
     /// Julian's 2026-11-09 answer: every cover set before distinct covers counts as automatic.

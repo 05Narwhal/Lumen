@@ -139,15 +139,50 @@ describe("the Masks panel", () => {
     await waitFor(() => expect(names()).toEqual(["Mask 3", "Mask 2", "Mask 1"]));
     fireEvent.contextMenu(within(p).getByRole("option", { name: /Mask 3/ }));
     const items = await screen.findAllByRole("menuitem");
-    expect(items.map((i) => i.textContent)).toEqual([
-      "Rename", "Duplicate", "Invert", "Hide", "Bring to front", "Bring forward", "Send backward", "Send to back", "Reset adjustments", "Delete",
-    ]);
+    expect(items.map((i) => i.textContent)).toEqual(["Rename", "Duplicate", "Invert", "Hide", "Arrange", "Reset adjustments", "Delete"]);
+    expect(items[0].closest('[role="menu"]')).toHaveAttribute("data-dense");
+    await userEvent.hover(screen.getByRole("menuitem", { name: "Arrange" }));
+    expect((await screen.findByRole("menuitem", { name: "Bring to front" })).textContent).toBe("Bring to front");
     expect(screen.getByRole("menuitem", { name: "Bring to front" })).toBeDisabled();
     expect(within(p).queryByRole("button", { name: "Mask options" })).toBeNull(); // right-click selected nothing
     await userEvent.click(screen.getByRole("menuitem", { name: "Send to back" }));
     await waitFor(() => expect(lastMasks().map((m) => m.id)).toEqual([3, 1, 2]));
     expect(steps().at(-1)).toBe("Send mask to back");
     await waitFor(() => expect(names()).toEqual(["Mask 2", "Mask 1", "Mask 3"]));
+  });
+
+  const two = async (): Promise<Recipe> => ({ version: 3, crop: null, rotate: 0, straighten: 0, flip_h: false, flip_v: false, develop: { ...(await import("@/lib/develop")).DEFAULT_DEVELOP, masks: [mask(1), mask(2)] }, trim: null });
+
+  // Round 24 §1: the browser fires a click after a drag that ends on the row; it must not select.
+  it("drag_does_not_select", async () => {
+    mount(await two());
+    const row = await within(await panel()).findByRole("option", { name: /Mask 2/ });
+    const at = (y: number) => ({ pointerId: 1, pointerType: "mouse", isPrimary: true, button: 0, buttons: 1, clientX: 20, clientY: y, pageX: 20, pageY: y });
+    fireEvent.pointerDown(row, at(10));
+    fireEvent.pointerMove(window, at(30));
+    fireEvent.pointerUp(window, at(30));
+    fireEvent.click(row);
+    await new Promise((r) => setTimeout(r, 20));
+    expect(screen.queryByRole("button", { name: "Done" })).toBeNull();
+  });
+
+  it("click_selects", async () => {
+    mount(await two());
+    await userEvent.click(await within(await panel()).findByRole("option", { name: /Mask 2/ }));
+    expect(await screen.findByRole("button", { name: "Done" })).toBeInTheDocument();
+  });
+
+  it("double_click_renames", async () => {
+    mount(await two());
+    const row = await within(await panel()).findByRole("option", { name: /Mask 2/ });
+    fireEvent.doubleClick(within(row).getByText("Mask 2"));
+    const field = await within(row).findByRole("textbox");
+    await userEvent.clear(field);
+    await userEvent.type(field, "Sky{Enter}");
+    await waitFor(() => expect(lastMasks().find((m) => m.id === 2)?.name).toBe("Sky"));
+    expect(steps().at(-1)).toBe("Rename mask");
+    // The row never opened the mask while it was being named.
+    expect(screen.queryByRole("button", { name: "Done" })).toBeNull();
   });
 
   describe("AI masks (8f)", () => {

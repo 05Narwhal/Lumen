@@ -7,6 +7,7 @@ import { useSettings } from "@/hooks/use-settings";
 import { appCommands, type AppCommand } from "@/lib/commands";
 import { loadExternalApps } from "@/lib/external-apps";
 import { keysFor } from "@/lib/keybinds";
+import { runContribution, usePaletteContributions } from "@/lib/plugin-slots";
 import { closePalette, paletteStore } from "./store";
 import "./styles.scss";
 
@@ -26,6 +27,7 @@ export function CommandPalette() {
   const navigate = useNavigate();
   const { update } = useSettings();
   const qc = useQueryClient();
+  const contributions = usePaletteContributions();
   const [q, setQ] = useState("");
   const [cursor, setCursor] = useState(0);
 
@@ -38,7 +40,12 @@ export function CommandPalette() {
   const items = useMemo<Row[]>(() => {
     const n = q.trim().toLowerCase();
     if (sub) return sub.items.filter((i) => !n || i.label.toLowerCase().includes(n)).map((i) => ({ ...i, group: sub.title, run: () => i.run() }));
-    const matches = appCommands.filter((c) => (c.available?.(qc) ?? true) && (!n || c.label.toLowerCase().includes(n) || c.group.toLowerCase().includes(n)));
+    const own = appCommands.filter((c) => (c.available?.(qc) ?? true) && (!n || c.label.toLowerCase().includes(n) || c.group.toLowerCase().includes(n)));
+    // What plugins add (every contribution has an entry here), grouped under the plugin's name.
+    const added: Row[] = contributions
+      .filter((c) => !n || c.label.toLowerCase().includes(n) || c.pluginName.toLowerCase().includes(n))
+      .map((c) => ({ id: c.id, label: c.label, group: c.pluginName, run: ({ navigate }) => void runContribution(c, { navigate }) }));
+    const matches: Row[] = [...own.map((c) => ({ ...c, label: c.labelFor?.(qc) ?? c.label })), ...added];
     // Typed text that matches no command is almost certainly something to look for.
     if (n && matches.length === 0) {
       const text = q.trim();
@@ -52,9 +59,9 @@ export function CommandPalette() {
         },
       ];
     }
-    return matches.map((c) => ({ ...c, label: c.labelFor?.(qc) ?? c.label }));
+    return matches;
     // `open`: an Experimental switch may have changed since the palette was last shown.
-  }, [q, qc, open, sub, appsLoaded]);
+  }, [q, qc, open, sub, appsLoaded, contributions]);
 
   useEffect(() => {
     if (open) {
@@ -88,6 +95,7 @@ export function CommandPalette() {
     <Modal
       opened={open}
       onClose={closePalette}
+      data-part="palette"
       withCloseButton={false}
       centered
       size="md"

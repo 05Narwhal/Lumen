@@ -12,10 +12,14 @@
 //
 // Without a certificate everything builds unsigned and the release says SmartScreen will warn.
 // The decisions are pure functions so they are tested without a build; `buildInstallers` is the
-// orchestration release.mjs calls.
+// orchestration the release workflow runs through this file's CLI (`node setup-build.mjs <version>`).
+// The updater's minisign key comes from the environment only (`updaterKeyFromEnv`).
 import { spawnSync } from "node:child_process";
 import { copyFileSync, existsSync, mkdirSync, readdirSync, readFileSync, statSync, writeFileSync } from "node:fs";
 import { dirname, isAbsolute, join, relative } from "node:path";
+import { pathToFileURL } from "node:url";
+import { parseVersion } from "./lib.mjs";
+import { ROOT } from "./set-version.mjs";
 
 export const TRIPLE = "x86_64-pc-windows-msvc";
 /** Where the slim Setup lands inside the install folder. Installer-hooks.nsh looks for this exact name. */
@@ -108,6 +112,47 @@ export function windowsConfig(srcTauri) {
   return mergePatch(read("tauri.conf.json"), read("tauri.windows.conf.json"));
 }
 
+/**
+ * The updater's key must come from the environment as the key's own text (the GitHub secret CI sets),
+ * never as a path to a file on someone's PC: a build that works only on one machine is the local
+ * release path this replaced. The key is base64, so anything with a `.`, `:`, `\` or `~` is a path.
+ * Tauri reads `TAURI_SIGNING_PRIVATE_KEY` itself from the environment `run` hands on; this only
+ * refuses early, before ten minutes of building end in "no private key".
+ */
+export function updaterKeyFromEnv(env) {
+  const key = (env.TAURI_SIGNING_PRIVATE_KEY ?? "").trim();
+  if (!key) throw new Error("TAURI_SIGNING_PRIVATE_KEY is not set: the updater artefacts cannot be signed. CI sets it from the repository secret.");
+  if (!/^[A-Za-z0-9+/=\s]+$/.test(key)) throw new Error("TAURI_SIGNING_PRIVATE_KEY must hold the key's text, not a file path.");
+  if (env.TAURI_SIGNING_PRIVATE_KEY_PATH) throw new Error("TAURI_SIGNING_PRIVATE_KEY_PATH is set: the key comes from TAURI_SIGNING_PRIVATE_KEY only, never from a file on a PC.");
+  return true;
+}
+
+/**
+ * The files a release uploads, all in the folder Tauri writes the NSIS installer to: the installer
+ * (the only file the updater installs), its `.sig` and the full Setup. `uploadGlobs` are what the
+ * workflow's upload step matches inside that folder.
+ */
+export function collectArtifacts(nsisDir, version) {
+  const names = readdirSync(nsisDir);
+  const installerName = names.find((n) => n.includes(`_${version}_`) && n.endsWith("-setup.exe"));
+  if (!installerName) throw new Error(`No installer for ${version} in ${nsisDir}.`);
+  const sigName = `${installerName}.sig`;
+  if (!names.includes(sigName)) throw new Error(`${sigName} is missing: without its .sig the updater could never take ${installerName}. Was the updater key set when it was built?`);
+  const fullName = `Lumen-Setup-${version}.exe`;
+  if (!names.includes(fullName)) throw new Error(`${fullName} is missing in ${nsisDir}.`);
+  return {
+    installer: join(nsisDir, installerName),
+    installerName,
+    sig: join(nsisDir, sigName),
+    full: join(nsisDir, fullName),
+    fullName,
+    uploadGlobs: [`*_${version}_*-setup.exe*`, fullName],
+  };
+}
+
+/** What the `setup-sizes` gate reads (`preflight.mjs after --sizes`). */
+export const sizesJson = ({ sizes }) => ({ nsis: sizes.nsis, full: sizes.full, slim: sizes.slim });
+
 /** `signtool.exe` on PATH, else the newest Windows SDK's x64 one; null when there is none. */
 export function findSigntool(env = process.env) {
   for (const dir of (env.PATH ?? env.Path ?? "").split(";")) {
@@ -143,7 +188,8 @@ export function lumenExeName(config) {
  * need. Throws with what failed; nothing is published from here. `extraConfigs` are overlay files
  * merged after ours (phase 8's *Lumen Test* identity); a release passes none.
  */
-export function buildInstallers({ root, version, out, env = process.env, log = console.log, extraConfigs = [] }) {
+export function buildInstallers({ root, version, out, env = process.env, log = console.log, extraConfigs = [], requireUpdaterKey = true }) {
+  if (requireUpdaterKey) updaterKeyFromEnv(env);
   const srcTauri = join(root, "src-tauri");
   const setupDir = join(root, "installer/src-tauri");
   const setupTarget = join(setupDir, "target/release/lumen-setup.exe");
@@ -197,14 +243,36 @@ export function buildInstallers({ root, version, out, env = process.env, log = c
   copyFileSync(setupTarget, full);
   if (sign) signFile(full);
 
+  const artifacts = collectArtifacts(nsisDir, version);
   return {
-    installer,
-    installerName,
-    full,
-    fullName,
+    ...artifacts,
     slim,
     signed: !!sign,
     installedBytes: baked,
     sizes: { nsis: statSync(installer).size, full: statSync(full).size, slim: statSync(slim).size },
   };
+}
+
+/**
+ * `node scripts/release/setup-build.mjs <version>`: the Windows release job's build step. Writes
+ * `dist-release/<version>/sizes.json` (for `preflight.mjs after`) and `built.json` (the files).
+ */
+function main([version]) {
+  parseVersion(version ?? "");
+  const out = join(ROOT, "dist-release", version);
+  const built = buildInstallers({ root: ROOT, version, out });
+  mkdirSync(out, { recursive: true });
+  writeFileSync(join(out, "sizes.json"), `${JSON.stringify(sizesJson(built), null, 2)}\n`);
+  writeFileSync(join(out, "built.json"), `${JSON.stringify({ installer: built.installer, sig: built.sig, full: built.full, uploadGlobs: built.uploadGlobs, signed: built.signed, sizes: built.sizes }, null, 2)}\n`);
+  console.log(`Built ${built.installerName} and ${built.fullName}; sizes in ${join(out, "sizes.json")}.`);
+  return 0;
+}
+
+if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
+  try {
+    process.exit(main(process.argv.slice(2)));
+  } catch (e) {
+    console.error(e.message);
+    process.exit(1);
+  }
 }

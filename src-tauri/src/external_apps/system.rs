@@ -46,6 +46,12 @@ pub fn is_store(target: &Path) -> bool {
     target.to_string_lossy().starts_with(STORE_PREFIX)
 }
 
+/// A Store app's AppUserModelID (`<family>!<app id>`), which starts it with files.
+#[cfg(windows)]
+pub fn store_aumid(target: &Path) -> Option<String> {
+    target.to_string_lossy().strip_prefix(STORE_PREFIX).filter(|id| id.contains('!')).map(str::to_owned)
+}
+
 /// The registry key holding every Store package the user has, as `HKCU` sees it.
 #[cfg(windows)]
 const PACKAGES: &str = r"Software\Classes\Local Settings\Software\Microsoft\Windows\CurrentVersion\AppModel\Repository\Packages";

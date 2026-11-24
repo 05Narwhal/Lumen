@@ -1,7 +1,7 @@
 import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { open as openDialog } from "@tauri-apps/plugin-dialog";
-import { MemoryRouter } from "react-router";
+import { MemoryRouter, useLocation } from "react-router";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { Providers } from "@/app";
 import { ContextMenuHost } from "@/components/context-menu";
@@ -10,8 +10,8 @@ import { Toaster } from "@/components/toast";
 import { toastStore } from "@/components/toast/store";
 import { invokeMock, mockCommand } from "@/test/tauri-mock";
 import type { PluginInfo } from "@/types/generated/PluginInfo";
-import { pluginDetailsStore } from "./plugin-details";
 import { PluginsSection } from "./plugins";
+import { SearchContext } from "./search";
 import { GROUPS } from "./sections";
 
 const info = (over: Partial<PluginInfo> = {}): PluginInfo =>
@@ -23,13 +23,16 @@ const info = (over: Partial<PluginInfo> = {}): PluginInfo =>
     description: "",
     license: "MIT",
     trust: { type: "jlStudios" },
-    kinds: ["importer", "theme"],
+    kinds: ["importer", "presets"],
     permissions: [],
     enabled: true,
     dev: false,
     state: { type: "ready" },
     iconUrl: "photos://plugin-icon/takeout",
     settings: [],
+    homepage: null,
+    detectIds: [],
+    sections: [],
     assets: [],
     ...over,
   }) as PluginInfo;
@@ -62,7 +65,6 @@ describe("Settings → Plugins", () => {
   beforeEach(() => {
     invokeMock.mockClear();
     closePluginInstall();
-    pluginDetailsStore.set(null);
     toastStore.set({ toasts: [] });
     vi.mocked(openDialog).mockReset();
     vi.mocked(openDialog).mockResolvedValue(null);
@@ -89,7 +91,7 @@ describe("Settings → Plugins", () => {
     expect(screen.getByText("1.2.0")).toBeInTheDocument();
     expect(screen.getByText("✓ From JL Studios")).toBeInTheDocument();
     expect(screen.getByText("Importer")).toBeInTheDocument();
-    expect(screen.getByText("Theme")).toBeInTheDocument();
+    expect(screen.getByText("Presets")).toBeInTheDocument();
     expect(container.querySelector("img")).toHaveAttribute("src", "photos://plugin-icon/takeout");
     expect(screen.getByRole("switch", { name: "Turn Google Takeout on" })).toBeChecked();
   });
@@ -119,11 +121,22 @@ describe("Settings → Plugins", () => {
     await waitFor(() => expect(calls("undo_remove_plugin")[0][1]).toEqual({ token: "tok-1" }));
   });
 
-  it("opens details on the chosen tab from the menu", async () => {
-    mount([info({ settings: [{} as never] })]);
+  it("a row opens the plugin's page, and Back returns to the list", async () => {
+    mockCommand("plugin_detect", () => []);
+    mount([info({ description: "Reads Takeout folders." })]);
+    await userEvent.click(await screen.findByRole("button", { name: "Google Takeout" }));
+    expect(await screen.findByText("Reads Takeout folders.")).toBeInTheDocument();
+    expect(screen.queryByRole("dialog")).toBeNull();
+    await userEvent.click(screen.getByRole("button", { name: "Back to plugins" }));
+    expect(await screen.findByText("Add a plugin")).toBeInTheDocument();
+  });
+
+  it("the menu's Details opens the page", async () => {
+    mockCommand("plugin_detect", () => []);
+    mount([info({ description: "Reads Takeout folders." })]);
     await userEvent.click(await screen.findByRole("button", { name: "More for Google Takeout" }));
-    await userEvent.click(await screen.findByRole("menuitem", { name: "Settings" }));
-    expect(pluginDetailsStore.get()).toEqual({ id: "studio.jl.takeout", tab: "settings" });
+    await userEvent.click(await screen.findByRole("menuitem", { name: "Details" }));
+    expect(await screen.findByText("Reads Takeout folders.")).toBeInTheDocument();
   });
 
   it("developer_mode_and_load_folder", async () => {
@@ -163,5 +176,69 @@ describe("Settings → Plugins", () => {
     mount([info({ state: { type: "needsNewerLumen" } })]);
     expect(await screen.findByText("Needs a newer Lumen")).toBeInTheDocument();
     expect(screen.getByRole("switch", { name: "Turn Google Takeout on" })).toBeDisabled();
+  });
+
+  // Round 24 lane C
+  it("auto_update_switch_and_update_all", async () => {
+    const status = { offline: false, hasCache: true, checkedAt: null, autoUpdate: true, updates: [{ id: "a.b", name: "Alpha", from: "1.0.0", to: "1.1.0", needsReview: false }], updated: [{ id: "c.d", name: "Beta", version: "2.0.0" }] };
+    mockCommand("store_status", () => ({ ...status }));
+    mockCommand("store_set_auto_update", (a) => {
+      status.autoUpdate = (a as { on: boolean }).on;
+    });
+    mockCommand("store_update", () => ({ path: null, installed: true }));
+    mount([info()]);
+    expect(await screen.findByText("Updated Beta to 2.0.0")).toBeInTheDocument();
+    expect(screen.queryByText("Update all")).toBeNull();
+    await userEvent.click(screen.getByRole("switch", { name: "Update plugins automatically" }));
+    await waitFor(() => expect(calls("store_set_auto_update")[0][1]).toEqual({ on: false }));
+    await userEvent.click(await screen.findByRole("button", { name: "Update all" }));
+    await waitFor(() => expect(calls("store_update")[0][1]).toEqual({ id: "a.b" }));
+  });
+});
+
+describe("Settings search over plugin controls", () => {
+  const sampler = info({
+    id: "local.sampler",
+    name: "Sampler",
+    sections: [
+      {
+        title: "Scanning",
+        description: null,
+        controls: [
+          { kind: "slider", key: "depth", label: "Scan depth", help: "How many folders deep.", value: 3, choices: [], min: 1, max: 8, step: 1, requires: null, app: null, action: null, body: null },
+          { kind: "toggle", key: "deep", label: "Deep scan", help: null, value: false, choices: [], min: null, max: null, step: null, requires: null, app: null, action: null, body: null },
+        ],
+      },
+    ],
+  });
+  const Where = () => <output data-testid="where">{useLocation().search}</output>;
+  const search = (q: string) => {
+    mockCommand("list_plugins", () => [sampler]);
+    mockCommand("get_plugin_developer_mode", () => false);
+    return render(
+      <Providers>
+        <MemoryRouter initialEntries={["/settings?section=plugins"]}>
+          <SearchContext.Provider value={q}>
+            <PluginsSection />
+          </SearchContext.Provider>
+          <Where />
+        </MemoryRouter>
+      </Providers>,
+    );
+  };
+
+  it("finds a control by its label and jumps to the plugin's page", async () => {
+    search("depth");
+    expect(await screen.findByRole("button", { name: "Open Sampler" })).toBeInTheDocument();
+    expect(document.querySelector(".settings-row__label")?.textContent).toBe("Scan depth");
+    expect(screen.getAllByRole("button", { name: "Open Sampler" })).toHaveLength(1);
+    await userEvent.click(screen.getByRole("button", { name: "Open Sampler" }));
+    expect(screen.getByTestId("where").textContent).toBe("?section=plugins&plugin=local.sampler");
+  });
+
+  it("finds a control by its help text", async () => {
+    search("folders deep");
+    expect(await screen.findByRole("button", { name: "Open Sampler" })).toBeInTheDocument();
+    expect(document.querySelector(".settings-row__label")?.textContent).toBe("Scan depth");
   });
 });

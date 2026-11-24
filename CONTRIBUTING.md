@@ -5,7 +5,7 @@ Thank you for helping. Lumen is a free, GPL-3.0-or-later photo and video library
 ## Before you start
 
 - **Small fix or clear bug:** open a pull request.
-- **Anything larger:** open an issue or a Discussion first. Large work follows a written plan (`docs/superpowers/plans/` shows what one looks like), and the plan comes before the code. Look for the *good first issue* label if you want somewhere gentle to begin.
+- **Anything larger:** open an issue or a Discussion first. Large work follows a short written plan in the issue, and the plan comes before the code. Look for the *good first issue* label if you want somewhere gentle to begin.
 - **A feature that could be a plugin** (an importer, theme, preset, look or app link) probably should be. See [docs/PLUGINS.md](docs/PLUGINS.md).
 - Lumen has no account, no cloud, no telemetry and no paid tier, and that does not change. A feature that needs any of them will not be merged.
 
@@ -17,7 +17,7 @@ Lumen uses the [Developer Certificate of Origin](https://developercertificate.or
 git commit -s -m "Fix the date order on the Develop filmstrip"
 ```
 
-That adds `Signed-off-by: Your Name <you@example.com>`, which says you wrote the change or have the right to contribute it under the project's licence. A check on every pull request fails if a commit lacks it; `git rebase --signoff main` fixes an existing branch. Your contribution is licensed under `GPL-3.0-or-later`, except in the folders that are `MIT OR Apache-2.0` (the plugin SDK, the plugin WIT and `plugins/examples/`) and `photos-raw` (`LGPL-2.1`).
+That adds `Signed-off-by: Your Name <you@example.com>`, which says you wrote the change or have the right to contribute it under the project's licence. A check on every pull request fails if a commit lacks it; `git rebase --signoff main` fixes an existing branch. Your contribution is licensed under `GPL-3.0-or-later`, except in the folders that are `MIT OR Apache-2.0` (the plugin SDK and the plugin WIT) and `photos-raw` (`LGPL-2.1`).
 
 ## Build and test
 

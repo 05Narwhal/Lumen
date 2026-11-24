@@ -14,8 +14,8 @@ use photos_plugins::signature::Keys;
 use photos_plugins::store::{Ctx, Store};
 use photos_plugins::{PluginError, PluginState};
 
-/// The JL Studios plugin public key, baked in by `build.rs` from `LUMEN_PLUGIN_PUBKEY` or the
-/// git-ignored `src-tauri/plugin-pubkey.txt`. `None`: no package is *From JL Studios*.
+/// The JL Studios plugin public key, baked in by `build.rs` from the tracked
+/// `src-tauri/plugin-pubkey.txt` (`LUMEN_PLUGIN_PUBKEY` overrides it). `None`: no package is *From JL Studios*.
 pub const JL_PUBKEY: Option<&str> = option_env!("LUMEN_PLUGIN_PUBKEY");
 
 /// A plugin file the protocol may serve, and whether it is a Developer-mode folder read in place.
@@ -26,7 +26,7 @@ pub struct Served {
 
 /// `%XX` decoded once; `None` for a bad escape, a NUL or bytes that aren't UTF-8. Decoding once
 /// is the point: `%252e` stays `%2e`, which names no file.
-fn percent_decode(s: &str) -> Option<String> {
+pub(crate) fn percent_decode(s: &str) -> Option<String> {
     let b = s.as_bytes();
     let mut out = Vec::with_capacity(b.len());
     let mut i = 0;
@@ -52,12 +52,15 @@ struct OpenPackage {
     path: String,
 }
 
-/// The first argument (after the program) that is an existing `.lumenplugin` file, whatever the
+/// A package Lumen opens from the system: a plugin or (Round 26) a theme, whatever the case.
+fn is_package(p: &std::path::Path) -> bool {
+    p.extension().is_some_and(|e| e.eq_ignore_ascii_case("lumenplugin") || e.eq_ignore_ascii_case("lumentheme"))
+}
+
+/// The first argument (after the program) that is an existing `.lumenplugin` or `.lumentheme` file, whatever the
 /// case of its extension: what Windows and Linux pass when one is double-clicked.
 pub fn package_arg(args: &[String]) -> Option<PathBuf> {
-    args.iter().skip(1).map(PathBuf::from).find(|p| {
-        p.extension().is_some_and(|e| e.eq_ignore_ascii_case("lumenplugin")) && p.is_file()
-    })
+    args.iter().skip(1).map(PathBuf::from).find(|p| is_package(p) && p.is_file())
 }
 
 /// A second launch's command line, in the running Lumen: the page opens the install sheet. The
@@ -79,7 +82,7 @@ pub fn forward_package(app: &AppHandle, args: &[String]) {
 #[cfg(target_os = "macos")]
 pub fn on_opened(app: &AppHandle, plugins: &Plugins, urls: &[tauri::Url]) {
     for path in urls.iter().filter_map(|u| u.to_file_path().ok()) {
-        if path.extension().is_some_and(|e| e.eq_ignore_ascii_case("lumenplugin")) && path.is_file() {
+        if is_package(&path) && path.is_file() {
             plugins.set_pending(path.clone());
             let _ = app.emit(OPEN_EVENT, OpenPackage { path: path.display().to_string() });
         }
@@ -170,6 +173,8 @@ impl Notifier {
 pub struct Plugins {
     /// `<app>/cache/plugins/`, for the engine's compiled modules.
     cache: PathBuf,
+    /// `<app>/plugins/store-cache/`: the store's icons and screenshots, which `store-image/` serves.
+    store_images: PathBuf,
     store: Arc<RwLock<Store>>,
     /// Built on first use, never at boot.
     engine: OnceLock<Arc<Engine>>,
@@ -178,6 +183,12 @@ pub struct Plugins {
     logs: Arc<Mutex<HashMap<String, LogRing>>>,
     /// The `.lumenplugin` a cold start was opened with, until the page asks for it.
     pending: Mutex<Option<PathBuf>>,
+    /// Round 24 lane W: what reaches the open library, set by [`Plugins::attach`]. Held as trait
+    /// objects so code that tests reach never names the app handle (Tauri's window code needs a
+    /// manifest a test executable doesn't have).
+    live: OnceLock<super::hosts::Live>,
+    /// Round 24 lane W: every plugin's Place review suggestions.
+    reviews: Arc<super::places::ReviewStore>,
 }
 
 impl Plugins {
@@ -210,17 +221,31 @@ impl Plugins {
         });
         Plugins {
             cache: app_dir.join("cache").join("plugins"),
+            store_images: super::store::store_cache_dir(&dir),
             store: Arc::new(RwLock::new(store)),
             engine: OnceLock::new(),
             notifier: Arc::new(Notifier::default()),
             logs: Arc::new(Mutex::new(HashMap::new())),
             pending: Mutex::new(None),
+            live: OnceLock::new(),
+            reviews: Arc::new(super::places::ReviewStore::default()),
         }
+    }
+
+    /// The hosts that reach the library, once [`Plugins::attach`] has run (never in a unit test).
+    pub fn live(&self) -> Option<&super::hosts::Live> {
+        self.live.get()
+    }
+
+    /// The Place review suggestions of every plugin.
+    pub fn reviews(&self) -> &Arc<super::places::ReviewStore> {
+        &self.reviews
     }
 
     /// Gives the plugins the app handle, so a plugin that stops on its own (no command running)
     /// still reaches the page.
     pub fn attach(&self, app: AppHandle) {
+        let _ = self.live.set(super::hosts::live(app.clone()));
         let _ = self.notifier.emit.set(Box::new(move || {
             let _ = app.emit(CHANGED_EVENT, ());
         }));
@@ -308,6 +333,23 @@ impl Plugins {
         Some(Served { path, dev: store.get(id)?.info.dev })
     }
 
+    /// The icon of a package the install sheet is showing, by the hash `inspect` gave it.
+    pub fn serve_preview(&self, hash: &str) -> Option<Served> {
+        Some(Served { path: self.read().preview_icon_path(hash)?, dev: false })
+    }
+
+    /// An image the plugin store's index lists, downloaded by Rust and named by the hash of its URL.
+    pub fn serve_store_image(&self, hash: &str) -> Option<Served> {
+        Some(Served { path: super::store::find_cached(&self.store_images, hash)?, dev: false })
+    }
+
+    /// The `n`th `[listing]` screenshot, on or off like the icon: only a listed file is named.
+    pub fn serve_screenshot(&self, id: &str, n: usize) -> Option<Served> {
+        let store = self.read();
+        let path = store.screenshot_path(id, n)?;
+        Some(Served { path, dev: store.get(id)?.info.dev })
+    }
+
     /// A file the manifest declares under `[[assets]]`, only while the plugin is on and ready.
     /// `encoded` is the route's path as the page wrote it; the store compares the decoded text
     /// to its declared list, so no spelling of `..` can name another file.
@@ -375,6 +417,14 @@ mod tests {
     use std::sync::atomic::{AtomicBool, AtomicUsize, Ordering};
 
     #[test]
+    fn jl_pubkey_is_baked_into_a_clean_build() {
+        // The key is a tracked file (src-tauri/plugin-pubkey.txt), so a build with no environment
+        // still carries it; it must also parse as a key.
+        let keys = Keys::from_base64(JL_PUBKEY).expect("the baked-in plugin key parses");
+        assert!(keys.jl.is_some(), "no plugin public key was baked in");
+    }
+
+    #[test]
     fn load_without_plugins_json() {
         let t = tempfile::tempdir().unwrap();
         let p = Plugins::load(t.path());
@@ -406,7 +456,7 @@ mod tests {
             fs::write(
                 folder.join("plugin.toml"),
                 format!(
-                    "id = \"{id}\"\nname = \"P{n}\"\nversion = \"1.0.0\"\nauthor = \"T\"\ndescription = \"d\"\nlicense = \"MIT\"\nlumen = \">=26.0.0\"\napi = 1\n\n[[themes]]\nfile = \"themes/a.toml\"\n"
+                    "id = \"{id}\"\nname = \"P{n}\"\nversion = \"1.0.0\"\nauthor = \"T\"\ndescription = \"d\"\nlicense = \"MIT\"\nlumen = \">=26.0.0\"\napi = 1\n"
                 ),
             )
             .unwrap();

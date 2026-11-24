@@ -1,6 +1,9 @@
+import { IconTrash } from "@tabler/icons-react";
 import { motion } from "motion/react";
 import { ThemePreview } from "@/components/theme-preview";
-import type { PluginThemeMeta } from "@/types/generated/PluginThemeMeta";
+import { THEME_SLOT } from "@/lib/plugin-theme";
+import { ThemeMiniature } from "@/routes/plugins/theme-miniature";
+import type { InstalledTheme } from "@/types/generated/InstalledTheme";
 import { THEMES, type SchemeChoice, type ThemeChoice } from "@/types/theme";
 import "./styles.scss";
 
@@ -21,18 +24,25 @@ const osScheme = (): "light" | "dark" =>
 const spring = { type: "spring", stiffness: 420, damping: 34, mass: 0.8 } as const;
 
 /**
- * Four live theme miniatures, then the enabled plugin themes, plus a Light / Dark / Auto control.
- * Shared by setup and Settings. Picking a plugin theme takes its own scheme; picking it again
- * (it is already the theme) leaves the scheme alone.
+ * Four live theme miniatures, then the installed themes (painted from their own tokens, with a
+ * *Layout* badge when they move things, and a *Remove*), plus a Light / Dark / Auto control.
+ * Shared by setup and Settings. Picking an installed theme takes its own scheme; picking it
+ * again (it is already the theme) leaves the scheme alone.
  */
 export function ThemePicker({
   value,
   onChange,
-  pluginThemes = [],
+  themes = [],
+  onRemove,
+  onInstallFile,
 }: {
   value: ThemePickerValue;
   onChange: (v: ThemePickerValue) => void;
-  pluginThemes?: PluginThemeMeta[];
+  themes?: InstalledTheme[];
+  /** Settings only: *Remove* on an installed theme. */
+  onRemove?: (t: InstalledTheme) => void;
+  /** Settings only: *Install a theme from file…*. */
+  onInstallFile?: () => void;
 }) {
   const effective = value.scheme === "auto" ? osScheme() : value.scheme;
   return (
@@ -59,34 +69,49 @@ export function ThemePicker({
             </motion.button>
           );
         })}
-        {pluginThemes.map((t) => {
-          const checked = typeof value.theme !== "string" && value.theme.plugin === t.plugin && value.theme.theme === t.id;
-          const key = `${t.plugin}/${t.id}`;
+        {themes.map((t) => {
+          const checked = typeof value.theme !== "string" && value.theme.plugin === t.id && value.theme.theme === THEME_SLOT;
           return (
-            <motion.button
-              type="button"
-              key={key}
-              role="radio"
-              aria-checked={checked}
-              className="theme-picker__card"
-              onClick={() =>
-                onChange({
-                  theme: { plugin: t.plugin, theme: t.id },
-                  scheme: checked ? value.scheme : (t.defaultScheme as SchemeChoice),
-                })
-              }
-              whileHover={{ y: -3 }}
-              whileTap={{ scale: 0.98, y: -1 }}
-              transition={spring}
-            >
-              {checked && <motion.span layoutId="theme-picker-ring" className="theme-picker__ring" transition={spring} />}
-              <ThemePreview theme={t.base} plugin={key} scheme={effective} />
-              <span className="theme-picker__name">{t.name}</span>
-              <span className="theme-picker__tagline">{t.tagline}</span>
-            </motion.button>
+            <div key={t.id} className="theme-picker__item">
+              <motion.button
+                type="button"
+                role="radio"
+                aria-checked={checked}
+                className="theme-picker__card"
+                onClick={() =>
+                  onChange({
+                    theme: { plugin: t.id, theme: THEME_SLOT },
+                    scheme: checked ? value.scheme : (t.defaultScheme as SchemeChoice),
+                  })
+                }
+                whileHover={{ y: -3 }}
+                whileTap={{ scale: 0.98, y: -1 }}
+                transition={spring}
+              >
+                {checked && <motion.span layoutId="theme-picker-ring" className="theme-picker__ring" transition={spring} />}
+                <span className="theme-picker__mini">
+                  <ThemeMiniature tokens={t.tokens} scheme={effective} />
+                </span>
+                <span className="theme-picker__name">
+                  {t.name}
+                  {t.layout && <span className="theme-picker__badge">Layout</span>}
+                </span>
+                <span className="theme-picker__tagline">{t.description}</span>
+              </motion.button>
+              {onRemove && (
+                <button type="button" className="theme-picker__remove" aria-label={`Remove ${t.name}`} title="Remove" onClick={() => onRemove(t)}>
+                  <IconTrash size={15} />
+                </button>
+              )}
+            </div>
           );
         })}
       </div>
+      {onInstallFile && (
+        <button type="button" className="theme-picker__install" onClick={onInstallFile}>
+          Install a theme from file…
+        </button>
+      )}
       <div className="theme-picker__scheme" role="radiogroup" aria-label="Colour scheme">
         {SCHEMES.map((s) => {
           const checked = value.scheme === s.value;

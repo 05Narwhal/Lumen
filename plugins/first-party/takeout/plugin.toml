@@ -6,6 +6,8 @@ description = "Imports a Google Takeout of Google Photos: dates, places, titles,
 license = "MIT"
 lumen = ">=26.2.0"
 api = 1
+author_url = "https://github.com/05Narwhal"
+repository = "https://github.com/05Narwhal/lumen-plugins"
 permissions = ["import.read-chosen"]
 
 [importer]
@@ -18,3 +20,6 @@ key = "albums_from_folders"
 label = "Use Takeout's folders as albums"
 type = "bool"
 default = true
+
+[listing]
+screenshots = ["screenshots/import.png"]

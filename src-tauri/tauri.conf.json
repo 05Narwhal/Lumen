@@ -1,7 +1,7 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
   "productName": "Lumen",
-  "version": "26.2.0-alpha",
+  "version": "26.3.0-alpha",
   "identifier": "com.jlstudios.lumen",
   "build": {
     "beforeDevCommand": "yarn dev",
@@ -29,7 +29,7 @@
   },
   "plugins": {
     "updater": {
-      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IDEzMUM5MUVBREJCNERCOEQKUldTTjI3VGI2cEVjRTNROHRVdk5OMTJkTXRNTlRhQ0NNU3N0dDdlVEdZZWlqS3p1QlZYUGpTQ0sK",
+      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IENGOTE0NkIzN0U3NTlCRkMKUldUOG0zVitzMGFSejFUTzJRQ1A4NDFFbGswNjRkUW9vbWdkRmNQOUtKYUZ1eDVBdXlRZTYraTUK",
       "endpoints": [],
       "requireSignedVersion": true,
       "windows": {
@@ -58,6 +58,12 @@
         "name": "Lumen plugin",
         "mimeType": "application/x-lumen-plugin",
         "role": "Viewer"
+      },
+      {
+        "ext": ["lumentheme"],
+        "name": "Lumen theme",
+        "mimeType": "application/x-lumen-theme",
+        "role": "Viewer"
       }
     ],
     "externalBin": [
@@ -70,7 +76,7 @@
         "installerHooks": "./windows/installer-hooks.nsh"
       },
       "wix": {
-        "version": "26.2.0"
+        "version": "26.3.0"
       }
     }
   }

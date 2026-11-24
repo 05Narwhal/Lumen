@@ -334,6 +334,44 @@ describe("SettingsRoute", () => {
     );
   });
 
+  describe("Detailed satellite imagery (Esri)", () => {
+    it("is a password-style field that explains the person's own key, and saves it trimmed", async () => {
+      mountSettings();
+      await open(/^Map/);
+      const field = await screen.findByLabelText("Detailed satellite imagery (Esri)");
+      expect(field).toHaveAttribute("type", "password");
+      expect(field).toBeEnabled();
+      expect(screen.getByText(/Your own free ArcGIS Location Platform key from location\.arcgis\.com/)).toBeInTheDocument();
+      expect(screen.getByText(/satellite imagery comes from EOX Sentinel-2 cloudless/)).toBeInTheDocument();
+      await userEvent.type(field, "  AAPK-own-key  ");
+      await userEvent.tab();
+      expect(invokeMock).toHaveBeenCalledWith(
+        "update_settings",
+        expect.objectContaining({ settings: expect.objectContaining({ map: expect.objectContaining({ esriKey: "AAPK-own-key" }) }) }),
+      );
+    });
+
+    it("saves null when the field is cleared or only spaces", async () => {
+      mountSettings(undefined, "/settings", () => mockCommand("get_settings", () => ({ ...settings, map: { ...settings.map, esriKey: "AAPK-own-key" } })));
+      await open(/^Map/);
+      const field = await screen.findByLabelText("Detailed satellite imagery (Esri)");
+      await waitFor(() => expect(field).toHaveValue("AAPK-own-key"));
+      await userEvent.clear(field);
+      await userEvent.type(field, "   ");
+      await userEvent.tab();
+      expect(invokeMock).toHaveBeenLastCalledWith(
+        "update_settings",
+        expect.objectContaining({ settings: expect.objectContaining({ map: expect.objectContaining({ esriKey: null }) }) }),
+      );
+    });
+
+    it("is disabled while the online map is off", async () => {
+      mountSettings(undefined, "/settings", () => mockCommand("get_settings", () => ({ ...settings, map: { online: false, style: "map" as const } })));
+      await open(/^Map/);
+      expect(await screen.findByLabelText("Detailed satellite imagery (Esri)")).toBeDisabled();
+    });
+  });
+
   it("uses the graphics card for slideshow exports unless told not to (Round 4F)", async () => {
     mountSettings();
     await open(/Playback/);
@@ -382,6 +420,16 @@ describe("SettingsRoute", () => {
       "update_settings",
       expect.objectContaining({ settings: expect.objectContaining({ music: { jamendoClientId: "abc123" } }) }),
     );
+  });
+
+  it("says the Jamendo client id is the person's own and that using it accepts Jamendo's terms", async () => {
+    mountSettings();
+    await open(/Music/);
+    expect(await screen.findByText(/your own, free from/)).toBeInTheDocument();
+    expect(screen.getByText(/using it means accepting/)).toBeInTheDocument();
+    await userEvent.click(screen.getByRole("link", { name: "Jamendo's API terms" }));
+    const { openUrl } = await import("@tauri-apps/plugin-opener");
+    expect(openUrl).toHaveBeenCalledWith("https://devportal.jamendo.com/api_terms_of_use");
   });
 
   // Round 17: the opt-in Discord status.

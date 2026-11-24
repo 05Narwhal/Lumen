@@ -53,6 +53,14 @@
     &:hover { scale: 1.08; box-shadow: var(--shadow-lg); }
     &:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 
+    // Round 24: a place that was estimated and confirmed is drawn hollow, as in Place review.
+    &[data-estimated="true"] {
+      border-style: dashed;
+      border-color: var(--accent);
+      background: transparent;
+      img { opacity: 0.85; }
+    }
+
     &[data-single="true"] {
       border-radius: var(--radius-pill);
       img { border-radius: var(--radius-pill); }
@@ -73,4 +81,37 @@
     font-variant-numeric: tabular-nums;
     line-height: 18px;
   }
+}
+
+// The pin *Open in Map* drops on a photo (Round 26 B3): a dot in the accent with a ring
+// that pulses out from it. It never takes a click, so the photo's own pin under it still opens.
+.map-view__focus {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 18px;
+  height: 18px;
+  margin: -9px 0 0 -9px;
+  pointer-events: none;
+  z-index: 3;
+  will-change: transform;
+
+  &-dot,
+  &-pulse {
+    position: absolute;
+    inset: 0;
+    border-radius: 50%;
+    background: var(--accent);
+  }
+  &-dot { box-shadow: 0 0 0 3px var(--bg-raised), var(--shadow-md); }
+  &-pulse { animation: map-view-focus-pulse 1.6s var(--ease) infinite; }
+
+  @media (prefers-reduced-motion: reduce) {
+    &-pulse { animation: none; opacity: 0.3; scale: 2; }
+  }
+}
+
+@keyframes map-view-focus-pulse {
+  from { opacity: 0.55; scale: 1; }
+  to { opacity: 0; scale: 3.2; }
 }

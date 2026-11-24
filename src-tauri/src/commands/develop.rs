@@ -16,7 +16,11 @@ use crate::state::AppState;
 /// pool so background work never slows it (`photos_jobs::interactive`).
 #[tauri::command(async)]
 pub fn develop_preview(state: State<'_, AppState>, asset_id: i64, recipe: Recipe, request: u64, before: bool, clipping: bool) -> AppResult<DevelopPreview> {
-    photos_jobs::interactive(|| develop_preview::render_preview(&state, asset_id, &recipe, request, before, clipping))
+    // The turn is waited for outside the render pool (Round 26 B2, `DevelopState::in_turn`).
+    state
+        .develop
+        .in_turn(asset_id, develop_preview::Channel::Preview, request, |turn| develop_preview::render_preview(&state, turn, asset_id, &recipe, before, clipping))
+        .unwrap_or_else(|| Ok(DevelopPreview::superseded()))
 }
 
 /// *Auto* on the draft recipe (Phase 8d): the Basic values to apply, off the main thread.
@@ -60,7 +64,11 @@ pub fn develop_before(state: State<'_, AppState>, asset_id: i64, recipe: Recipe)
 /// The zoomed view of the visible `rect`, at `scale` of full resolution (1 when omitted).
 #[tauri::command(async)]
 pub fn develop_region(state: State<'_, AppState>, asset_id: i64, recipe: Recipe, rect: Crop, scale: Option<f32>, request: u64, before: bool) -> AppResult<DevelopPreview> {
-    photos_jobs::interactive(|| develop_preview::render_region(&state, asset_id, &recipe, rect, scale.unwrap_or(1.0), request, before))
+    let channel = if before { develop_preview::Channel::BeforeRegion } else { develop_preview::Channel::Region };
+    state
+        .develop
+        .in_turn(asset_id, channel, request, |turn| develop_preview::render_region(&state, turn, asset_id, &recipe, rect, scale.unwrap_or(1.0), before))
+        .unwrap_or_else(|| Ok(DevelopPreview::superseded()))
 }
 
 /// Frees the 100 % view's full-size frame.

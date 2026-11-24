@@ -1,0 +1,50 @@
+{
+  "recipeVersion": 3,
+  "name": "Faded Matte Print",
+  "develop": {
+    "basic": {
+      "contrast": -0.2,
+      "blacks": 0.25,
+      "saturation": -0.15
+    },
+    "curve": {
+      "master": [
+        [
+          0,
+          0.1
+        ],
+        [
+          0.25,
+          0.27
+        ],
+        [
+          0.75,
+          0.76
+        ],
+        [
+          1,
+          0.94
+        ]
+      ]
+    },
+    "effects": {
+      "grain": {
+        "amount": 0.2,
+        "size": 0.3
+      }
+    }
+  },
+  "panels": [
+    "basic",
+    "curve",
+    "effects"
+  ],
+  "look": {
+    "intent": "A print left in the sun: black point lifted, whites held back, quiet colour and grain",
+    "hues": [],
+    "mono": false,
+    "key": "mid",
+    "skinSafe": true,
+    "likesSky": false
+  }
+}

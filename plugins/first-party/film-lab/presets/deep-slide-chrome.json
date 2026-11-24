@@ -1,0 +1,53 @@
+{
+  "recipeVersion": 3,
+  "name": "Deep Slide Chrome",
+  "develop": {
+    "basic": {
+      "exposure": -0.1,
+      "contrast": 0.35,
+      "blacks": -0.25,
+      "whites": 0.1,
+      "saturation": 0.2
+    },
+    "curve": {
+      "master": [
+        [
+          0,
+          0
+        ],
+        [
+          0.25,
+          0.18
+        ],
+        [
+          0.75,
+          0.82
+        ],
+        [
+          1,
+          1
+        ]
+      ]
+    },
+    "effects": {
+      "vignette": {
+        "amount": -0.25,
+        "midpoint": 0.5,
+        "feather": 0.5
+      }
+    }
+  },
+  "panels": [
+    "basic",
+    "curve",
+    "effects"
+  ],
+  "look": {
+    "intent": "Heavy, dark slide look: steep contrast, deep shadows, strong colour and darkened corners",
+    "hues": [],
+    "mono": false,
+    "key": "low",
+    "skinSafe": false,
+    "likesSky": true
+  }
+}

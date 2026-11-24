@@ -129,13 +129,17 @@ pub fn motion_blur_weighted(img: &mut Linear, m: &MotionBlur, ctx: &Ctx, weights
 
 /// The highlights above `threshold` (linear), blurred by `sigma` render pixels, per channel.
 /// With `weights`, a pixel gives light in proportion to its weight (a mask's light is its own).
-fn bloom(img: &Linear, threshold: f32, sigma: f32, weights: Option<&[f32]>) -> [Vec<f32>; 3] {
+fn bloom(img: &Linear, threshold: f32, sigma: f32, weights: Option<&[f32]>, ctx: &Ctx) -> [Vec<f32>; 3] {
     let (w, h) = (img.width as usize, img.height as usize);
     let mut over: Vec<f32> = img.data.par_iter().map(|p| smoothstep(threshold, threshold * 2.0, luma(*p))).collect();
     if let Some(wt) = weights {
         over.par_iter_mut().zip(wt.par_iter()).for_each(|(k, w)| *k *= w);
     }
     std::array::from_fn(|c| {
+        // A cancelled render skips the other channels' blurs: its pixels are thrown away.
+        if ctx.cancelled() {
+            return vec![0.0; w * h];
+        }
         let ch: Vec<f32> = img.data.par_iter().zip(over.par_iter()).map(|(p, k)| p[c].max(0.0) * k).collect();
         if sigma > 8.0 {
             gaussian_coarse(&ch, w, h, sigma)
@@ -167,7 +171,7 @@ pub fn glow_weighted(img: &mut Linear, g: &Glow, ctx: &Ctx, weights: Option<&[f3
         return;
     }
     let sigma = glow_sigma(g, ctx.frame_long(img));
-    let b = bloom(img, 0.35, sigma, weights);
+    let b = bloom(img, 0.35, sigma, weights, ctx);
     let k = g.amount.clamp(0.0, 1.0) * 1.2;
     img.data.par_iter_mut().enumerate().for_each(|(i, p)| *p = std::array::from_fn(|c| p[c] + b[c][i] * k));
 }
@@ -184,7 +188,7 @@ pub fn halation_weighted(img: &mut Linear, hl: &Halation, ctx: &Ctx, weights: Op
         return;
     }
     let sigma = halation_sigma(hl, ctx.frame_long(img));
-    let b = bloom(img, 0.6, sigma, weights);
+    let b = bloom(img, 0.6, sigma, weights, ctx);
     let k = hl.amount.clamp(0.0, 1.0) * 1.5;
     const TINT: [f32; 3] = [1.0, 0.28, 0.06];
     img.data.par_iter_mut().enumerate().for_each(|(i, p)| {

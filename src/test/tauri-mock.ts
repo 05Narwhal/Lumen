@@ -169,4 +169,17 @@ vi.mock("@tauri-apps/api/webview", () => ({
   getCurrentWebview: () => ({ onDragDropEvent: async () => () => {} }),
 }));
 vi.mock("@tauri-apps/plugin-dialog", () => ({ open: vi.fn(async () => null) }));
+// Round 24 D2: every dialog goes through `@/lib/dialogs`; here it lands on the same `open` mock the
+// tests already steer, so a test sets one answer and reads one call shape. dialogs.test.ts uses the real module.
+vi.mock("@/lib/dialogs", async () => {
+  const { open } = await import("@tauri-apps/plugin-dialog");
+  type O = Record<string, unknown>;
+  return {
+    pickFile: (o: O = {}) => open({ multiple: false, directory: false, ...o }),
+    pickFiles: (o: O = {}) => open({ multiple: true, ...o }),
+    pickFolder: (o: O = {}) => open({ directory: true, multiple: false, ...o }),
+    pickSave: (o: O = {}) => (open as (o: O) => Promise<string | null>)({ save: true, ...o }),
+    revealPath: vi.fn(async () => {}),
+  };
+});
 vi.mock("@tauri-apps/plugin-opener", () => ({ revealItemInDir: vi.fn(async () => {}), openPath: vi.fn(async () => {}), openUrl: vi.fn(async () => {}) }));

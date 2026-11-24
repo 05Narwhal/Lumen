@@ -273,6 +273,10 @@ pub fn begin_shutdown(app: &tauri::AppHandle, state: &AppState) {
     if BEGUN.swap(true, Ordering::SeqCst) {
         return;
     }
+    // Armed first (Round 24 §6.3): nothing below may be able to keep the process alive.
+    arm_exit_guard();
+    // The person closed Lumen: the next start is not a crash.
+    crate::crash_marker::clean_exit();
     crate::discord_presence::shutdown();
     state.jobs.shutdown();
     crate::denoise::cancel_all();
@@ -280,6 +284,15 @@ pub fn begin_shutdown(app: &tauri::AppHandle, state: &AppState) {
     crate::updater::note_closed();
     // A staged update gives the guard the long grace, so a slow Close doesn't skip the install.
     crate::updater::note_close_install(app);
+}
+
+/// Ends the process `EXIT_GRACE` from now if it is still alive (`INSTALL_GRACE` while an update is
+/// being installed; the guard asks each tick, so an install noted later still gets it). Once.
+fn arm_exit_guard() {
+    static ARMED: std::sync::atomic::AtomicBool = std::sync::atomic::AtomicBool::new(false);
+    if ARMED.swap(true, Ordering::SeqCst) {
+        return;
+    }
     let closed_at = Instant::now();
     let _ = std::thread::Builder::new().name("lumen-exit-guard".into()).spawn(move || loop {
         std::thread::sleep(Duration::from_millis(250));
@@ -330,12 +343,27 @@ pub fn on_window_event(window: &Window, event: &WindowEvent) {
         return;
     }
     let state = window.state::<AppState>();
+    // Round 24 §6.3: a page that has stopped answering is not asked anything, so Close always
+    // closes: unsaved edits and the import question both need the page to reply.
+    let page_ok = crate::watchdog::page_is_answering();
+    if !page_ok {
+        tracing::warn!("close: the page is not answering; closing without asking it");
+    }
     match try_lock_for(&state.flush_asked_at, LOCK_TRY) {
         Some(mut asked) => {
             let now = Instant::now();
-            match unsaved_close(state.unsaved_edits.load(Ordering::SeqCst), *asked, now) {
+            match unsaved_close(page_ok && state.unsaved_edits.load(Ordering::SeqCst), *asked, now) {
                 UnsavedClose::AskToFlush => {
                     api.prevent_close();
+                    if asked.is_none() {
+                        // A page that dies after being asked cannot hold the window: close again
+                        // once the wait is over (it then goes through, `unsaved_close`).
+                        let again = window.clone();
+                        let _ = std::thread::Builder::new().name("lumen-close-again".into()).spawn(move || {
+                            std::thread::sleep(FLUSH_WAIT + Duration::from_millis(300));
+                            let _ = again.close();
+                        });
+                    }
                     asked.get_or_insert(now);
                     // `true`: close again once written (*Restart* sends `false`).
                     let _ = window.emit(crate::events::FLUSH_REQUESTED, true);
@@ -349,7 +377,7 @@ pub fn on_window_event(window: &Window, event: &WindowEvent) {
     match try_lock_for(&state.imports, LOCK_TRY).map(|m| m.len()) {
         Some(running) => {
             let confirmed = state.close_confirmed.load(Ordering::SeqCst);
-            if let ImportGuard::Ask { tell_setup } = import_guard(running, confirmed, quitting_for_setup()) {
+            if let ImportGuard::Ask { tell_setup } = import_guard(if page_ok { running } else { 0 }, confirmed, quitting_for_setup()) {
                 api.prevent_close();
                 if tell_setup {
                     // Setup waits for this answer; the question must be where the person can see it.
@@ -364,6 +392,8 @@ pub fn on_window_event(window: &Window, event: &WindowEvent) {
         }
         None => tracing::warn!("close: the import list was busy; closing without asking"),
     }
+    // Before the settings write (disk) or any other step that could stall: from here Close ends.
+    arm_exit_guard();
     let maximized = window.is_maximized().unwrap_or(false);
     let minimized = window.is_minimized().unwrap_or(false);
     let (size, pos) = (window.inner_size().ok(), window.outer_position().ok());

@@ -8,4 +8,9 @@ export type UpdateSettings = {
 /**
  * Download in the background and install on close. Off, nothing happens until *Check*.
  */
-automatic: boolean, channel: UpdateChannel, };
+automatic: boolean, channel: UpdateChannel, 
+/**
+ * Security track: a build the manifest's `minSafe` marks as a security fix is downloaded and
+ * installed (at the next launch, else at Close) even with *Automatic* off. Independent of it.
+ */
+security: boolean, };

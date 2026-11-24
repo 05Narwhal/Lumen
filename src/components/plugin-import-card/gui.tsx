@@ -1,8 +1,8 @@
 import { Button } from "@mantine/core";
 import { IconPlug } from "@tabler/icons-react";
-import { open } from "@tauri-apps/plugin-dialog";
 import { listen } from "@tauri-apps/api/event";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { pickFile, pickFolder } from "@/lib/dialogs";
 import { useEffect, useState } from "react";
 import { invoke, isAppError } from "@/lib/ipc";
 import { queryKeys } from "@/lib/query-keys";
@@ -19,11 +19,9 @@ function Card({ importer }: { importer: PluginImporter }) {
 
   const choose = async () => {
     setError(null);
-    const picked = await open(
-      isFile
-        ? { multiple: false, directory: false, filters: [{ name: importer.label, extensions: importer.extensions }] }
-        : { multiple: false, directory: true },
-    );
+    const picked = isFile
+      ? await pickFile({ filters: [{ name: importer.label, extensions: importer.extensions }] })
+      : await pickFolder();
     if (typeof picked !== "string") return;
     setBusy(true);
     try {

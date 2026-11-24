@@ -6,4 +6,10 @@ export type MapSettings = {
  * Street-level detail and satellite imagery from online tile servers. Off, the map is
  * the bundled world outline only and makes no network request.
  */
-online: boolean, style: MapStyle, };
+online: boolean, style: MapStyle, 
+/**
+ * A person's own ArcGIS Location Platform API key. With it, satellite imagery comes
+ * from Esri under Esri's terms; without it, from EOX. Sent only to Esri inside tile
+ * requests, never logged.
+ */
+esriKey?: string | null, };

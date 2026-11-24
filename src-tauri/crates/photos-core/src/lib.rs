@@ -51,6 +51,8 @@ pub mod ocr;
 pub mod pets;
 pub mod person_groups;
 pub mod places;
+pub mod proposals;
+pub mod proposals_accept;
 pub mod places_online;
 pub mod range;
 pub mod registry;

@@ -3508,11 +3508,12 @@ checksum = "4050469837a6ff301cd14c1f8f24f88549e6d548f24f64e2148eb0f72cebc51f"
 
 [[package]]
 name = "lumen"
-version = "26.2.0-alpha"
+version = "26.3.0-alpha"
 dependencies = [
  "arboard",
  "axum",
  "base64 0.22.1",
+ "blake3",
  "chrono",
  "dirs",
  "fs4",
@@ -3553,6 +3554,7 @@ dependencies = [
  "ts-rs",
  "uuid",
  "webview2-com",
+ "windows",
  "windows-core",
  "windows-sys 0.59.0",
 ]
@@ -4609,7 +4611,7 @@ dependencies = [
 
 [[package]]
 name = "photos-core"
-version = "26.2.0-alpha"
+version = "26.3.0-alpha"
 dependencies = [
  "argon2",
  "blake3",
@@ -4633,7 +4635,7 @@ dependencies = [
 
 [[package]]
 name = "photos-import"
-version = "26.2.0-alpha"
+version = "26.3.0-alpha"
 dependencies = [
  "apfs",
  "blake3",
@@ -4661,7 +4663,7 @@ dependencies = [
 
 [[package]]
 name = "photos-jobs"
-version = "26.2.0-alpha"
+version = "26.3.0-alpha"
 dependencies = [
  "libc",
  "rayon",
@@ -4671,7 +4673,7 @@ dependencies = [
 
 [[package]]
 name = "photos-media"
-version = "26.2.0-alpha"
+version = "26.3.0-alpha"
 dependencies = [
  "blake3",
  "chrono",
@@ -4696,7 +4698,7 @@ dependencies = [
 
 [[package]]
 name = "photos-ml"
-version = "26.2.0-alpha"
+version = "26.3.0-alpha"
 dependencies = [
  "image",
  "imageproc",
@@ -4712,7 +4714,7 @@ dependencies = [
 
 [[package]]
 name = "photos-models"
-version = "26.2.0-alpha"
+version = "26.3.0-alpha"
 dependencies = [
  "reqwest 0.12.28",
  "serde",
@@ -4724,7 +4726,7 @@ dependencies = [
 
 [[package]]
 name = "photos-plugins"
-version = "26.2.0-alpha"
+version = "26.3.0-alpha"
 dependencies = [
  "base64 0.22.1",
  "blake3",
@@ -4751,7 +4753,7 @@ dependencies = [
 
 [[package]]
 name = "photos-raw"
-version = "26.2.0-alpha"
+version = "26.3.0-alpha"
 dependencies = [
  "image",
  "libc",

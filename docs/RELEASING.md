@@ -1,12 +1,14 @@
 # Releasing Lumen
 
-Round 17. Only Julian publishes. Windows builds only, made on his PC; the updater code is cross-platform and other platforms simply find no entry in a channel's manifest.
+Round 17; one release path since release simplification phase 2 (2026-11-14). A release is **a tag**: pushing `v26.X.Y-<channel>` makes `.github/workflows/release.yml` check, build and publish it. Nothing is built or published from a PC. Windows only for now: the updater code is cross-platform and other platforms simply find no entry in a channel's manifest, and macOS / Linux artefacts wait for a self-built FFmpeg with its source (spec decision 4a, then 4d). On those systems people build from source.
 
 ## Versions
 
 `26.X.Y-<channel>`: **X** a major release (only Julian says when it goes up; Y resets to 0), **Y** most updates, **channel** `alpha`, then `beta`, then `stable`. Every published build gets a new Y, promotions included, so one number is one build. A plain `26.1.0` is never published: semver ranks it above `-stable`.
 
-The version lives in `package.json`, `src-tauri/tauri.conf.json` (plus the numeric WiX version), and the workspace `src-tauri/Cargo.toml`. Change it only with:
+**The order is checked within a line (`26.X`), not globally.** X goes up with the first alpha after a stable, so `26.3.5-stable` < `26.4.0-alpha`. A stable hotfix `26.3.5-stable` follows `26.3.4-stable` even when `26.4.2-alpha` is already out; `26.4.0-alpha` follows the newest `26.3.*`. A line with no build yet must start at Y = 0, and a line cannot be started behind a newer one (`previousInLine`, `isNextVersion`).
+
+The version lives in `package.json`, `src-tauri/tauri.conf.json` (plus the numeric WiX version), the workspace `src-tauri/Cargo.toml`, and Lumen Setup's three fields (`installer/`). Change it only with:
 
 ```sh
 node scripts/release/set-version.mjs 26.1.1-alpha
@@ -14,117 +16,149 @@ node scripts/release/set-version.mjs 26.1.1-alpha
 
 `src-tauri/tests/version_fields.rs` fails if the fields disagree.
 
-## Releases from CI (2026-11-14)
-
-Pushing a tag `v26.X.Y-<channel>` runs `.github/workflows/release.yml`: it uploads the FFmpeg source bundle once (release `ffmpeg-sources-n9.0.2-47`, made by `scripts/release/ffmpeg-sources.mjs`; the job skips when that release exists), builds Windows, macOS (universal) and Linux (AppImage and deb) with `tauri-apps/tauri-action` into a draft release whose notes come from `docs/CHANGELOG.md`, publishes the draft, then `scripts/release/channels.mjs` points the channel manifests at the Windows installer (the updater is Windows-only today). Secrets: `TAURI_SIGNING_PRIVATE_KEY`, `TAURI_SIGNING_PRIVATE_KEY_PASSWORD`, `LUMEN_PLUGIN_PUBKEY`, `LUMEN_DISCORD_CLIENT_ID`; a fork without them still builds with those features hidden. The Windows job needs `ffmpeg-x86_64-pc-windows-msvc.exe` and `ffprobe-x86_64-pc-windows-msvc.exe` to be the build `sources.json` describes: upload them to the `ffmpeg-sources-…` release once (the job takes them from there, else fetches one) and it stops if the hash differs from `ffmpeg.sidecarSha256`. Windows code signing goes through SignPath Foundation once the project is approved; until then the step only says so and the notes read *unsigned: SmartScreen will warn*. macOS is not notarized (the notes give *right-click → Open*). The local `release.mjs` flow above (gates, Lumen Setup, library check) still works for a build made on a PC; the workflow does not build *Lumen Setup*.
-
-## Where releases live
-
-**Amended 2026-11-14 by the open-source plan:** releases live in the public source repository `05Narwhal/lumen`, and the models stay in the public `05Narwhal/lumen-models`. The `releases-repo` gate checks `05Narwhal/lumen`. The updater's default URL, `publish.mjs` and `publish.ps1` name `05Narwhal/lumen` (Phase 3, Task 8 of `docs/superpowers/plans/2026-11-14-open-source.md`). **The local `26.1.1-alpha` backup build still polls `05Narwhal/lumen-releases`, so it never sees an update: reinstall it once from a build of the new repo.**
-
-Each build is a release `v26.1.1-alpha` (a GitHub pre-release unless `-stable`) with the NSIS installer, its `.sig`, the full Lumen Setup (`Lumen-Setup-<version>.exe`), the notes, and the third-party source. A permanent release named `channels` holds `alpha.json`, `beta.json` and `stable.json`, each in `tauri-plugin-updater`'s static format and naming the newest build that channel may take. A channel with no build yet holds `0.0.0-<channel>`, which no install takes. Lumen reads `https://github.com/05Narwhal/lumen/releases/download/channels/<channel>.json`; no token is in the app.
-
-A `-stable` updates all three channels, a `-beta` updates beta and alpha, an `-alpha` updates alpha.
-
-## The signing key (once)
-
-The updater only runs files signed by Lumen's key (minisign, through `tauri signer`). **Losing the key strands every install**: they could never update again. So:
-
-1. In your own terminal (it asks for a password): `yarn tauri signer generate -w $env:USERPROFILE/.lumen-release/lumen.key`
-2. Back up `lumen.key` and its password somewhere safe and offline. Never commit, paste or log either.
-3. Put the public key (`lumen.key.pub`'s content) in `src-tauri/tauri.conf.json` → `plugins.updater.pubkey`, and commit that. Until it is set, Lumen shows *Updates are not set up in this build* and makes no network call.
-
-To release, the private key goes in the terminal's environment only:
-
-```powershell
-$env:TAURI_SIGNING_PRIVATE_KEY = Get-Content $env:USERPROFILE/.lumen-release/lumen.key -Raw
-$env:TAURI_SIGNING_PRIVATE_KEY_PASSWORD = Read-Host -AsSecureString | ConvertFrom-SecureString -AsPlainText
-```
-
 ## Making a release
 
-1. On `main`, clean: `node scripts/release/set-version.mjs 26.1.1-alpha`, write its section in `docs/CHANGELOG.md` (the text Lumen shows as the notes), run `yarn run licenses`, commit.
-2. Set the key (above) and `LUMEN_RELEASE_LIBRARY` to a real library's folder. The script only reads it: the candidate migrates a temp copy of its catalogue.
-3. Try it: `node scripts/release/release.mjs 26.1.1-alpha --dry-run`. It prints every gate. `--skip-checks` (dry run only) skips the full test suites.
-4. Release: `node scripts/release/release.mjs 26.1.1-alpha`.
+1. On `main`: `node scripts/release/set-version.mjs 26.1.1-alpha`, write its section in `docs/CHANGELOG.md` (the text Lumen shows as the notes), run `yarn run licenses`, commit.
+2. Push `main` and wait for CI (`frontend`, `scripts`, `rust (windows-latest)`) to be green on that commit: the `checks` gate reads it.
+3. Tag and push: `git tag v26.1.1-alpha && git push origin v26.1.1-alpha`.
 
-**From CPM:** the Lumen project's *Publish release* script runs `scripts/release/publish.ps1`, which does steps 2 to 4 in one window: it loads the key from `$env:USERPROFILE/.lumen-release/lumen.key` and asks for its password (both stay in that window's environment only), asks for the library (default `C:/Users/Sample/Pictures/Lumen Library`, only read), offers to make `lumen` public while it is private, runs the dry run, and publishes only after you type the version. Step 1 stays yours.
+That is all. A tag whose gates fail stops before anything is built or published; fix it, delete the tag and tag the corrected commit (the version number can be reused only if nothing was published: a draft release for the tag is deleted first).
 
-It refuses unless every gate holds:
+## Shipping a security fix
 
-| Gate | Holds when |
+A fix people should get without asking installs by itself (Settings → Updates → *Install security fixes automatically*, on by default): Lumen downloads it in the background and installs it at the next close or the next start, before the library opens, once per version. It never restarts Lumen while it is open. What makes a build a *security fix* is one field in the channel manifests, `minSafe`, and everything below exists to set it safely.
+
+**A stable line lives on `release/26.X`.** When `26.X.Y-stable` ships, cut the branch from its tag and push it (branch protection on `release/*`, see *One-time GitHub setup*):
+
+```sh
+git branch release/26.3 v26.3.4-stable && git push origin release/26.3
+```
+
+**To ship a fix:**
+
+1. Prepare it privately if the problem is not public yet: the repository's *Security* → *Advisories* → the report → *Start a temporary private fork*. Merge it into the public repository only when the release is ready.
+2. Land the fix on `main` first (pull request, DCO sign-off, CI green).
+3. Cherry-pick it onto `release/26.X` (`git cherry-pick -x <sha>`, by pull request into the branch). **No migration:** the `no-migration` gate refuses a security build whose `photos-core/migrations` differs from the line's previous tag, because a silent install must never rewrite a schema on a stable line. If the fix needs one, ship it as an ordinary release instead.
+4. On `release/26.X`: `node scripts/release/set-version.mjs 26.X.(Y+1)-stable`, and write the section as **`## 26.X.(Y+1)-stable · security`** in `docs/CHANGELOG.md` (plain text for the person using Lumen; say what was wrong in one honest sentence). Add the same section to `main`'s changelog too, below the newer entries. Commit, push, wait for CI on that commit.
+5. Tag from the branch: `git tag v26.X.(Y+1)-stable && git push origin v26.X.(Y+1)-stable`. The workflow runs every gate as for any tag (`tag-ref` accepts a commit on `release/*`; `next-version` compares within the line).
+6. Tag the next alpha (and beta, if one is out) from `main` with the fix in it, as usual. A preview may carry a migration; the safety copy still runs first.
+
+**What the release step does.** The `· security` heading makes `channels.mjs` set `"minSafe": "26.X.(Y+1)-stable"` in `stable.json`, `beta.json` and `alpha.json`, the channels a stable build reaches. A channel that holds a *newer* build (a `26.4.2-alpha`) keeps it (never lower, above) and only gains the `minSafe`. `minSafe` is copied forward by every later release and only ever goes up, so someone who skipped the fix is still caught by a later ordinary manifest. A person running a build **below** `minSafe` is offered the channel's *newest* build as a security update, even with *Automatic updates* off (the manifest names one build, not the exact patched one). A build at or above `minSafe` is untouched.
+
+**Check before you tag.** Is the section's heading exactly `· security`? Is `migrations/` unchanged (`git diff v26.X.Y-stable HEAD -- src-tauri/crates/photos-core/migrations`)? A tag with the heading but a failing gate stops before anything is published: fix and re-tag as in *Making a release*. After publishing, open `https://github.com/05Narwhal/lumen/releases/download/channels/stable.json` and check `version` and `minSafe`.
+
+**Rolling `minSafe` back.** It should not be needed. If a `· security` mark was wrong, publish the next build without the marker: `minSafe` stays (it only goes up), so a wrong mark is fixed by making the marked build actually safe, not by editing the `channels` release by hand.
+
+### One-time GitHub setup (Julian)
+
+Nothing to buy, no new key, secret or repository: the same updater key signs security builds and they use the same `channels` release.
+
+1. **Branch protection on `release/*`**, like `main`: Settings → Branches → *Add branch ruleset* (or classic rule) with the pattern `release/*`: require a pull request, require the CI checks `frontend`, `scripts` and `rust (windows-latest)`, require signed-off commits (the DCO check), block force pushes and deletion. Without it a stable line can be rewritten.
+2. **Private vulnerability reporting on**: Settings → Code security → *Private vulnerability reporting* → Enable (`SECURITY.md` sends reporters to it).
+3. **Security advisories**: used to prepare a fix in a *temporary private fork* before it is public (step 1 above); nothing to switch on beyond step 2.
+
+## What the workflow does
+
+| Job | Does |
 |---|---|
-| `version`, `version-fields`, `next-version` | The version follows the scheme, every field says it, and it comes after the last published one. |
-| `clean`, `main` | No changes in the tree, on `main`. |
-| `changelog` | `docs/CHANGELOG.md` has `## <version>`. |
-| `sidecars` | FFmpeg, ffprobe and ExifTool are in `src-tauri/binaries`. |
-| `notices` | `yarn run licenses` changes nothing. |
-| `checks` | `cargo test --workspace`, clippy with `-D warnings`, `yarn typecheck`, `yarn test`. |
-| `signing` | A public key in `tauri.conf.json` and `TAURI_SIGNING_PRIVATE_KEY` set (only checked for presence). |
-| `no-test-overrides` | None of `LUMEN_BAKED_APP_DATA_DIR`, `LUMEN_BAKED_LIBRARY_DIR`, `LUMEN_UPDATE_TEST_BASE` is set: they make a build use other folders or another update server. |
-| `library-check` | The built `lumen.exe --check-library $LUMEN_RELEASE_LIBRARY` migrates a temp copy. |
-| `rawler` | `cargo tree -i rawler` shows only `photos-raw` depending on it, and its library is in `bundle.resources` (the replaceable library; holds since `main` was merged in, 2026-11-02). |
-| `ffmpeg-source` | The FFmpeg sidecar is the build `scripts/release/sources.json` records (version and SHA-256), **every `--enable-*` in its own configuration** has its source listed, and each source file is in the bundle with its SHA-256. A new FFmpeg build with a new library refuses until its source is listed. |
-| `source-bundle` | ExifTool and Strawberry Perl sources are in the bundle (`photos-raw`'s source is the tagged repository). |
-| `releases-repo` | `gh` can see `05Narwhal/lumen`. |
-| `stable-only` | For `-stable` only: `scripts/release/gates.json` marks Jamendo and Esri resolved. |
+| `ffmpeg-sources` | Uploads the exact source of the FFmpeg build Lumen ships (and ExifTool's) once, as the release `ffmpeg-sources-n9.0.2-47`, made by `scripts/release/ffmpeg-sources.mjs` from `sources.json`; skipped when that release exists. The GPL asks for this source; every other source is the tagged repository. |
+| `notes` | The version's section of `docs/CHANGELOG.md` plus a fixed footer: **`Lumen-Setup-<version>.exe` is the download**, the NSIS installer is in the release because the updater installs it, Windows only, unsigned (SmartScreen warns). |
+| `preflight` | Windows. Fetches the sidecars (composite action `.github/actions/windows-sidecars`) and runs `node scripts/release/preflight.mjs before <version>`: the gates in the first block below. |
+| `build` | Windows. `node scripts/release/setup-build.mjs <version>` (the order below), then `preflight.mjs after`: the second block, then makes the **draft** release and uploads the NSIS installer, its `.sig` and `Lumen-Setup-<version>.exe`. |
+| `publish` | Publishes the draft, then `scripts/release/channels.mjs` points the channel manifests at it, last, so a half-done release is never offered. One channel update runs at a time across tags (`concurrency: release-channels`), because it reads each manifest before writing it. |
 
-Then it builds (`scripts/release/setup-build.mjs`, see *Installer and Lumen Setup*), checks the size budget, and publishes in this order, so a half-done release is never offered: upload everything to a **draft** → download it back and **verify** each file's SHA-256 → **publish** → update the **channel manifests last**. The first publish creates the `channels` release with all three manifests.
+### Preflight gates
 
-The third-party source is gathered into `dist-release/<version>/source/` (git-ignored) from the URLs and SHA-256s in `sources.json`. There is no written offer of source and no `photos-raw` archive any more: the source is public, and Settings → Licences links to `https://github.com/05Narwhal/lumen`. The FFmpeg source bundle (the exact source of the FFmpeg build Lumen ships, which the GPL still asks for) is uploaded once per FFmpeg build as the release `ffmpeg-sources-n9.0.2-47` (Task 9's workflow); every other source is the tagged repository.
+`scripts/release/preflight.mjs` (`evaluatePreflight`, pure; the CLI gathers the facts from the checkout, `git`, `gh`, `cargo` and the sidecar) prints each gate and exits 1 on any failure. Rules are in `gates.mjs`.
+
+| Gate | Phase | Holds when |
+|---|---|---|
+| `version`, `version-fields`, `next-version` | before | The tag follows the scheme, every field says it, and it comes after the last published release **of its own line** (`26.X`). |
+| `no-migration` | before | Only for a security build (changelog heading `· security`) that is `-stable` or on `release/*`: `src-tauri/crates/photos-core/migrations` is identical to the line's previous tag, so a silent install never rewrites a schema on a stable line. It refuses when git cannot compare. A preview, or a build that is not a security fix, always passes. |
+| `tag-ref` | before | The tag is `v<version>` and its commit is on `main` or `release/*`. |
+| `changelog` | before | `docs/CHANGELOG.md` has `## <version>`. |
+| `notices` | before | `yarn run licenses` changes nothing. |
+| `checks` | before | CI's `frontend`, `scripts` and `rust (windows-latest)` jobs succeeded on the tagged commit (`checksFromRuns`). |
+| `env` | before | None of `TEST_OVERRIDES` (`LUMEN_BAKED_*`, `LUMEN_UPDATE_TEST_BASE`, `LUMEN_SETUP_PRODUCT`, `LUMEN_SETUP_IDENTIFIER`) is set: they make a build use other folders or another update server. |
+| `rawler` | before | `cargo tree -i rawler` shows only `photos-raw` depending on it, and its library is in `bundle.resources` (the replaceable library). |
+| `ffmpeg-source` | before | The FFmpeg sidecar is the build `scripts/release/sources.json` records (version and SHA-256), **every `--enable-*` in its own configuration** has its source listed, and each source file is in the source release with its SHA-256. A new FFmpeg build with a new library refuses until its source is listed. |
+| `source-bundle` | before | ExifTool and Strawberry Perl sources are in the source release (`photos-raw`'s source is the tagged repository). |
+| `library-check` | after | The built `lumen.exe --check-library` opens every **synthetic** library, one per published schema (`PUBLISHED_SCHEMAS` in `src-tauri/tests/library_fixtures.rs`, generated into a temp folder; never a real library). Julian can still run `--check-library` on a **copy** of his own library by hand; it is not a gate. |
+| `setup-sizes` | after | The full Setup is at most the NSIS installer + 6 MiB, the slim Setup at most 6 MiB (`setupSizeGate`). |
+
+Not gates any more: `clean`, `main` (a tag in CI is clean, and `tag-ref` covers the branch), `signing` (the build fails without the key), `releases-repo`, `sidecars` as a local check, `stable-only` (a `-stable` tag is held to the same gates as any other).
+## Where releases live
+
+Releases live in the public source repository `05Narwhal/lumen`; the models stay in the public `05Narwhal/lumen-models`. The updater's default URL, `publish.mjs` and `channels.mjs` name `05Narwhal/lumen`. **The local `26.1.1-alpha` backup build still polls `05Narwhal/lumen-releases`, so it never sees an update: reinstall it once from a build of the new repo.**
+
+Each build is a release `v26.1.1-alpha` (a GitHub pre-release unless `-stable`) with the NSIS installer, its `.sig` and the full Lumen Setup (`Lumen-Setup-<version>.exe`). A permanent release named `channels` holds `alpha.json`, `beta.json` and `stable.json`, each in `tauri-plugin-updater`'s static format and naming the newest build that channel may take. A `-stable` updates all three channels, a `-beta` updates beta and alpha, an `-alpha` updates alpha. Lumen reads `https://github.com/05Narwhal/lumen/releases/download/channels/<channel>.json`; no token is in the app.
+
+**A channel is never lowered.** `channels.mjs` reads each manifest it would write first and writes only when the new build is not lower, so a `26.3.5-stable` hotfix published after `26.4.2-alpha` updates `stable.json` and leaves `alpha.json` (and a higher `beta.json`) alone. Re-running the same version is allowed (it finishes a half-done update). A manifest that cannot be read stops the whole update rather than risk overwriting it; the `channels` release is never edited by hand. A manifest with no `minSafe` is exactly what it was before the security track.
+
+**Why a channel with no build holds a placeholder.** It holds `0.0.0-<channel>`, a version below every real one, so no install takes it. The placeholder is why a 404 can be read as *could not check* (`check_fail`) rather than as "no update": every manifest exists from the first publish on (`updateChannels`, `placeholderManifest`).
+
+The third-party source is no longer gathered per release: there is no written offer of source and no `photos-raw` archive. The source is public, Settings → Licences links to `https://github.com/05Narwhal/lumen`, and the FFmpeg source release above carries the one part that is not in the repository.
+
+## Keeping Actions free
+
+GitHub Actions minutes are free and unlimited on a **public** repository and metered on a private one (2,000 a month, Windows at 2x, macOS at 10x). So every workflow (CI, `release.yml`, dry runs) runs only on the public `05Narwhal/lumen`; a private repository, including a scratch repository for a dry run, has Actions turned off. A dry run goes in a **public** scratch repository and is deleted afterwards. In the account's Billing → Budgets and alerts, keep the Actions budget at $0 with *Stop usage when the budget is exceeded*, so nothing can be billed. Dependabot is set to one grouped monthly pull request per ecosystem, no major versions (`.github/dependabot.yml`), because each of its pull requests is an email.
 
 ## Installer and Lumen Setup
 
-A release carries two Windows files, both uploaded: `Lumen_<version>_x64-setup.exe` (the NSIS installer; the channel manifests and the updater point **only** at this one) and `Lumen-Setup-<version>.exe` (the full Lumen Setup, the branded window that runs that installer silently, for people downloading Lumen the first time). The build order is fixed by one rule, that the payload sits inside the signed file and nothing is appended after signing:
+A release carries two Windows files: `Lumen_<version>_x64-setup.exe` (the NSIS installer; the channel manifests and the updater point **only** at this one) and `Lumen-Setup-<version>.exe` (the full Lumen Setup, the branded window that runs that installer silently: **the file people download**). The build runs in `scripts/release/setup-build.mjs`, whose order is fixed by one rule, that the payload sits inside the signed file and nothing is appended after signing (the workflow runs it instead of `tauri-action`, so the order stays in one tested script):
 
 1. `vite build` for Setup's window, then the **slim Setup** (`installer/src-tauri`, no payload, about 5 MB), signed.
 2. `tauri build --bundles nsis` with a `--config` overlay file (`dist-release/<version>/nsis-overlay.json`) that adds the slim Setup as a bundle resource landing at **`$INSTDIR\lumen-setup.exe`** (exactly that name: the hook `NSIS_HOOK_POSTINSTALL` makes it Lumen's uninstaller only when it is there) and the updater artefacts. Tauri signs the installer **during** this build (`bundle.windows.signCommand`), because the updater's minisign `.sig` is taken over the finished file; signing afterwards would invalidate it.
 3. The installed size is added up from the merged Tauri config (Lumen, the sidecars, every resource, the slim Setup, the uninstaller) and baked into the full Setup as `LUMEN_SETUP_INSTALLED_BYTES`; Setup's free-space check and the progress bar use it (installed size + the installer written to temp + 5 %).
 4. The **full Setup** is built with `--features payload` and `LUMEN_SETUP_PAYLOAD=<the signed installer>` (`include_bytes!`), signed, and written beside the installer as `Lumen-Setup-<version>.exe`.
 
-**Signing is optional.** Set `LUMEN_SIGN_CERT_SHA1` to the 40-digit SHA-1 thumbprint of an Authenticode certificate in your Windows certificate store (no secret goes in the environment; `LUMEN_SIGN_TIMESTAMP_URL` overrides DigiCert's timestamp server). `signtool` is taken from `PATH` or the newest Windows SDK. With it set, the slim Setup, the NSIS installer and the full Setup are signed; without it everything builds unsigned and the release prints that Windows SmartScreen will warn. It is separate from the updater's minisign key and is not a gate this round.
+It writes `dist-release/<version>/sizes.json` (what `setup-sizes` reads) and `built.json`; `collectArtifacts` refuses an installer without its `.sig`. The updater's key comes from the environment as the key's **text** (`TAURI_SIGNING_PRIVATE_KEY`), never from a file path (`updaterKeyFromEnv`), so the same build runs anywhere there is the secret.
 
-**Size gate `setup-sizes`** (checked after the build, before anything is uploaded): the full Setup is at most the NSIS installer + 6 MiB, the slim Setup at most 6 MiB. `gates.mjs` `setupSizeGate`.
+**Windows code signing (SignPath placeholder).** `setup-build.mjs` signs with `signtool` when `LUMEN_SIGN_CERT_SHA1` names a certificate (`LUMEN_SIGN_TIMESTAMP_URL` overrides DigiCert's timestamp server). CI has none, so releases are unsigned and the notes say SmartScreen will warn. SignPath Foundation plugs into `signCommand` (`tauriSignCommand`) once the project is approved; the order above does not change. It is separate from the updater's minisign key.
 
 **Lumen Setup's version** is `installer/package.json`, `installer/src-tauri/tauri.conf.json` and `installer/src-tauri/Cargo.toml`; `set-version.mjs` writes them and `src-tauri/tests/version_fields.rs` fails if they disagree with Lumen's (Setup shows that version and compares it with the installed one).
 
-**Test identities never reach a release.** `LUMEN_SETUP_PRODUCT` and `LUMEN_SETUP_IDENTIFIER` (a *Lumen Test* Setup) join `LUMEN_BAKED_*` in the `no-test-overrides` gate, and the build clears `LUMEN_SETUP_PAYLOAD` / `LUMEN_SETUP_INSTALLED_BYTES` for the slim Setup.
+**Test identities never reach a release.** `LUMEN_SETUP_PRODUCT` and `LUMEN_SETUP_IDENTIFIER` (a *Lumen Test* Setup) join `LUMEN_BAKED_*` in the `env` gate, and the build clears `LUMEN_SETUP_PAYLOAD` / `LUMEN_SETUP_INSTALLED_BYTES` for the slim Setup.
 
 **Third-party notices.** Setup's Rust and npm dependencies are all already in `src/assets/licenses/notices.json` (checked 2026-11-06: tauri, tauri-plugin-dialog, reqwest, tokio, winreg, windows-sys, sysinfo, ts-rs, react, Inter), and the full Setup carries Lumen's installer with its Licences screen, so `scripts/licenses/generate.mjs` still reads only `src-tauri/Cargo.toml`. A new Setup-only dependency must be added to that script's graph first.
 
 **Workspace or standalone:** standalone (decided in phase 3: cold test build 1 min 16 s; Cargo honours `[profile.release]` only at a workspace root and Setup needs `opt-level = "s"` + LTO + `panic = "abort"`). A cold release build of Setup takes about 4.5 min with its own `installer/src-tauri/target`; Lumen's builds are not slowed by it.
 
-## What still blocks the first release (updated 2026-11-06)
+## The signing key (once)
 
-The notes for `26.1.0-alpha` are written (`docs/CHANGELOG.md`) and CPM's *Publish release* script exists.
+The updater only runs files signed by Lumen's key (minisign, through `tauri signer`), and Tauri accepts **one** public key (`plugins.updater.pubkey`). There is one updater keypair and no second key. **Losing the key strands every install**: they could never update again. So:
 
-- **The signing key** (Julian, above). `publish.ps1` stops with the command to make it while it is missing.
-- **`05Narwhal/lumen` is private.** `publish.ps1` offers to make it public before the dry run (or: `gh repo edit 05Narwhal/lumen --visibility public --accept-visibility-change-consequences`). While it is private every check reads as *Could not check*.
-- **The FFmpeg sidecars: Julian chose B (BtbN) on 2026-11-06.** Still to do, one session: take `ffmpeg-n9.0-latest-win64-gpl-9.0.zip` from a dated `autobuild-*` release (keep the zip and its `checksums.sha256` line in `dist-release/ffmpeg/`), run *Before swapping* below, rewrite `sources.json` → `ffmpeg` from that day's `scripts.d` commit, then replace both sidecars. Until then the `ffmpeg-source` gate refuses.
-- **FFmpeg route B, progress (2026-11-07).** *Phase 1 done:* `autobuild-2026-11-06-12-50`, `ffmpeg-n9.0.2-47-gb204e94e90-win64-gpl-9.0.zip` (SHA-256 `8436c891…a0a8`, matches BtbN's `checksums.sha256`; the zip and the checksum line are in `dist-release/ffmpeg/`, git-ignored) was extracted elsewhere and run: `libx264`, `libx265`, `libaom-av1`, `h264_nvenc`, `h264_amf`, `h264_qsv`, `zscale`, `tonemap`, `xfade`, `overlay`, `concat` are all present. `cargo test -p photos-media --test ffmpeg` (all 5 including the ignored speed test, NVENC on this PC), the slideshow and export lib tests (24 incl. AVIF/HEIC/trim) and `slideshow_export` on six synthetic photos (21.0 s of 1080p, x264 and NVENC, duration exact) passed with `LUMEN_FFMPEG_DIR` pointing at it. AMF and QSV could not run here (NVIDIA only). *Found:* this build enables **75 `--enable-*` flags** (gyan's essentials had far fewer: libplacebo, librsvg, rav1e, libjxl, svtav1, vulkan, opencl, vaapi, …), so `sources.json` grows to ~120 components. *Phase 2, started:* `scripts/release/btbn-sources.mjs` (+ test) reads `scripts.d` at the scripts commit **`c63bb308a1de656b425c132a8102f8fd5389afc5`** (the Actions run that made this build; clone BtbN/FFmpeg-Builds and check it out), finds the stages the binary's flags need plus their `ffbuild_depends`, and gives each an archive URL; `btbn-plan.mjs <checkout> <ffmpeg -version file> [draft.json]` prints the plan (75 flags → 84 stages → 124 components, no unclaimed flag). `gates.mjs` now reads BtbN's `n9.0.2-47-g…-date` version string. **Still to do:** (1) a fetch step that downloads each archive with retries, fills `sha256`/`file` and writes `sources.json` → `ffmpeg` (`version` = `n9.0.2-47-gb204e94e90-20261106`, `options` = gpl, version3, pthreads, schannel; FFmpeg itself = FFmpeg/FFmpeg commit `b204e94e90` resolved to its full SHA; add BtbN/FFmpeg-Builds at `c63bb308…` as a component, because its `patches/` are applied to FFmpeg, aom and others); (2) the **6 submodule builds** (libjxl, libplacebo, mbedtls, glib, openssl, zimg): a GitHub archive leaves submodules out, so list each submodule's commit from `.gitmodules`; (3) **lame r7113 and xvid r2204 are Subversion revisions**, no archive exists: export them and host the tarball with the release's source, or take the nearest release tarball and say so; (4) **librsvg and rav1e are Rust**: their crates come from crates.io at build time, and each `Cargo.lock` carries every crate's SHA-256, so list them from it; (5) drop the gyan-only `others` rows (pixman, nettle, libsodium, expat, OpenSSL "linked into FFmpeg") and let the plan supply what this build links; (6) replace both sidecars with the extracted `ffmpeg.exe` / `ffprobe.exe`, set `sidecarSha256`, run `node scripts/release/release.mjs 26.1.0-alpha --dry-run --skip-checks` until `ffmpeg-source` holds; (7) `docs/STATE.md` says this machine has gyan's build: update it, and CLAUDE.md's summary. **The sidecars in `src-tauri/binaries/` are still gyan's 9.0.1** and `sources.json` is unchanged, so the gate still refuses.
-- **FFmpeg route B, progress (2026-11-07, later session).** Built and committed (`c2c071b`): `btbn-fetch.mjs` (plan → rows with SHA-256; git submodules resolved with `git ls-tree`; Rust crates from the `Cargo.lock` of rav1e and librsvg, with crates.io URLs and the lock's checksums), `svn-export.mjs` (LAME r7113 and Xvid r2204 read over Subversion's HTTP interface into reproducible tarballs kept in `scripts/release/vendored-source/`; a component with `local` is copied into the bundle and checked by the gate). The **sidecars in `src-tauri/binaries/` are now BtbN's n9.0.2-47** (ffmpeg SHA-256 `a7653b63…8e2d`; gyan's 9.0.1 kept in `dist-release/ffmpeg/gyan-9.0.1-backup/`). `sources.json` is **not** rewritten yet: run `node scripts/release/btbn-fetch.mjs <FFmpeg-Builds checkout at c63bb308…> <ffmpeg -version file> --sidecar-sha <hex> --write` once these are settled. Open: (1) **38 archives answer 406** from gitlab.freedesktop.org, code.videolan.org (x264, dav1d, libplacebo, libbluray…), gitlab.com (libssh) and git.savannah.gnu.org (500/400): those hosts refuse the script's plain request; no browser-header workaround was used. Decision needed: mirror them, fetch by `git` and host our own tarballs, or ask the hosts. (2) **AMF** (a download of ~400 MB) reset 12 times in a row; `curl -C -` is wrong for GitHub archives (no range support: it appended a second copy), so retry whole. (3) `scripts/fetch-ffmpeg.ps1` still downloads gyan's build for new dev machines. (4) Then the dry run (`release.mjs 26.1.0-alpha --dry-run --skip-checks`) and STATE.md / CLAUDE.md summaries.
-- **FFmpeg route B, dry run (2026-11-08).** `sources.json` rewritten (782 sources); `dist-release/26.1.0-alpha/source/` holds 731 files (the 578 that `missing.curl` fetched, plus the rest copied from `dist-release/ffmpeg/source-cache/` and `vendored-source/` by `source-bundle.mjs`, which now reuses the cache and times each download out at 20 minutes). `node scripts/release/release.mjs 26.1.0-alpha --dry-run --skip-checks` reports **`ffmpeg-source` ok and `source-bundle` ok** (every file present and equal to its recorded SHA-256), and also ok: main, changelog, version-fields, next-version, sidecars, no-test-overrides, rawler, licences-offer, releases-repo. Still refusing: `clean` (commit), `notices` (the file carries its generation date, so `yarn run licenses` must be re-run and committed on release day), `checks` (skipped by the flag), `signing` (`TAURI_SIGNING_PRIVATE_KEY`, Julian's key). Nothing was built or published.
-- **AMF's source archive (398 MB) is flaky to fetch:** GitHub resets the connection part way. `release.mjs` retries each file five times and then lists it as missing; run it again (the files already fetched are kept) until the gate holds.
+1. **Make it** in your own terminal (it asks for a password; use a long random one from a password manager): `yarn tauri signer generate -w $env:USERPROFILE/.lumen-release/lumen.key`
+2. **Commit only the public key**: `lumen.key.pub`'s content goes in `src-tauri/tauri.conf.json` → `plugins.updater.pubkey`, and never changes. Never commit, paste or log the private key or its password.
+3. **Keep it in three places.** (a) The GitHub secrets `TAURI_SIGNING_PRIVATE_KEY` (the key file's **text**) and `TAURI_SIGNING_PRIVATE_KEY_PASSWORD`: write-only, they cannot be read back, so never the only copy. (b) A password-manager entry holding the key file's text and its password, with the manager's emergency access set for the successor (see `GOVERNANCE.md`). (c) Two offline copies of the encrypted key file: a USB stick in a safe and a printout (it is a few hundred characters), with the password stored apart from them.
+4. **The plugin key** (the *From JL Studios* package signature; `src-tauri/plugin-pubkey.txt` is its public half, tracked) is a separate minisign key with a separate blast radius, kept in the same three places. The Discord application id is tracked in `src-tauri/discord_client_id.txt`; an environment value overrides either file.
 
-## The FFmpeg gate: ways out (2026-11-02, for Julian to pick)
+**Changing the password** without changing the key: `minisign -C -s lumen.key`, then update the GitHub secret and the manager entry. **Changing the key** is only for a leak: ship a release signed with the old key that carries the new public key, then retire the old one.
 
-**The problem.** The GPL asks Lumen, the one who hands out the FFmpeg program, for the exact source of what is inside it. gyan.dev's 9.0.1 essentials build names four libraries that no tag, release or findable commit matches: cairo 1.18.5, x265 `4.3-6-g9ddc216`, libva 2.25.0, libgme 0.6.6 (checked 2026-11-01 against each upstream; sources.json has the notes). Of the four, only **x265 is used by Lumen** (HEIC export and the HEVC trim export; `libx264` is the CPU H.264 encoder, `libaom-av1` is AVIF, `zscale` tone-maps HDR). cairo, libva (VAAPI is Linux-only) and libgme (game-music files) are in the build but not used.
+CI signs with the two secrets (`.github/workflows/release.yml`). There is no local release path. To try a build on a PC, put the key's **text** in that terminal's environment only (`$env:TAURI_SIGNING_PRIVATE_KEY = Get-Content ... -Raw`, never into a file in the repository) and run `node scripts/release/setup-build.mjs <version>`; it builds into `dist-release/<version>/` (git-ignored) and publishes nothing.
 
-**What Lumen needs from FFmpeg** (from `photos-media` and the Round 15 video prep): `libx264`, `libx265`, `libaom-av1`, the GPU H.264 encoders `h264_nvenc` / `h264_amf` / `h264_qsv` (the last through Intel's libvpl) plus `aac` (built in), `zscale` (libzimg) with the built-in `tonemap`, `xfade`, `overlay` and `concat`. It does **not** use subtitles, networking (srt, ssh, zmq), the audio codecs behind libopus/vorbis/mp3lame, or Media Foundation, so most of the 60-odd libraries in gyan's build are weight and paperwork, not features.
+## Before going public (checklist)
 
-| | **A. Ask gyan.dev** | **B. BtbN's FFmpeg-Builds (recommended for the alpha)** | **C. Build FFmpeg here, trimmed** |
-|---|---|---|---|
-| Exact source | Only if gyan.dev answers with four commits. He may not have them (these are development versions of his own tree), may not answer, and the same hole reopens with every update. | Every library is pinned by commit in `scripts.d/*.sh` (e.g. x265 `5143a2a0…`, x264 `0480cb05…`, aom, zimg, AMF, libvpl, nv-codec-headers); the FFmpeg commit is in the file name (`n9.0.2-39-g7adfbe40dc`). The scripts' own commit for a given day's build is on that day's Actions run (2026-10-31: `5031c6f1`). | All of it, by construction: we choose the commits. |
-| Licence | GPLv3 (`--enable-gpl --enable-version3`), as today. | GPLv3, same as today. The scripts repo is MIT. **Their LGPL variant is no way out:** it drops x264 and x265, which Lumen uses. | GPLv3 while x264/x265 stay; the build is ours to trim to what Lumen uses. |
-| Size | Today: ffmpeg 98.1 MB + ffprobe 97.9 MB. | Measured from the zip's listing (the 2026-10-31 build, `n9.0.2-39`, GPL static): **ffmpeg.exe 166 MB, ffprobe.exe 166 MB**, i.e. ~136 MB more in the installer's input than today (the installer compresses it). BtbN also has `-shared` builds (82 MB zip: small exes plus DLLs both programs share), which would be smaller overall but means shipping DLLs beside the sidecars. | A trimmed build (the ~10 libraries above, no ffplay) should come out well under today's 98 MB. Not measured. |
-| Encoders Lumen uses | Known to work: it is what Round 15 was tested on. | The scripts enable x264, x265, aom, zimg, AMF, nv-codec-headers (`--enable-ffnvcodec`) and libvpl (`--enable-libvpl`) for the GPL win64 variants. **Not verified by running the binary** (this session's sandbox refused to run a downloaded executable): before swapping, run `ffmpeg -encoders` and `cargo test -p photos-media --test ffmpeg` against it. | We choose them; nothing to guess, but every encoder is tested on a GPU of each make (only an NVIDIA/AMD/Intel mix of PCs can do that). |
-| Work | Small: write the message (below), wait. If he answers, fill four entries and the gate passes. If not, we are back to B or C with days lost. | Medium: download, check, replace the two sidecars (`sidecarSha256`), re-fill `sources.json` from the scripts at that commit (~50 entries, each a URL + SHA-256: roughly the work done on 2026-11-01 for gyan's), run the media tests and a GPU-encoder check on this PC. Updating FFmpeg later repeats the `sources.json` step. | Large: a Docker or WSL toolchain, a pinned script per library (BtbN's scripts are the obvious starting point and are MIT), a first build of hours, then re-testing on other GPUs. Pays back with Mac and Linux builds, which need an FFmpeg of their own anyway. |
-| Risk | Depends on one person's reply and memory. | Daily auto-builds are deleted after about two weeks (monthly ones stay), so **keep our own copy of the zip we ship, and its `checksums.sha256` line**, in `dist-release/`. Depends on BtbN's repo staying up for the *scripts*; the dependencies' sources are fetched from their own upstreams. | Our time. |
+Checked in Round 26 A2 (nothing was pushed, tagged or exported for real):
 
-**Recommendation: B for the first alpha, C later.** B is the only way that makes the gate pass this week without waiting for a stranger, keeps the same licence class and encoders, and costs mostly one session and ~136 MB of installer size. A is not worth waiting on: even a yes leaves the same problem at the next gyan.dev update. C is worth doing before Mac and Linux builds, and would shrink the installer, but is too big to put in front of the first alpha.
+- [x] `node scripts/oss/export-public.mjs <new empty folder>` ends with no finding (the new plugin and theme icons and screenshots are allowed by `mediaAllow`; the five CC0 Wikimedia photos in `photos-ml/tests/fixtures/wayfinder/` keep their photographers' Artist / Copyright tags through `exifAllow`, credited in that folder's `SOURCES.md`). Re-run it on the final commit: the scrub is the gate.
+- [x] README, CONTRIBUTING and GOVERNANCE point only at files that are in the snapshot; `docs/ARCHITECTURE.md` is the scrubbed public copy of the architecture spine. `CLAUDE.md`, `docs/STATE.md` and the specs still name plan files under `docs/superpowers/plans/`, which the snapshot leaves out; they are maintainer notes and are left as they are.
+- [x] **Updater endpoint:** nothing to change. `tauri.conf.json` keeps `endpoints: []` on purpose; `updater.rs` sets the endpoint at run time to `https://github.com/05Narwhal/lumen/releases/download/channels/<channel>.json` (the public repo's rolling `channels` release, written by `scripts/release/channels.mjs`).
+- [x] **EOX credit:** the satellite layer's own attribution text (*EOxCloudless … by EOX IT Services GmbH, Contains modified Copernicus Sentinel data*) is built into `src/lib/map-style.ts` and shown on the map; the layer is listed under Settings → *Licences*; `docs/LICENSING-AUDIT.md` records CC BY-NC-SA 4.0 and the stop rule.
 
-**Before swapping (Julian's OK first):** (1) a session downloads the build into its own folder, runs `ffmpeg -encoders -filters` and the `photos-media` FFmpeg tests, checks a video prep and a slideshow export on a temp library on this PC (NVIDIA/Intel/AMD, whichever it has), (2) rewrites `sources.json` for it (`ffmpeg-source` gate), (3) replaces the sidecars. Nothing under `src-tauri/binaries/` has been changed.
+Still yours:
 
-**If Julian chooses A, the message** (to go out from him; this session sent nothing and contacted no one):
+1. **Discord:** read the current [Discord Developer Policy](https://support-dev.discord.com/hc/en-us/articles/8563934450327-Discord-Developer-Policy) and Terms for the Application in `src-tauri/discord_client_id.txt` (name, icon, the *Competing in Lumen* status, nothing about photos). I could not confirm a Rich Presence clause from the web, so this is a read, not a finding. Run the status once against a real Discord (not done in any round).
+2. The signing key, its two secrets and the plugin key (*The signing key*, above); `actionlint` and one dry run of `release.yml` on a throwaway tag in a fork.
+3. Re-pack Disk Atlas, Wayfinder, Takeout, Film Lab, Clockwork and Captioner with `--key %APPDATA%/JL-Studios/plugin-keys/jl-studios.key`, re-run `add-plugin.mjs` for each, create `05Narwhal/lumen-plugins` and its first release (the index URLs must match the tag and the bytes), and upload the Wayfinder model files as `wayfinder-model-1.0`. Rebuild Wayfinder (its `Cargo.lock` still names `lumen-plugin 1.3.0`).
+4. The export's manual steps (printed at the end of the dry run): rename the private repo to `lumen-dev-archive`, create the public `05Narwhal/lumen`, push the snapshot, make `lumen-models` public, turn on Discussions, private vulnerability reporting and branch protection (CI and DCO required), apply to SignPath Foundation, set up GitHub Sponsors.
+5. Real-app checks still open from earlier rounds (see `CLAUDE.local.md`): a `.lumentheme` double-click, Appearance *Remove* / *Undo*, a layout theme in WebView2, Clockwork on a copy of your library, Wayfinder's NEF / HEIC write on a real file.
 
-> Hello — I'm shipping Lumen, a photo app, with your FFmpeg 9.0.1 essentials build as a separate program, under the GPL. To give the exact source I need the commits behind four libraries your README names: cairo 1.18.5, x265 4.3-6-g9ddc216, libva 2.25.0 and libgme 0.6.6. None matches a tag or a commit I can find upstream. Could you tell me the git commit (or tarball) each was built from, and whether you keep them for each release? Thank you for the builds.
+## Before the first tag
+
+- The signing key above exists and its two secrets are set in `05Narwhal/lumen`.
+- `05Narwhal/lumen` is public.
+- `actionlint` has been run on `.github/workflows/release.yml` (phase 2 could not run it) and the Windows job has had one dry run on a throwaway tag in a fork (nothing was run in CI yet; see the plan's phase 2 hand-off).
+- The CPM *Publish release* script lives outside this repository and calls the deleted `publish.ps1`: remove it from the Lumen project.
+
+The decision (spec 4a): keep bundling BtbN's build with its 782 sources on Windows, ship Windows only, build a trimmed FFmpeg in CI later (4d, its own spec).

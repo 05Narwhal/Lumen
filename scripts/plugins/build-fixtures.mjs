@@ -21,7 +21,7 @@ const root = join(dirname(fileURLToPath(import.meta.url)), '..', '..');
 const fixtures = join(root, 'plugins', 'fixtures');
 const crate = join(root, 'src-tauri', 'crates', 'photos-plugins');
 const out = join(crate, 'tests', 'wasm');
-const names = ['importer_ok', 'tools_ok', 'socket', 'file', 'endless', 'memory_hog', 'undeclared', 'trap'];
+const names = ['importer_ok', 'tools_ok', 'socket', 'file', 'endless', 'memory_hog', 'undeclared', 'trap', 'review_ok', 'ui_ok', 'proposals_ok'];
 
 const run = (args) =>
   execFileSync('cargo', args, { cwd: fixtures, stdio: ['ignore', 'pipe', 'inherit'] }).toString();

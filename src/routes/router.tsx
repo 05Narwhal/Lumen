@@ -1,4 +1,5 @@
 import { createBrowserRouter, redirect, RouterProvider, type RouteObject } from "react-router";
+import { invoke } from "@/lib/ipc";
 import { Boot } from "./boot";
 import { DuplicatesRoute } from "./duplicates";
 import { HomeRoute } from "./home";
@@ -27,7 +28,13 @@ const develop = page(() => import("./develop"), (m) => m.DevelopRoute);
 const connected = page(() => import("./connected"), (m) => m.ConnectedRoute);
 const trash = page(() => import("./trash"), (m) => m.TrashRoute);
 const search = page(() => import("./search"), (m) => m.SearchRoute);
+// Round 24 lane W: the review of a plugin's place guesses.
+const review = page(() => import("./review"), (m) => m.ReviewRoute);
 const settings = page(() => import("./settings"), (m) => m.SettingsRoute);
+// Round 24 lane C: the plugin store.
+const plugins = page(() => import("./plugins"), (m) => m.PluginsRoute);
+const pluginPage = page(() => import("./plugins"), (m) => m.PluginPageRoute);
+const themePage = page(() => import("./plugins"), (m) => m.ThemePageRoute);
 
 export const routes: RouteObject[] = [
   { path: "/setup", Component: SetupRoute },
@@ -55,10 +62,15 @@ export const routes: RouteObject[] = [
       { path: "import", ...importPage },
       { path: "develop", ...develop },
       { path: "develop/:id", ...develop },
+      { path: "plugins", ...plugins },
+      { path: "plugins/:id", ...pluginPage },
+      // Round 26 lane C: a store theme's page.
+      { path: "themes/:id", ...themePage },
       { path: "connected/:kind/:id", ...connected },
       { path: "trash", ...trash },
       { path: "duplicates", Component: DuplicatesRoute },
       { path: "search", ...search },
+      { path: "review/:kind", ...review },
       { path: "settings", ...settings },
       ...(import.meta.env.DEV
         ? [
@@ -71,6 +83,17 @@ export const routes: RouteObject[] = [
 ];
 
 const router = createBrowserRouter(routes);
+
+// Round 24 §6.4: the current screen goes into Lumen's `running.json` marker, so the alert after a
+// crash can offer to go back to it. Only a change is sent; a failure is of no concern to the page.
+let lastNoted = "";
+const noteRoute = (to: string) => {
+  if (to === lastNoted) return;
+  lastNoted = to;
+  void invoke("note_route", { route: to }).catch(() => {});
+};
+noteRoute(router.state.location.pathname + router.state.location.search);
+router.subscribe((state) => noteRoute(state.location.pathname + state.location.search));
 
 export function AppRouter() {
   return (

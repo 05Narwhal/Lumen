@@ -102,3 +102,38 @@
     &:hover { transform: translateY(-2px); }
   }
 }
+
+// The photo *Open in Map* flew to (Round 26 B3), top left, clear of the toolbar and the strip.
+.map-route__card {
+  position: absolute;
+  top: var(--space-3);
+  left: var(--space-3);
+  z-index: 3;
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-1);
+  max-width: min(320px, calc(100% - 2 * var(--space-3)));
+  padding: var(--space-2);
+  border-radius: var(--radius-lg);
+  background: var(--bg-raised);
+  border: var(--border-width) solid var(--border);
+  box-shadow: var(--shadow-md);
+
+  &-open {
+    display: flex;
+    align-items: center;
+    gap: var(--space-3);
+    min-width: 0;
+    padding: 0;
+    border: 0;
+    background: none;
+    color: inherit;
+    text-align: start;
+    cursor: pointer;
+
+    img { flex: none; width: 56px; height: 56px; object-fit: cover; border-radius: var(--radius-md); }
+  }
+  &-text { display: flex; flex-direction: column; min-width: 0; }
+  &-name { font-weight: 600; @include truncate; }
+  &-sub { color: var(--fg-muted); font-size: var(--text-sm); @include truncate; }
+}

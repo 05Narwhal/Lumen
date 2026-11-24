@@ -411,6 +411,15 @@
   &__row { display: grid; grid-template-columns: 84px 1fr; gap: var(--space-3); font-size: var(--text-sm); }
   &__label { color: var(--fg-muted); }
   &__value { color: var(--fg-primary); word-break: break-word; }
+  // Round 24: a place a plugin guessed and the person confirmed.
+  &__estimated {
+    margin-left: var(--space-2);
+    padding: 0 var(--space-2);
+    border-radius: var(--radius-pill);
+    border: var(--border-width) dashed var(--border-strong, var(--border));
+    color: var(--fg-muted);
+    font-size: var(--text-xs);
+  }
   &__credit { display: block; margin-top: 2px; font-size: var(--text-xs); color: var(--fg-muted); }
   &__code { font-family: ui-monospace, "Cascadia Mono", Menlo, monospace; font-size: var(--text-xs); color: var(--fg-muted); }
   &__reveal {
@@ -633,9 +642,12 @@
 .viewer[data-editing]:has(.edit-toolbar__row--crop) .edit-stage { bottom: 150px; }
 .viewer[data-editing] .trim-stage { bottom: var(--space-5); }
 
+// Keeps `.viewer__top`'s room for the window controls (Round 26 B1: overriding it put Done
+// under them). Only the name gives way on a narrow window; the buttons never shrink.
 .edit-bar {
   gap: var(--space-2);
-  padding-right: var(--space-4);
+
+  > :not(.viewer__meta):not(.viewer__spacer) { flex: none; }
 
   &__history {
     display: flex;

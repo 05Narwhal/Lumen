@@ -1,112 +1,9 @@
 import { describe, expect, it } from "vitest";
-import { evaluateGates, ffmpegGate, parseFfmpegVersion, rawlerDependents, setupSizeGate } from "./gates.mjs";
+import { ffmpegGate, parseFfmpegVersion, rawlerDependents, setupSizeGate, tagRefGate } from "./gates.mjs";
+import { evaluatePreflight } from "./preflight.mjs";
+import { BUNDLE, FFMPEG_OUT, good, SOURCES } from "./test-facts.mjs";
 
-const FFMPEG_OUT = `ffmpeg version 9.0.1-essentials_build-www.gyan.dev Copyright (c) 2000-2026 the FFmpeg developers
-built with gcc 16.1.0 (Rev2, Built by MSYS2 project)
-configuration: --enable-gpl --enable-version3 --enable-static --disable-w32threads --disable-autodetect --enable-libx264 --enable-mediafoundation
-libavutil      61.  1.101 / 61.  1.101`;
-
-const SOURCES = {
-  ffmpeg: {
-    version: "9.0.1",
-    sidecarSha256: "aa",
-    options: ["gpl", "version3", "static"],
-    components: [
-      { name: "FFmpeg", flag: null, url: "https://example/ffmpeg-9.0.1.tar.xz", sha256: "f1", file: "ffmpeg-9.0.1.tar.xz" },
-      { name: "x264", flag: "libx264", url: "https://example/x264.tar.bz2", sha256: "x1", file: "x264.tar.bz2" },
-      { name: "Media Foundation", flag: "mediafoundation", os: true },
-    ],
-  },
-  others: [
-    { name: "ExifTool", url: "https://example/Image-ExifTool.tar.gz", sha256: "e1", file: "Image-ExifTool.tar.gz" },
-  ],
-};
-
-const BUNDLE = { "ffmpeg-9.0.1.tar.xz": "f1", "x264.tar.bz2": "x1", "Image-ExifTool.tar.gz": "e1" };
-
-/** Facts as they are when every gate holds; each test breaks one. */
-const good = (over = {}) => ({
-  branch: "main",
-  clean: true,
-  changelogVersions: ["26.1.0-alpha"],
-  versionFields: "26.1.0-alpha",
-  previousVersion: null,
-  sidecars: { ffmpeg: true, ffprobe: true, exiftool: true },
-  noticesFresh: true,
-  checks: { ok: true, failed: [] },
-  pubkey: "dW50cnVzdGVkIGNvbW1lbnQ6",
-  privateKeyInEnv: true,
-  testOverrides: [],
-  libraryCheck: { ok: true, from: 30, to: 31 },
-  setupSizes: { nsis: 85_000_000, full: 88_000_000, slim: 4_000_000 },
-  rawler: { dependents: ["photos-raw"], resources: ["photos_raw.dll"] },
-  ffmpeg: { versionOutput: FFMPEG_OUT, sidecarSha256: "aa" },
-  sources: SOURCES,
-  sourceBundle: BUNDLE,
-  releasesRepo: true,
-  gates: { jamendo: { resolved: true }, esri: { resolved: true } },
-  ...over,
-});
-
-const failing = (facts, version = "26.1.0-alpha") => evaluateGates(facts, { version }).filter((g) => !g.ok).map((g) => g.id);
-
-describe("evaluateGates", () => {
-  it("passes when every fact is good", () => {
-    expect(failing(good())).toEqual([]);
-    expect(failing(good(), "26.1.0-stable".replace("stable", "alpha"))).toEqual([]);
-  });
-
-  it.each([
-    ["clean", { clean: false }],
-    ["main", { branch: "round-17-updater" }],
-    ["changelog", { changelogVersions: ["26.0.9-alpha"] }],
-    ["version-fields", { versionFields: "26.0.9-alpha" }],
-    ["next-version", { previousVersion: "26.1.0-alpha" }],
-    ["sidecars", { sidecars: { ffmpeg: true, ffprobe: false, exiftool: true } }],
-    ["notices", { noticesFresh: false }],
-    ["checks", { checks: { ok: false, failed: ["yarn test"] } }],
-    ["signing", { pubkey: "" }],
-    ["signing", { privateKeyInEnv: false }],
-    ["no-test-overrides", { testOverrides: ["LUMEN_BAKED_APP_DATA_DIR"] }],
-    ["library-check", { libraryCheck: { ok: false, why: "migration failed" } }],
-    ["setup-sizes", { setupSizes: { nsis: 85_000_000, full: 92_000_000, slim: 4_000_000 } }],
-    ["setup-sizes", { setupSizes: undefined }],
-    ["releases-repo", { releasesRepo: false }],
-  ])("refuses when %s does not hold", (id, over) => {
-    expect(failing(good(over))).toEqual([id]);
-  });
-
-  it("refuses a version outside the scheme", () => {
-    expect(failing(good({ versionFields: "26.1.0", changelogVersions: ["26.1.0"] }), "26.1.0")).toContain("version");
-  });
-
-  it("refuses while rawler is linked anywhere but photos-raw, which is today's tree", () => {
-    expect(failing(good({ rawler: { dependents: ["photos-media"], resources: [] } }))).toEqual(["rawler"]);
-    expect(failing(good({ rawler: { dependents: ["photos-raw", "photos-media"], resources: ["photos_raw.dll"] } }))).toEqual(["rawler"]);
-  });
-
-  it("refuses when cargo tree could not be read, rather than taking it for no rawler", () => {
-    expect(failing(good({ rawler: { dependents: null, resources: ["photos_raw.dll"] } }))).toEqual(["rawler"]);
-    expect(failing(good({ rawler: undefined }))).toEqual(["rawler"]);
-  });
-
-  it("refuses photos-raw that is not in the bundle", () => {
-    expect(failing(good({ rawler: { dependents: ["photos-raw"], resources: [] } }))).toEqual(["rawler"]);
-  });
-
-  it("asks for Jamendo and Esri only for a stable build", () => {
-    const open = { gates: { jamendo: { resolved: false }, esri: { resolved: false } } };
-    expect(failing(good({ ...open, versionFields: "26.1.0-beta", changelogVersions: ["26.1.0-beta"] }), "26.1.0-beta")).toEqual([]);
-    expect(failing(good({ ...open, versionFields: "26.1.0-stable", changelogVersions: ["26.1.0-stable"] }), "26.1.0-stable")).toEqual(["stable-only"]);
-  });
-
-  it("names why, never prints a secret", () => {
-    const out = evaluateGates(good({ privateKeyInEnv: false }), { version: "26.1.0-alpha" });
-    const signing = out.find((g) => g.id === "signing");
-    expect(signing.why).toMatch(/TAURI_SIGNING_PRIVATE_KEY/);
-    expect(JSON.stringify(out)).not.toContain("dW50cnVzdGVkIGNvbW1lbnQ6");
-  });
-});
+const failing = (facts, version = "26.1.0-alpha") => evaluatePreflight(facts, { version }).filter((g) => !g.ok).map((g) => g.id);
 
 describe("FFmpeg's gate", () => {
   it("reads the version and every configure flag", () => {
@@ -159,7 +56,7 @@ describe("the other sources", () => {
   });
 
   it("no longer carries a licences-offer gate", () => {
-    expect(evaluateGates(good(), { version: "26.1.0-alpha" }).map((g) => g.id)).not.toContain("licences-offer");
+    expect(evaluatePreflight(good(), { version: "26.1.0-alpha" }).map((g) => g.id)).not.toContain("licences-offer");
   });
 
   it("refuses a source with no URL or hash recorded", () => {
@@ -207,5 +104,19 @@ describe("setupSizeGate", () => {
 
   it.each([undefined, {}, { nsis: 0, full: 1, slim: 1 }, { nsis, full: NaN, slim: 1 }])("never passes sizes it could not read: %j", (sizes) => {
     expect(setupSizeGate(sizes).ok).toBe(false);
+  });
+});
+
+describe("tagRefGate", () => {
+  it("accepts main and release/26.3 and refuses a feature branch", () => {
+    expect(tagRefGate({ ref: "refs/tags/v26.3.1-stable", branches: ["main"] }, "26.3.1-stable").ok).toBe(true);
+    expect(tagRefGate({ ref: "refs/tags/v26.3.1-stable", branches: ["release/26.3"] }, "26.3.1-stable").ok).toBe(true);
+    expect(tagRefGate({ ref: "refs/tags/v26.3.1-stable", branches: ["round-17-updater", "wip"] }, "26.3.1-stable").ok).toBe(false);
+  });
+
+  it("refuses a tag whose name is not v<version>, and no branch at all", () => {
+    expect(tagRefGate({ ref: "v26.3.0-stable", branches: ["main"] }, "26.3.1-stable").ok).toBe(false);
+    expect(tagRefGate({ ref: "v26.3.1-stable", branches: [] }, "26.3.1-stable").ok).toBe(false);
+    expect(tagRefGate({}, "26.3.1-stable").ok).toBe(false);
   });
 });

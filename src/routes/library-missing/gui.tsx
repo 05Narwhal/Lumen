@@ -1,6 +1,6 @@
 import { Button } from "@mantine/core";
 import { IconLockExclamation, IconPlugConnectedX } from "@tabler/icons-react";
-import { open } from "@tauri-apps/plugin-dialog";
+import { pickFolder } from "@/lib/dialogs";
 import { useState } from "react";
 import { LibraryList } from "@/components/library-list";
 import { toast, Toaster } from "@/components/toast";
@@ -66,7 +66,7 @@ export function LibraryMissingRoute({ entry }: { entry: LibraryEntry }) {
   const [others, setOthers] = useState(false);
 
   const locate = async () => {
-    const dir = await open({ directory: true, multiple: false, title: `Locate “${entry.name}”` });
+    const dir = await pickFolder({ title: `Locate “${entry.name}”` });
     if (typeof dir !== "string") return;
     try {
       await locateLibrary({ id: entry.id, path: dir });
@@ -76,7 +76,7 @@ export function LibraryMissingRoute({ entry }: { entry: LibraryEntry }) {
   };
 
   const createNew = async () => {
-    const dir = await open({ directory: true, multiple: false, title: "Choose a folder for the new library" });
+    const dir = await pickFolder({ title: "Choose a folder for the new library" });
     if (typeof dir !== "string") return;
     try {
       await createLibrary(dir);

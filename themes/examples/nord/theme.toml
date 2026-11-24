@@ -1,0 +1,51 @@
+id = "example.nord"
+name = "Nord"
+version = "1.0.0"
+author = "JL Studios"
+description = "Arctic blues on slate: an example theme on Darkroom with light and dark colours and a heading font."
+license = "MIT"
+lumen = ">=26.2.0"
+base = "darkroom"
+default_scheme = "dark"
+
+# Every value is text and typed: colours (oklch, #hex, rgb, hsl), px lengths, shadows, wash.
+# Anything left out comes from the base theme. The heading font is Fraunces (SIL OFL 1.1); its
+# licence text is fonts/OFL.txt.
+
+[light]
+bg-base = "#e5e9f0"
+bg-raised = "#eceff4"
+bg-sunken = "#d8dee9"
+develop-stage-bg = "#d8dee9"
+bg-sidebar = "#dde2ea"
+fg-primary = "#2e3440"
+fg-muted = "#3b4252"
+fg-subtle = "#4c566a"
+accent = "#3b6a99"
+accent-hover = "#2f5a85"
+accent-fg = "#ffffff"
+radius-md = "10px"
+tile-gap = "3px"
+
+[dark]
+bg-base = "#2e3440"
+bg-raised = "#3b4252"
+bg-sunken = "#272c36"
+develop-stage-bg = "#20242c"
+bg-sidebar = "#2b303b"
+fg-primary = "#eceff4"
+fg-muted = "#d8dee9"
+fg-subtle = "#b4bdcc"
+accent = "#88c0d0"
+accent-hover = "#9bcddb"
+accent-fg = "#2e3440"
+radius-md = "10px"
+tile-gap = "3px"
+
+[font]
+file = "fonts/fraunces-latin-wght-normal.woff2"
+weight = 600
+style = "normal"
+
+[listing]
+tags = ["dark", "light"]

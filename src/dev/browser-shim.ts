@@ -7,6 +7,8 @@
 import type { AssetDetail } from "@/types/generated/AssetDetail";
 import type { LayoutRow } from "@/types/generated/LayoutRow";
 import type { PluginInfo } from "@/types/generated/PluginInfo";
+import type { ReviewItem } from "@/types/generated/ReviewItem";
+import type { ReviewState } from "@/types/generated/ReviewState";
 import type { LayoutSummary } from "@/types/generated/LayoutSummary";
 import type { LibraryInfo } from "@/types/generated/LibraryInfo";
 import type { LibraryListing } from "@/types/generated/LibraryListing";
@@ -15,7 +17,9 @@ import type { SlideshowDoc } from "@/types/generated/SlideshowDoc";
 import type { Settings } from "@/types/generated/Settings";
 import type { Tile } from "@/types/generated/Tile";
 import type { UpdateChannel } from "@/types/generated/UpdateChannel";
+import type { PluginControl } from "@/types/generated/PluginControl";
 import type { UpdateState } from "@/types/generated/UpdateState";
+import "./shim-themes"; // Round 26 B2: ?shimtheme=top lists a theme that moves the sidebar to the top
 
 const params = new URLSearchParams(window.location.search);
 const LIB: LibraryInfo = { id: "dev-lib", name: "Lumen Library", path: "C:/Users/you/Pictures/Lumen Library", schemaVersion: 2 };
@@ -35,13 +39,135 @@ const shimPlugin = (id: string, name: string, kinds: PluginInfo["kinds"], trust:
   state: { type: "ready" },
   iconUrl: null,
   settings: [],
-  assets: [],
+  sections: [],
+  contributions: [],
+  homepage: null, authorUrl: null, repository: null, screenshots: [], hasReadme: false, detectIds: [], assets: [],
+});
+const shimControl = (kind: PluginControl["kind"], key: string | null, label: string): PluginControl => ({
+  kind, key, label, help: null, value: null, choices: [], min: null, max: null, step: null, requires: null, app: null, action: null, body: null,
 });
 const shimPlugins: PluginInfo[] = [
-  shimPlugin("studio.jl.nord", "Nord", ["theme"], { type: "jlStudios" }),
+  shimPlugin("studio.jl.nord", "Nord", ["presets"], { type: "jlStudios" }),
   shimPlugin("com.example.importer", "Example importer", ["importer"], { type: "author", name: "Ada Author", fingerprint: "ab12 cd34" }),
   shimPlugin("local.devtools", "Dev tools", ["tools"], { type: "unsigned" }, true),
+  // Round 24 lane D: a plugin that needs an app (its page shows Locate… and a disabled switch).
+  {
+    ...shimPlugin("studio.jl.atlas", "Disk Atlas", [], { type: "jlStudios" }),
+    homepage: "https://example.com/disk-atlas",
+    detectIds: ["disk-atlas"],
+    settings: [
+      { key: "use_picker", label: "Use Disk Atlas for file dialogs", kind: "bool", value: true, choices: [], group: "Dialogs", requires: "disk-atlas" },
+      { key: "use_reveal", label: "Use Disk Atlas for Show in folder", kind: "bool", value: true, choices: [], group: "Dialogs", requires: "disk-atlas" },
+    ],
+    sections: [
+      {
+        title: "Dialogs",
+        description: null,
+        controls: [
+          { ...shimControl("toggle", "use_picker", "Use Disk Atlas for file dialogs"), value: true, app: "disk-atlas" },
+          { ...shimControl("toggle", "use_reveal", "Use Disk Atlas for Show in folder"), value: true, app: "disk-atlas" },
+        ],
+      },
+    ],
+  },
+  // Round 25 P3: every control kind, synthetic (browser preview only).
+  {
+    ...shimPlugin("local.sampler", "Settings sampler", ["tools"], { type: "unsigned" }, true),
+    sections: [
+      {
+        title: "Scanning",
+        description: "How a scan runs. Nothing here touches your photos.",
+        controls: [
+          { ...shimControl("toggle", "deep", "Deep scan"), value: false, help: "Reads every file instead of a sample." },
+          { ...shimControl("slider", "depth", "Depth"), value: 3, min: 1, max: 8, step: 1, requires: "deep" },
+          { ...shimControl("segmented", "unit", "Units"), value: "mb", choices: ["mb", "gb"] },
+          { ...shimControl("select", "order", "Order"), value: "name", choices: ["name", "size", "date"] },
+          { ...shimControl("number", "limit", "Largest files to list"), value: 50, min: 1, max: 500, step: 1 },
+          { ...shimControl("text", "label", "Report title"), value: "", help: "Shown at the top of the report." },
+        ],
+      },
+      {
+        title: "Last run",
+        description: null,
+        controls: [
+          { ...shimControl("markdown", null, "About"), body: "Reads sizes only. **No file is changed.**" },
+          { ...shimControl("stat", "last_scan", "Last scan") },
+          { ...shimControl("list", "biggest", "Largest folders") },
+          { ...shimControl("button", null, "Scan now"), action: "scan", help: "Runs once, in the background." },
+        ],
+      },
+    ],
+  },
 ];
+
+// Round 24 lane W: fake place suggestions for the Place review screen.
+type ShimReviewItem = ReviewItem;
+const shimMoments = [
+  { id: "m1", label: "12 Mar 14:02–14:40 · Ljubljana", lat: 46.0569, lon: 14.5058 },
+  { id: "m2", label: "12 Mar 17:10–18:00 · Bled", lat: 46.3683, lon: 14.1146 },
+  { id: "m3", label: "13 Mar 09:00–11:30 · Piran", lat: 45.5283, lon: 13.5683 },
+  { id: "m4", label: "14 Mar 12:00–12:20 · Unknown", lat: 45.9, lon: 13.65 },
+];
+const shimReviewItems: ShimReviewItem[] = Array.from({ length: 40 }, (_, n) => {
+  const m = shimMoments[n % 4];
+  const state: ReviewItem["state"] = n % 7 === 0 ? "guess" : n % 3 === 0 ? "inferred" : "anchor";
+  return {
+    asset: 1000 + n,
+    group: m.id,
+    state,
+    flag: n % 11 === 0 ? "far-from-group" : null,
+    candidates: [{ lat: m.lat + (n % 5) * 0.004, lon: m.lon + (n % 3) * 0.004, confidence: 0.4 + (n % 6) / 10, label: m.label.split(" · ")[1] }],
+    status: "pending",
+  };
+});
+
+// Round 25 P4b-2b: fake proposals for the generic review page, one plugin, every kind.
+interface ShimProposal {
+  proposal: { id: number; pluginId: string; assetId: number; proposed: unknown; confidence: number; reason: string | null; status: string };
+  filename: string;
+  current: unknown;
+}
+const shimProposals: ShimProposal[] = (() => {
+  const mk = (id: number, kind: string, proposed: unknown, current: unknown, confidence: number, reason: string | null = null): ShimProposal => ({
+    proposal: { id, pluginId: "local.sampler", assetId: 1 + (id % 12), proposed: { kind, value: proposed }, confidence, reason, status: "pending" },
+    filename: `IMG_${4000 + id}.JPG`,
+    current: current === null ? null : { kind, value: current },
+  });
+  const out: ShimProposal[] = [];
+  const places = [
+    [46.0569, 14.5058],
+    [46.3683, 14.1146],
+    [45.5283, 13.5683],
+    [45.9, 13.65],
+    [46.55, 15.65],
+  ];
+  places.forEach(([lat, lon], n) => out.push(mk(100 + n, "location", { lat, lon }, null, 0.55 + n * 0.1, n === 0 ? "The folder is called Ljubljana 2024" : null)));
+  for (let n = 0; n < 5; n++) out.push(mk(200 + n, "date", `2021-05-0${n + 1}T1${n}:30:00`, n % 2 ? "2020-01-01T00:00:00" : null, 0.6 + n * 0.08, n === 0 ? "The file name has a date in it" : null));
+  for (let n = 0; n < 5; n++) out.push(mk(300 + n, "tags", n % 2 ? ["beach", "sea"] : ["mountain", "snow", "winter"], n === 1 ? ["beach"] : null, 0.7 + n * 0.05));
+  for (let n = 0; n < 5; n++) out.push(mk(400 + n, "label", ["Red", "Yellow", "Green", "Blue", "Purple"][n], n === 0 ? "Blue" : null, 0.5 + n * 0.1));
+  for (let n = 0; n < 5; n++) out.push({ ...mk(500 + n, "person", { face: 7 + n, name: ["Ana", "Ben", "Cleo", "Dan", "Eva"][n] }, null, 0.6 + n * 0.08, n === 0 ? "Looks like the person in 12 other photos" : null), current: n === 2 ? { kind: "person", value: { face: 9, name: "Clea" } } : null });
+  for (let n = 0; n < 5; n++) out.push(mk(600 + n, "title", ["Sunset over the bay", "Market day", "First snow", "Birthday dinner", "Harbour at dawn"][n], n === 0 ? "IMG_4001" : null, 0.65 + n * 0.07));
+  for (let n = 0; n < 5; n++) out.push(mk(700 + n, "caption", ["A quiet evening on the water, the light going orange behind the hills.", "Crowded stalls and a lot of cheese.", "The first real snow of the year.", "Everyone around one long table.", "Fog on the water and a few boats."][n], null, 0.6 + n * 0.08));
+  return out;
+})();
+
+function shimReview(): ReviewState {
+  const live = shimReviewItems.filter((i) => i.status !== "rejected");
+  const check = (i: ReviewItem) => i.status === "pending" && (i.state === "guess" || i.flag !== null);
+  const groups = shimMoments
+    .map((m) => ({ id: m.id, label: m.label, count: live.filter((i) => i.group === m.id).length, check: live.filter((i) => i.group === m.id && check(i)).length }))
+    .filter((g) => g.count > 0);
+  return {
+    groups,
+    items: shimReviewItems.map((i) => ({ ...i })),
+    counts: {
+      check: live.filter(check).length,
+      moments: groups.length,
+      done: live.filter((i) => i.status === "confirmed" || (i.status === "pending" && !check(i))).length,
+      rejected: shimReviewItems.length - live.length,
+    },
+  };
+}
 
 const state: { settings: Settings; library: LibraryInfo | null; listing: LibraryListing } = {
   settings: {
@@ -56,7 +182,7 @@ const state: { settings: Settings; library: LibraryInfo | null; listing: Library
     search: { dateOrder: "auto" },
     window: { width: 1280, height: 800, x: null, y: null, maximized: false },
     aiAssistants: { enabled: false, port: 47820, token: "" },
-    updates: { automatic: params.get("automatic") !== "0", channel: (["alpha", "beta"].includes(params.get("channel") ?? "") ? params.get("channel") : "stable") as UpdateChannel },
+    updates: { automatic: params.get("automatic") !== "0", channel: (["alpha", "beta"].includes(params.get("channel") ?? "") ? params.get("channel") : "stable") as UpdateChannel, security: params.get("security") !== "0" },
     discord: { enabled: false, showActivity: true, showElapsed: true },
     externalApps: { custom: [], defaults: { photo: "photoshop", raw: "photoshop", video: null }, send: {} }, // Round 22 lane C
     exactPlaces: false,
@@ -80,7 +206,8 @@ const updateStart: Record<string, UpdateState> = {
   off: { state: "off" },
 };
 let updateState: UpdateState = updateStart[params.get("update") ?? ""] ?? { state: "upToDate", checkedAt: Math.floor(Date.now() / 1000) - 3600 };
-const updateStatus = () => ({ version: "26.1.0-alpha", state: updateState, whatsNew: null });
+/** `?update=ready&fix=1` shows the staged security fix's banner. */
+const updateStatus = () => ({ version: "26.1.0-alpha", state: updateState, whatsNew: null, security: updateState.state === "ready" && params.get("fix") === "1" });
 /** The screen the page last reported to the Discord status (Round 17). */
 let shimScreen = "browsing";
 
@@ -671,6 +798,20 @@ const deviceSession = () => ({
   dating: false,
 });
 
+// Installed and tried store themes (Round 26 C2): `theme_install` / `theme_try` read the sample index above.
+const shimThemes: { installed: Record<string, unknown>[]; tried: Record<string, unknown> | null } = { installed: [], tried: null };
+function shimThemeOf(id: string, install: boolean): Record<string, unknown> {
+  const idx = (commands.store_index as (a: Record<string, unknown>) => { themes: { id: string; name: string; author: string; summary: string; tags: string[]; tokens: unknown; latest: { version: string } }[] })({});
+  const t = idx.themes.find((x) => x.id === id);
+  const meta = {
+    id, name: t?.name ?? id, author: t?.author ?? "", version: t?.latest.version ?? "1.0.0", description: t?.summary ?? "", license: "CC-BY-4.0",
+    base: t?.tags.includes("dark") ? "darkroom" : "gallery", defaultScheme: t?.tags.includes("dark") ? "dark" : "light",
+    layout: t?.tags.includes("layout") ?? false, hasIcon: true, tokens: t?.tokens,
+  };
+  if (install && !shimThemes.installed.some((x) => x.id === id)) shimThemes.installed = [...shimThemes.installed, meta];
+  return meta;
+}
+
 const commands: Record<string, (args: Record<string, unknown>) => unknown> = {
   find_lightroom_catalogs: () => ["Travel 2023", "Family", "Weddings", "Scans"].map((name, i) => ({ path: `C:/Users/j/Pictures/Lightroom/${name}.lrcat`, name, photoCount: [8412, 3090, 12266, 540][i], modified: 1 })),
   camera_raw_preset_folder: () => null,
@@ -763,6 +904,68 @@ const commands: Record<string, (args: Record<string, unknown>) => unknown> = {
   plugin_theme_css: () => "",
   // Round 23 lane C2: three plugins and an inspect result per install-sheet state.
   list_plugins: () => shimPlugins,
+  // Round 24 lane W: ~40 fake suggestions in four moments, answered by the shim's own state.
+  places_review: () => shimReview(),
+  // Find locations…: models already there, one `working` answer then done.
+  plugin_models_status: () => [{ id: "image", size: 610526312, licence: "CC-BY-NC-4.0", downloaded: true }],
+  plugin_tool_run: () => ({ status: "done", suggested: shimReviewItems.length }),
+  places_review_event: (a) => {
+    const e = a.event as { kind: string; assets?: number[]; lat?: number; lon?: number };
+    for (const i of shimReviewItems) {
+      if (!e.assets?.includes(i.asset)) continue;
+      if (e.kind === "confirm") i.status = "confirmed";
+      if (e.kind === "reject") i.status = "rejected";
+      if (e.kind === "move") {
+        i.candidates = [{ lat: e.lat as number, lon: e.lon as number, confidence: 1, label: null }];
+        i.status = "confirmed";
+      }
+    }
+    return shimReview();
+  },
+  // Round 25 P4b-2b: the generic review page.
+  proposals_list: (a) =>
+    ({
+      items: shimProposals.filter((p) => (p.proposal.proposed as { kind: string }).kind === a.kind && p.proposal.status === "pending"),
+      nextCursor: null,
+    }),
+  proposals_accept: (a) => {
+    const items = a.items as { id: number; value?: unknown }[];
+    for (const i of items) {
+      const p = shimProposals.find((x) => x.proposal.id === i.id);
+      if (p) p.proposal.status = "accepted";
+    }
+    return { accepted: items.map((i) => i.id), skipped: [], undo: { proposals: items.map((i) => i.id), reversals: [] } };
+  },
+  proposals_undo_accept: (a) => {
+    for (const id of (a.undo as { proposals: number[] }).proposals) {
+      const p = shimProposals.find((x) => x.proposal.id === id);
+      if (p) p.proposal.status = "pending";
+    }
+    return null;
+  },
+  proposals_reject: (a) => {
+    for (const id of a.ids as number[]) {
+      const p = shimProposals.find((x) => x.proposal.id === id);
+      if (p) p.proposal.status = "rejected";
+    }
+    return (a.ids as number[]).length;
+  },
+  proposals_restore: (a) => {
+    for (const id of a.ids as number[]) {
+      const p = shimProposals.find((x) => x.proposal.id === id);
+      if (p) p.proposal.status = "pending";
+    }
+    return (a.ids as number[]).length;
+  },
+  places_write: () => "places-write-dev",
+  places_undo: () => ({ reverted: 0, keptInFile: [] }),
+  // Round 24 lane D: no file dialogs or providers in the browser (a pick is a cancel).
+  dialog_pick: () => null,
+  reveal_path: () => null,
+  plugin_provider_choices: () => [],
+  set_provider_choice: () => null,
+  plugin_detect: () => [{ id: "disk-atlas", name: "Disk Atlas", path: null, version: null, located: false }],
+  plugin_locate: () => ({ id: "disk-atlas", name: "Disk Atlas", path: "C:/Apps/disk-atlas.exe", version: "0.4.2", located: true }),
   inspect_plugin_package: (a) => {
     const p = String(a.path ?? "");
     const base = shimPlugins[1];
@@ -778,11 +981,107 @@ const commands: Record<string, (args: Record<string, unknown>) => unknown> = {
   undo_remove_plugin: () => null,
   set_plugin_setting: () => null,
   get_plugin_developer_mode: () => true,
+  plugin_readme: () => null,
   set_plugin_developer_mode: () => null,
   load_dev_plugin: () => shimPlugins[2],
   reload_dev_plugin: () => shimPlugins[2],
   plugin_log: () => ["[info] started"],
+  // Round 25 P3: the sampler's button, stat and list.
+  plugin_ui_action: () => "Scanned 12 folders.",
+  plugin_ui_value: (a) => ((a as { key: string }).key === "last_scan" ? "3 minutes ago" : JSON.stringify(["Photos", { text: "Videos", detail: "4.2 GB" }, "Documents"])),
   take_pending_plugin_package: () => null,
+  // The plugin store (Round 24 lane C, Round 26 C1). `?store=offline` (nothing cached), `?store=cached` (offline with a list), `?store=empty`.
+  store_index: () => {
+    if (params.get("store") === "offline") throw { code: "store_offline", message: "The plugin store needs the internet." };
+    const rel = (version: string, size: number) => ({ version, api: "1.2.0", url: "https://example.invalid/p.lumenplugin", blake3: "0".repeat(64), size, released: "2026-11-21" });
+    // Synthetic art: flat SVGs as data URLs (the real app serves cached copies over photos://store-image/<hash>).
+    const enc = (body: string, w: number, h: number) => `data:image/svg+xml,${encodeURIComponent(`<svg xmlns="http://www.w3.org/2000/svg" width="${w}" height="${h}" viewBox="0 0 ${w} ${h}">${body}</svg>`)}`;
+    const icon = (hue: number, glyph: string) =>
+      enc(`<defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="hsl(${hue} 80% 62%)"/><stop offset="1" stop-color="hsl(${hue + 40} 70% 38%)"/></linearGradient></defs><rect width="128" height="128" rx="28" fill="url(#g)"/><text x="64" y="84" text-anchor="middle" font-size="58" font-weight="700" fill="white" font-family="sans-serif">${glyph}</text>`, 128, 128);
+    // A miniature Lumen window: title bar, sidebar, a grid of photo tiles in the plugin's hue.
+    const shot = (hue: number, seed: number) => {
+      let tiles = "";
+      for (let r = 0; r < 3; r++) for (let c = 0; c < 5; c++) tiles += `<rect x="${230 + c * 142}" y="${110 + r * 152}" width="132" height="142" rx="8" fill="hsl(${hue + ((r * 5 + c + seed) * 23) % 90} ${40 + ((c + seed) % 3) * 15}% ${30 + ((r + c + seed) % 4) * 10}%)"/>`;
+      return enc(`<rect width="960" height="600" fill="hsl(${hue} 18% 12%)"/><rect width="960" height="38" fill="hsl(${hue} 18% 16%)"/><circle cx="24" cy="19" r="6" fill="hsl(${hue} 60% 60%)"/><rect x="0" y="38" width="210" height="562" fill="hsl(${hue} 18% 15%)"/>${[0, 1, 2, 3, 4, 5].map((i) => `<rect x="20" y="${70 + i * 40}" width="${120 + ((i * 37) % 50)}" height="12" rx="6" fill="hsl(${hue} 15% ${i === seed % 6 ? 55 : 30}%)"/>`).join("")}<rect x="230" y="58" width="300" height="22" rx="11" fill="hsl(${hue} 15% 22%)"/><rect x="820" y="56" width="110" height="28" rx="14" fill="hsl(${hue} 70% 55%)"/>${tiles}`, 960, 600);
+    };
+    const days = (n: number) => new Date(Date.now() - n * 86_400_000).toISOString().slice(0, 10);
+    const entry = (id: string, name: string, author: string, jl: boolean, summary: string, kinds: string[], permissions: string[], hue: number | null, shots: number, released = "2026-09-01") => ({
+      id, name, author, jl, summary, kinds, permissions,
+      icon: hue === null ? null : icon(hue, name[0]),
+      homepage: "https://github.com/05Narwhal/lumen-plugins", readme: jl ? "https://example.invalid/README.md" : null,
+      screenshots: hue === null ? [] : Array.from({ length: shots }, (_, i) => shot(hue + i * 25, i)),
+      authorUrl: null, repository: null, latest: { ...rel("1.2.0", 48_000 + id.length * 1_234), released },
+    });
+    // Theme sample data (Round 26 C2): the swatches the store's miniature is painted from.
+    const sw = (bg: string, surface: string, sidebar: string, fg: string, fg2: string, accent: string, placeholder: string, radius = "10px", gap = "6px") => ({ bg, surface, sidebar, fg, fg2, accent, placeholder, radius, gap });
+    const theme = (id: string, name: string, author: string, jl: boolean, summary: string, tags: string[], light: ReturnType<typeof sw>, dark: ReturnType<typeof sw>, hue: number | null, released = "2026-09-01") => ({
+      id, name, author, jl, summary, tags, tokens: { light, dark },
+      icon: hue === null ? null : icon(hue, name[0]),
+      homepage: null, readme: jl ? "https://example.invalid/README.md" : null,
+      screenshots: hue === null ? [] : [shot(hue, 1), shot(hue + 30, 2)],
+      authorUrl: null, repository: null, latest: { ...rel("1.0.0", 36_000 + id.length * 777), released },
+    });
+    const themes = params.get("store") === "empty" ? [] : [
+      theme("jl.nocturne", "Nocturne", "JL Studios", true, "Inky violet, quiet and deep, for editing late.", ["dark", "colourful"], sw("oklch(97% 0.01 300)", "oklch(100% 0 0)", "oklch(94% 0.02 300)", "oklch(22% 0.03 300)", "oklch(48% 0.03 300)", "oklch(52% 0.18 300)", "oklch(88% 0.03 300)"), sw("oklch(15% 0.03 300)", "oklch(19% 0.035 300)", "oklch(12% 0.03 300)", "oklch(94% 0.01 300)", "oklch(70% 0.03 300)", "oklch(72% 0.17 300)", "oklch(28% 0.05 300)"), 285, days(2)),
+      theme("jl.coastline", "Coastline", "JL Studios", true, "Teal water and warm sand, with rounder corners.", ["light", "colourful"], sw("oklch(97% 0.02 90)", "oklch(99% 0.01 90)", "oklch(93% 0.035 190)", "oklch(24% 0.03 220)", "oklch(48% 0.03 220)", "oklch(56% 0.1 195)", "oklch(88% 0.04 85)", "16px", "8px"), sw("oklch(20% 0.03 220)", "oklch(25% 0.035 220)", "oklch(17% 0.03 220)", "oklch(94% 0.01 90)", "oklch(72% 0.03 200)", "oklch(74% 0.1 190)", "oklch(34% 0.05 200)", "16px", "8px"), 190, days(2)),
+      theme("jl.paper-mill", "Paper Mill", "JL Studios", true, "Warm paper with the navigation along the top.", ["light", "layout"], sw("oklch(96% 0.02 85)", "oklch(99% 0.01 85)", "oklch(92% 0.03 80)", "oklch(26% 0.02 60)", "oklch(48% 0.03 60)", "oklch(52% 0.12 40)", "oklch(86% 0.04 80)", "4px", "4px"), sw("oklch(22% 0.02 60)", "oklch(26% 0.02 60)", "oklch(19% 0.02 60)", "oklch(92% 0.02 85)", "oklch(70% 0.03 75)", "oklch(72% 0.12 50)", "oklch(34% 0.03 60)", "4px", "4px"), 40, days(2)),
+      theme("studio.nord", "Nord", "Arctic Ice Studio", false, "The arctic, north-bluish palette.", ["dark"], sw("oklch(96% 0.01 240)", "oklch(99% 0.005 240)", "oklch(92% 0.015 240)", "oklch(30% 0.03 255)", "oklch(50% 0.03 250)", "oklch(60% 0.09 225)", "oklch(86% 0.02 240)"), sw("oklch(28% 0.03 260)", "oklch(32% 0.03 260)", "oklch(24% 0.03 260)", "oklch(93% 0.01 240)", "oklch(72% 0.03 240)", "oklch(76% 0.08 215)", "oklch(40% 0.04 255)"), 230),
+      theme("com.example.sandstone", "Sandstone", "Ada Author", false, "Soft desert tones with generous space between photos.", ["light"], sw("oklch(96% 0.02 70)", "oklch(99% 0.01 70)", "oklch(92% 0.03 65)", "oklch(28% 0.03 50)", "oklch(50% 0.04 55)", "oklch(58% 0.12 55)", "oklch(86% 0.05 70)", "12px", "12px"), sw("oklch(24% 0.02 50)", "oklch(28% 0.02 50)", "oklch(21% 0.02 50)", "oklch(92% 0.02 70)", "oklch(72% 0.04 65)", "oklch(74% 0.12 60)", "oklch(36% 0.04 55)", "12px", "12px"), 55),
+      theme("com.example.neon", "Neon Arcade", "Bo Lindqvist", false, "Hot pink and cyan on near-black, for people who like it loud.", ["dark", "colourful"], sw("oklch(97% 0.02 340)", "oklch(100% 0 0)", "oklch(94% 0.04 330)", "oklch(24% 0.05 320)", "oklch(48% 0.07 320)", "oklch(58% 0.25 350)", "oklch(88% 0.06 340)"), sw("oklch(14% 0.04 290)", "oklch(18% 0.05 290)", "oklch(11% 0.04 290)", "oklch(95% 0.02 200)", "oklch(74% 0.1 210)", "oklch(72% 0.22 350)", "oklch(26% 0.08 300)"), 330),
+      theme("com.example.gridline", "Gridline", "Kit Maker", false, "Square corners, hairlines and a sidebar that sits on top.", ["light", "layout"], sw("oklch(98% 0 0)", "oklch(100% 0 0)", "oklch(95% 0 0)", "oklch(20% 0 0)", "oklch(46% 0 0)", "oklch(48% 0.2 260)", "oklch(88% 0 0)", "0px", "2px"), sw("oklch(18% 0 0)", "oklch(22% 0 0)", "oklch(15% 0 0)", "oklch(94% 0 0)", "oklch(70% 0 0)", "oklch(70% 0.16 260)", "oklch(32% 0 0)", "0px", "2px"), null),
+    ];
+    return {
+      version: 1,
+      featured: "jl.wayfinder",
+      featuredTheme: "jl.nocturne",
+      themes,
+      plugins: params.get("store") === "empty" ? [] : [
+        entry("jl.wayfinder", "Wayfinder", "JL Studios", true, "Find where photos without GPS were taken, from the photos around them, and review every guess before it is written.", ["tools"], ["library.read", "places.write", "originals.gps"], 200, 3, days(3)),
+        entry("jl.film-lab", "Film Lab", "JL Studios", true, "Thirty hand-made film-inspired looks for Develop: grain, halation and colour that feel like a roll you shot.", ["presets"], [], 28, 2, days(9)),
+        entry("jl.disk-atlas", "Disk Atlas", "JL Studios", true, "See what fills your disks and pick a folder to import from a map of its sizes.", ["provider", "apps"], ["fs.read-chosen"], 150, 2),
+        entry("studio.jl.takeout", "Google Takeout", "JL Studios", true, "Import a Google Takeout export with its albums, dates and places intact.", ["importer"], ["import.read-chosen", "storage"], 8, 1),
+        entry("jl.clockwork", "Clockwork", "JL Studios", true, "Finds a camera whose clock was off and proposes corrected dates for its photos.", ["tools"], ["library.read", "dates.write"], 265, 1, days(1)),
+        entry("jl.captioner", "Captioner", "JL Studios", true, "Suggests titles and captions from the people, places and text in each photo.", ["tools"], ["library.read", "captions.write"], 320, 0, days(1)),
+        entry("com.example.warm", "Warm looks", "Ada Author", false, "Twelve warm presets for golden hour and indoor light.", ["presets"], [], 40, 1),
+        entry("com.example.grain", "Fine grain", "Bo Lindqvist", false, "Monochrome looks with real scanned grain, from soft to gritty.", ["presets"], [], null, 0),
+        entry("com.example.resolve", "Send to Resolve", "Kit Maker", false, "Open a video in DaVinci Resolve with its trim and markers.", ["apps"], [], 230, 1),
+        entry("com.example.ollama", "Local captions", "Rin", false, "Use a model running on your own computer to describe photos.", ["provider"], ["library.read"], 95, 0),
+      ],
+    };
+  },
+  store_readme: () =>
+    [
+      "## What it does",
+      "",
+      "It looks at the photos taken around each one: the same day, the same people, the same trip. When those know where they were, it suggests a place, with how sure it is.",
+      "",
+      "## Nothing leaves your computer",
+      "",
+      "- Guesses are made on this computer, offline.",
+      "- Nothing is written until you **review** it.",
+      "- Every write is verified and can be undone.",
+    ].join("\n"),
+  store_status: () => ({ offline: params.get("store") === "cached", hasCache: true, checkedAt: null, autoUpdate: true, updates: [{ id: "jl.disk-atlas", name: "Disk Atlas", from: "1.0.0", to: "1.2.0", needsReview: false }], updated: [] }),
+  store_install: () => ({ path: "C:/tmp/store.lumenplugin", installed: false }),
+  store_update: () => ({ path: null, installed: true }),
+  // Themes (Round 26): installing, trying and applying a store theme.
+  themes_list: () => shimThemes.installed,
+  theme_install: (a) => shimThemeOf(String(a.storeId), true),
+  theme_remove: (a) => {
+    shimThemes.installed = shimThemes.installed.filter((t) => t.id !== a.id);
+    return null;
+  },
+  theme_try: (a) => (shimThemes.tried = shimThemeOf(String(a.storeId), false)),
+  theme_try_end: () => {
+    shimThemes.tried = null;
+    return null;
+  },
+  theme_keep: () => shimThemeOf(String(shimThemes.tried?.id ?? ""), true),
+  theme_apply: (a) => {
+    state.settings.appearance.theme = { plugin: String(a.id), theme: "theme" } as unknown as Settings["appearance"]["theme"];
+    return null;
+  },
+  store_set_auto_update: () => null,
   set_default_app: (a) => {
     state.settings.externalApps.defaults = { ...state.settings.externalApps.defaults, [String(a.media)]: (a.id as string | null) ?? null };
     return null;
@@ -1685,3 +1984,17 @@ function shimRaster(hash: string): string {
 };
 
 console.info("[lumen] browser shim: ?library=1 skips setup, ?theme=glass&scheme=light forces a theme, ?nosplash=1, ?items=200");
+
+// Round 24 lane A: the system clipboard in memory, so Copy / Paste settings need no permission prompt.
+{
+  let clipText = "";
+  Object.defineProperty(navigator, "clipboard", {
+    configurable: true,
+    value: {
+      writeText: async (t: string) => {
+        clipText = t;
+      },
+      readText: async () => clipText,
+    },
+  });
+}

@@ -111,6 +111,44 @@ mod tests {
         .unwrap();
     }
 
+    // Memories are deleted and stored again at every launch; a film made from the same photos
+    // must come back under the new id instead of being rebuilt.
+    #[test]
+    fn a_film_survives_its_memory_being_regenerated() {
+        use crate::memories::{store, Draft};
+        let db = Db::open_in_memory().unwrap();
+        db.with_conn(|c| {
+            for asset in [11, 12] {
+                c.execute(
+                    "INSERT INTO assets (id, content_hash, relative_path, filename, extension, media_type, byte_size, orientation, imported_at)
+                     VALUES (?1, ?2, 'p', 'f.jpg', 'jpg', 0, 1, 1, 1)",
+                    params![asset, format!("h{asset}")],
+                )?;
+            }
+            let drafts = vec![Draft {
+                kind: 1,
+                title: "Lisbon".into(),
+                subtitle: None,
+                start_at: 0,
+                end_at: 10,
+                centroid: None,
+                items: vec![(11, 1.0, true), (12, 0.9, true)],
+            }];
+            store(c, &drafts, 1)?;
+            let (id, key) = missing(c, PREPARE_NEWEST)?.remove(0);
+            let doc = SlideshowDoc::new_for(&[11, 12]);
+            put(c, id, &key, &doc, Some(96), 5)?;
+
+            store(c, &drafts, 2)?;
+            assert!(missing(c, PREPARE_NEWEST)?.is_empty(), "the film was carried over");
+            // The id may be reused (no AUTOINCREMENT), but the delete had cascaded to the film.
+            let new_id: i64 = c.query_row("SELECT id FROM memories", [], |r| r.get(0))?;
+            assert_eq!(get_fresh(c, new_id, &key)?, Some(StoredFilm { doc, bpm: Some(96), built_at: 5 }));
+            Ok(())
+        })
+        .unwrap();
+    }
+
     fn library() -> Db {
         let db = Db::open_in_memory().unwrap();
         db.with_conn(|c| {

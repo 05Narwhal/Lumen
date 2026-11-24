@@ -31,8 +31,11 @@ mod tests {
         assert_eq!(pick_disk(&disks, Path::new("/Users/sample/Pictures")), Some(10));
         // A path component must match whole: /Volumes/Photo is not a prefix of /Volumes/Photos.
         assert_eq!(pick_disk(&[(PathBuf::from("/Volumes/Photo"), 30)], Path::new("/Volumes/Photos/x")), None);
-        // Windows drive letters.
-        let win = vec![(PathBuf::from("C:\\"), 5), (PathBuf::from("X:\\"), 7)];
-        assert_eq!(pick_disk(&win, Path::new("X:\\Photos\\Lumen Library")), Some(7));
+        // Windows drive letters (only Windows reads `C:\` as a path with a root).
+        #[cfg(windows)]
+        {
+            let win = vec![(PathBuf::from("C:\\"), 5), (PathBuf::from("X:\\"), 7)];
+            assert_eq!(pick_disk(&win, Path::new("X:\\Photos\\Lumen Library")), Some(7));
+        }
     }
 }

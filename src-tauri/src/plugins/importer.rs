@@ -192,6 +192,10 @@ impl PluginSource {
             chosen: Some(root.clone()),
             photos: None,
             drafts: None,
+            models: None,
+            library: None,
+            places: None,
+            proposals: None,
         };
         let instance = plugins.engine()?.importer_at(&wasm, ctx)?;
         plugins.cancel_when_off(plugin, &cancel);

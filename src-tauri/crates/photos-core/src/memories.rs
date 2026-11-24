@@ -526,6 +526,16 @@ pub fn store(conn: &Connection, drafts: &[Draft], now: i64) -> Result<usize> {
         .prepare("SELECT kind, start_at, end_at FROM memories WHERE is_hidden = 1")?
         .query_map([], |r| Ok((r.get(0)?, r.get(1)?, r.get(2)?)))?
         .collect::<std::result::Result<_, _>>()?;
+    // Films are kept by the same identity: deleting the memories cascades to `memory_films`, and
+    // without this every launch rebuilt every film. `get_fresh` still compares the photos.
+    type Film = (String, String, Option<i64>, i64);
+    let mut films: HashMap<(i64, i64, i64), Film> = tx
+        .prepare(
+            "SELECT m.kind, m.start_at, m.end_at, f.source_key, f.doc_json, f.bpm, f.built_at
+             FROM memory_films f JOIN memories m ON m.id = f.memory_id",
+        )?
+        .query_map([], |r| Ok(((r.get(0)?, r.get(1)?, r.get(2)?), (r.get(3)?, r.get(4)?, r.get(5)?, r.get(6)?))))?
+        .collect::<std::result::Result<_, _>>()?;
     tx.execute("DELETE FROM memory_items", [])?;
     tx.execute("DELETE FROM memories", [])?;
     let mut stored = 0;
@@ -535,6 +545,9 @@ pub fn store(conn: &Connection, drafts: &[Draft], now: i64) -> Result<usize> {
              VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10)",
         )?;
         let mut item = tx.prepare("INSERT INTO memory_items (memory_id, asset_id, score, curated) VALUES (?1, ?2, ?3, ?4)")?;
+        let mut film = tx.prepare(
+            "INSERT INTO memory_films (memory_id, source_key, doc_json, bpm, built_at) VALUES (?1, ?2, ?3, ?4, ?5)",
+        )?;
         for d in drafts {
             let cover = d.items.first().map(|(id, _, _)| *id);
             let is_hidden = hidden.contains(&(d.kind, d.start_at, d.end_at));
@@ -545,6 +558,9 @@ pub fn store(conn: &Connection, drafts: &[Draft], now: i64) -> Result<usize> {
             let id = tx.last_insert_rowid();
             for (asset, score, curated) in &d.items {
                 item.execute(params![id, asset, score, curated])?;
+            }
+            if let Some((key, doc, bpm, built_at)) = films.remove(&(d.kind, d.start_at, d.end_at)) {
+                film.execute(params![id, key, doc, bpm, built_at])?;
             }
             stored += 1;
         }

@@ -14,8 +14,12 @@ use crate::{PluginError, PluginKind};
 /// 50 MB uncompressed, counted on the bytes actually read.
 pub const MAX_BYTES: u64 = 50 * 1024 * 1024;
 pub const MAX_FILES: usize = 2_000;
-/// The largest `icon.png`, in pixels per side.
-pub const MAX_ICON: u32 = 256;
+/// The smallest and largest `icon.png`, in pixels per side (it is square).
+pub const MIN_ICON: u32 = 128;
+pub const MAX_ICON: u32 = 512;
+const MAX_ICON_BYTES: u64 = 256 * 1024;
+const MAX_README_BYTES: u64 = 64 * 1024;
+const MAX_SCREENSHOT_BYTES: u64 = 2 * 1024 * 1024;
 const MAX_SIGNATURE: u64 = 64 * 1024;
 
 const ARCHIVE_EXTENSIONS: &[&str] = &[
@@ -219,6 +223,24 @@ fn check_path(rel: &str) -> Result<(), PluginError> {
 /// Unpacks a `.lumenplugin` into `into` (created if missing, expected empty) and checks it.
 /// On an error `into` may hold a partial unpack; the caller removes it.
 pub fn open_package(file: &Path, into: &Path) -> Result<Unpacked, PluginError> {
+    let c = unzip(file, into)?;
+    finish(into.to_path_buf(), c)
+}
+
+/// A zip's files and their blake3, unpacked into `into` under the package rules (paths, limits,
+/// no links, no archives inside), without reading any manifest. Shared with `.lumentheme`.
+pub(crate) fn unzip_files(file: &Path, into: &Path) -> Result<BTreeMap<String, [u8; 32]>, PluginError> {
+    Ok(unzip(file, into)?.files)
+}
+
+/// A folder's files under the same rules, read in place.
+pub(crate) fn folder_files(dir: &Path) -> Result<BTreeMap<String, [u8; 32]>, PluginError> {
+    let mut c = Collector::default();
+    walk(dir, "", &mut c)?;
+    Ok(c.files)
+}
+
+fn unzip(file: &Path, into: &Path) -> Result<Collector, PluginError> {
     let f = fs::File::open(file)
         .map_err(|e| invalid(format!("The package couldn't be opened: {e}")))?;
     let mut zip = zip::ZipArchive::new(f)
@@ -275,7 +297,7 @@ pub fn open_package(file: &Path, into: &Path) -> Result<Unpacked, PluginError> {
             .map_err(|e| invalid(format!("Couldn't unpack {name}: {e}")))?;
         c.take(&name, &mut entry, Some(&mut out))?;
     }
-    finish(into.to_path_buf(), c)
+    Ok(c)
 }
 
 /// Checks a Developer-mode folder in place. Links are refused, never followed.
@@ -345,9 +367,6 @@ fn finish(root: PathBuf, c: Collector) -> Result<Unpacked, PluginError> {
             )))
         }
     };
-    for t in &m.themes {
-        need(&t.file, "the theme")?;
-    }
     if let Some(a) = &m.apps {
         need(&a.file, "the apps file")?;
     }
@@ -378,6 +397,13 @@ fn finish(root: PathBuf, c: Collector) -> Result<Unpacked, PluginError> {
     if pkg.has("icon.png") {
         check_icon(&pkg.read("icon.png")?)?;
     }
+    if pkg.has("README.md") {
+        check_readme(&pkg.read("README.md")?)?;
+    }
+    for s in &m.screenshots {
+        need(s, "the screenshot")?;
+        check_screenshot(s, &pkg.read(s)?)?;
+    }
 
     let has_licence = pkg.has("LICENSE");
     licences::check(&m.license, has_licence).map_err(PluginError::licence)?;
@@ -388,18 +414,54 @@ fn finish(root: PathBuf, c: Collector) -> Result<Unpacked, PluginError> {
     Ok(pkg)
 }
 
-/// `icon.png` must be a PNG of at most 256 × 256, read from its IHDR (no decoder).
-fn check_icon(bytes: &[u8]) -> Result<(), PluginError> {
-    const SIG: &[u8] = b"\x89PNG\r\n\x1a\n";
-    if bytes.len() < 24 || &bytes[..8] != SIG || &bytes[12..16] != b"IHDR" {
-        return Err(invalid("icon.png isn't a PNG"));
+const PNG_SIGNATURE: &[u8] = b"\x89PNG\r\n\x1a\n";
+
+/// A PNG's size from its IHDR (no decoder), or `None` when the bytes aren't a PNG.
+fn png_size(bytes: &[u8]) -> Option<(u32, u32)> {
+    if bytes.len() < 24 || &bytes[..8] != PNG_SIGNATURE || &bytes[12..16] != b"IHDR" {
+        return None;
     }
     let w = u32::from_be_bytes(bytes[16..20].try_into().unwrap());
     let h = u32::from_be_bytes(bytes[20..24].try_into().unwrap());
-    if w == 0 || h == 0 || w > MAX_ICON || h > MAX_ICON {
+    Some((w, h))
+}
+
+/// `icon.png` must be a square PNG of 128 to 512 pixels and at most 256 KB.
+pub(crate) fn check_icon(bytes: &[u8]) -> Result<(), PluginError> {
+    let Some((w, h)) = png_size(bytes) else {
+        return Err(invalid("icon.png isn't a PNG"));
+    };
+    if w != h || !(MIN_ICON..=MAX_ICON).contains(&w) {
         return Err(invalid(format!(
-            "icon.png is {w} × {h}; at most {MAX_ICON} × {MAX_ICON}"
+            "icon.png is {w} × {h}; it must be square, {MIN_ICON} to {MAX_ICON} pixels a side"
         )));
+    }
+    if bytes.len() as u64 > MAX_ICON_BYTES {
+        return Err(invalid(format!("icon.png is over {} KB", MAX_ICON_BYTES / 1024)));
+    }
+    Ok(())
+}
+
+/// `README.md` is UTF-8 text of at most 64 KB.
+pub(crate) fn check_readme(bytes: &[u8]) -> Result<(), PluginError> {
+    if bytes.len() as u64 > MAX_README_BYTES {
+        return Err(invalid(format!("README.md is over {} KB", MAX_README_BYTES / 1024)));
+    }
+    if std::str::from_utf8(bytes).is_err() {
+        return Err(invalid("README.md isn't UTF-8 text"));
+    }
+    Ok(())
+}
+
+/// A screenshot is a PNG or a JPEG (by its first bytes, whatever its name says) of at most 2 MB.
+pub(crate) fn check_screenshot(rel: &str, bytes: &[u8]) -> Result<(), PluginError> {
+    if bytes.len() as u64 > MAX_SCREENSHOT_BYTES {
+        return Err(invalid(format!("{rel} is over {} MB", MAX_SCREENSHOT_BYTES / (1024 * 1024))));
+    }
+    let named_png = rel.to_ascii_lowercase().ends_with(".png");
+    let ok = if named_png { png_size(bytes).is_some() } else { bytes.starts_with(&[0xff, 0xd8, 0xff]) };
+    if !ok {
+        return Err(invalid(format!("{rel} isn't a {} file", if named_png { "PNG" } else { "JPEG" })));
     }
     Ok(())
 }
@@ -468,7 +530,7 @@ mod tests {
     }
 
     fn theme_manifest() -> String {
-        manifest("[[themes]]\nfile = \"themes/a.toml\"")
+        manifest("[[prompts]]\nname = \"a\"\ndescription = \"d\"\nfile = \"themes/a.toml\"")
     }
 
     fn assert_invalid(r: Result<Unpacked, PluginError>, code: &str) {
@@ -713,12 +775,12 @@ mod tests {
 
     #[test]
     fn referenced_files_exist() {
-        let m = manifest("[[themes]]\nfile = \"themes/missing.toml\"");
+        let m = manifest("[[prompts]]\nname = \"a\"\ndescription = \"d\"\nfile = \"themes/missing.toml\"");
         assert_invalid(
             open(&[("plugin.toml", m.as_bytes()), ("themes/a.toml", b"x")]),
             "plugin_invalid",
         );
-        let m = manifest("[[themes]]\nfile = \"themes/a.toml\"\n[[assets]]\npath = \"assets/a.png\"\nlicense = \"MIT\"");
+        let m = manifest("[[prompts]]\nname = \"a\"\ndescription = \"d\"\nfile = \"themes/a.toml\"\n[[assets]]\npath = \"assets/a.png\"\nlicense = \"MIT\"");
         assert_invalid(
             open(&[("plugin.toml", m.as_bytes()), ("themes/a.toml", b"x")]),
             "plugin_invalid",
@@ -731,7 +793,7 @@ mod tests {
     #[test]
     fn icon_size_checked() {
         let m = theme_manifest();
-        let big = png(300, 300);
+        let big = png(600, 600);
         assert_invalid(
             open(&[
                 ("plugin.toml", m.as_bytes()),
@@ -748,13 +810,68 @@ mod tests {
             ]),
             "plugin_invalid",
         );
-        let ok = png(256, 128);
+        let ok = png(256, 256);
         open(&[
             ("plugin.toml", m.as_bytes()),
             ("themes/a.toml", b"x"),
             ("icon.png", &ok),
         ])
         .unwrap();
+    }
+
+    fn with_listing(extra: &[(&str, &[u8])], toml_extra: &str) -> Result<Unpacked, PluginError> {
+        let m = format!("{}{toml_extra}", theme_manifest());
+        let mut entries: Vec<(&str, &[u8])> = vec![("plugin.toml", m.as_bytes()), ("themes/a.toml", b"x")];
+        entries.extend_from_slice(extra);
+        open(&entries)
+    }
+
+    #[test]
+    fn icon_is_square_128_to_512_and_light() {
+        for (w, h) in [(127, 127), (128, 256), (256, 128), (513, 513), (600, 600), (0, 0)] {
+            assert_invalid(with_listing(&[("icon.png", &png(w, h))], ""), "plugin_invalid");
+        }
+        for side in [128, 256, 512] {
+            with_listing(&[("icon.png", &png(side, side))], "").unwrap();
+        }
+        let mut heavy = png(256, 256);
+        heavy.resize(256 * 1024 + 1, 0);
+        assert_invalid(with_listing(&[("icon.png", &heavy)], ""), "plugin_invalid");
+        heavy.truncate(256 * 1024);
+        with_listing(&[("icon.png", &heavy)], "").unwrap();
+    }
+
+    #[test]
+    fn readme_is_text_up_to_64_kb() {
+        let pkg = with_listing(&[("README.md", b"# Hi\n")], "").unwrap();
+        assert!(pkg.has("README.md"));
+        assert_invalid(with_listing(&[("README.md", &vec![b'a'; 64 * 1024 + 1])], ""), "plugin_invalid");
+        with_listing(&[("README.md", &vec![b'a'; 64 * 1024])], "").unwrap();
+        assert_invalid(with_listing(&[("README.md", &[0xff, 0xfe, 0x00])], ""), "plugin_invalid");
+    }
+
+    fn jpeg() -> Vec<u8> {
+        vec![0xff, 0xd8, 0xff, 0xe0, 0, 0x10, b'J', b'F', b'I', b'F', 0]
+    }
+
+    #[test]
+    fn screenshots_are_listed_present_images_up_to_2_mb() {
+        let listing = "\n[listing]\nscreenshots = [\"screenshots/a.png\", \"screenshots/b.jpg\"]\n";
+        let (a, b) = (png(800, 600), jpeg());
+        let pkg = with_listing(&[("screenshots/a.png", &a), ("screenshots/b.jpg", &b)], listing).unwrap();
+        assert_eq!(pkg.manifest.screenshots, ["screenshots/a.png", "screenshots/b.jpg"]);
+        // Listed but not shipped.
+        assert_invalid(with_listing(&[("screenshots/a.png", &a)], listing), "plugin_invalid");
+        // Not the format its name claims.
+        assert_invalid(with_listing(&[("screenshots/a.png", &b), ("screenshots/b.jpg", &b)], listing), "plugin_invalid");
+        assert_invalid(with_listing(&[("screenshots/a.png", &a), ("screenshots/b.jpg", &a)], listing), "plugin_invalid");
+        assert_invalid(with_listing(&[("screenshots/a.png", b"GIF89a"), ("screenshots/b.jpg", &b)], listing), "plugin_invalid");
+        // Too heavy.
+        let mut heavy = a.clone();
+        heavy.resize(2 * 1024 * 1024 + 1, 0);
+        assert_invalid(with_listing(&[("screenshots/a.png", &heavy), ("screenshots/b.jpg", &b)], listing), "plugin_invalid");
+        heavy.truncate(2 * 1024 * 1024);
+        with_listing(&[("screenshots/a.png", &heavy), ("screenshots/b.jpg", &b)], listing).unwrap();
     }
 
     #[test]
@@ -768,7 +885,9 @@ pick = \"folder\"")
                 .replacen("license = \"MIT\"
 ", "", 1);
         open(&[("plugin.toml", m.as_bytes()), ("plugin.wasm", b" asm")]).unwrap();
-        let m = manifest("[[themes]]
+        let m = manifest("[[prompts]]
+name = \"a\"
+description = \"d\"
 file = \"themes/a.toml\"
 [[assets]]
 path = \"assets/a.png\"
@@ -780,7 +899,9 @@ license = \"CC-BY-NC-4.0\"");
         ])
         .unwrap();
         // A LicenseRef needs its text in the package.
-        let m = manifest("[[themes]]
+        let m = manifest("[[prompts]]
+name = \"a\"
+description = \"d\"
 file = \"themes/a.toml\"
 [[assets]]
 path = \"assets/a.png\"
@@ -800,7 +921,7 @@ license = \"LicenseRef-X\"");
     #[test]
     fn open_folder_same_checks() {
         let dir = tempfile::tempdir().unwrap();
-        let m = manifest("[[themes]]\nfile = \"themes/missing.toml\"");
+        let m = manifest("[[prompts]]\nname = \"a\"\ndescription = \"d\"\nfile = \"themes/missing.toml\"");
         std::fs::write(dir.path().join("plugin.toml"), &m).unwrap();
         std::fs::create_dir(dir.path().join("themes")).unwrap();
         std::fs::write(dir.path().join("themes/a.toml"), "x").unwrap();

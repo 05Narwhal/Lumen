@@ -19,3 +19,22 @@
   &__licence { display: flex; gap: var(--space-2); }
   &__actions { display: flex; justify-content: flex-end; gap: var(--space-2); }
 }
+
+// A theme's sheet (Round 26): the plugin sheet's pieces plus a miniature and the Layout badge.
+.theme-install {
+  &__title { flex: 1; }
+  &__badge {
+    padding: 2px var(--space-2);
+    border-radius: var(--radius-pill);
+    background: var(--accent-soft);
+    color: var(--accent);
+    font-size: var(--text-sm);
+    font-weight: 600;
+  }
+  &__miniature {
+    aspect-ratio: 16 / 9;
+    border: var(--border-width) solid var(--border);
+    border-radius: var(--radius-md);
+    overflow: hidden;
+  }
+}

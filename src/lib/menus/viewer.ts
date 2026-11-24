@@ -15,7 +15,7 @@ import {
   IconUserCircle,
   IconUserScan,
 } from "@tabler/icons-react";
-import { DIVIDER, icon, openWithItems, tidy, type MenuItem, type OpenWithContext } from "./parts";
+import { contributionItems, DIVIDER, icon, openWithItems, tidy, type MenuContribution, type MenuItem, type OpenWithContext } from "./parts";
 
 export interface ViewerMenuContext {
   favorite: boolean;
@@ -29,6 +29,8 @@ export interface ViewerMenuContext {
   people: { personId: number; name: string; faceId: number }[];
   /** The installed apps that fit this photo, and the default (Round 22 §9). */
   openWith?: OpenWithContext;
+  /** What installed plugins add to this menu (`viewer.menu`), already resolved. */
+  contributions?: MenuContribution[];
 }
 
 /** What the viewer's photo menu can do; an action left out leaves its item out. */
@@ -83,6 +85,7 @@ export function viewerMenu(ctx: ViewerMenuContext, a: ViewerMenuActions): MenuIt
         children: ctx.people.map((p) => ({ label: p.name, onSelect: () => a.useAsMainPhoto!(p.personId, p.faceId) })),
       },
     a.tagPeople && { label: "Tag people…", icon: icon(IconUserScan), shortcut: "p", onSelect: a.tagPeople },
+    ...contributionItems(ctx.contributions),
     { label: "Show info", icon: icon(IconInfoCircle), shortcut: "i", onSelect: a.showInfo },
     !ctx.inHidden && { label: "Move to Hidden", icon: icon(IconLock), onSelect: a.moveToHidden },
     DIVIDER,

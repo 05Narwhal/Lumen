@@ -41,6 +41,12 @@ export function SettingsRoute() {
   const back = returnPath();
   const [query, setQuery] = useState("");
   const searchRef = useRef<HTMLInputElement>(null);
+  // Round 25 P3: a search result that opens a plugin's page ends the search (every navigation has a new key).
+  const { key: locationKey } = useLocation();
+  useEffect(() => {
+    if (params.get("plugin")) setQuery("");
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [locationKey]);
   const searching = query.trim() !== "";
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {

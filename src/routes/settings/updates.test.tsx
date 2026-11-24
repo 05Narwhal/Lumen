@@ -9,9 +9,10 @@ import { appCommands } from "@/lib/commands";
 import { invokeMock, mockCommand, mockLibraryDefaults } from "@/test/tauri-mock";
 import type { UpdateState } from "@/types/generated/UpdateState";
 import { SettingsRoute } from "./gui";
+import { resetUpdateNotices } from "@/hooks/use-updates";
 import { updateLine, useUpdateNotices } from "./updates";
 
-const settings = (channel = "stable", automatic = true) => ({
+const settings = (channel = "stable", automatic = true, security = true) => ({
   version: 1,
   appearance: { theme: "gallery", scheme: "auto", tileSize: "m", reduceMotion: false, sidebarCollapsed: false },
   import: { duplicates: "skip", promptOnVolume: true },
@@ -20,14 +21,14 @@ const settings = (channel = "stable", automatic = true) => ({
   music: { jamendoClientId: null },
   smart: { enabled: true, gpu: true, experimental: { autoModel: false, retouch: false } },
   window: { width: 1280, height: 800, x: null, y: null, maximized: false },
-  updates: { automatic, channel },
+  updates: { automatic, channel, security },
 });
 
 function mount(state: UpdateState, s = settings()) {
   mockCommand("get_settings", () => s);
   mockCommand("update_settings", (a) => a?.settings);
   mockLibraryDefaults();
-  mockCommand("update_status", () => ({ version: "26.1.0-alpha", state, whatsNew: null }));
+  mockCommand("update_status", () => ({ version: "26.1.0-alpha", state, whatsNew: null, security: false }));
   render(
     <Providers>
       <MemoryRouter initialEntries={["/settings?section=updates"]}>
@@ -77,7 +78,7 @@ describe("Settings → Updates", () => {
 
   it("checks when asked", async () => {
     mount({ state: "idle" });
-    mockCommand("check_for_updates", () => ({ version: "26.1.0-alpha", state: { state: "upToDate", checkedAt: 2 }, whatsNew: null }));
+    mockCommand("check_for_updates", () => ({ version: "26.1.0-alpha", state: { state: "upToDate", checkedAt: 2 }, whatsNew: null, security: false }));
     await userEvent.click(await screen.findByRole("button", { name: "Check for updates" }));
     expect(invokeMock).toHaveBeenCalledWith("check_for_updates", undefined);
   });
@@ -93,9 +94,24 @@ describe("Settings → Updates", () => {
 
   it("offers Download when automatic updates are off", async () => {
     mount({ state: "available", version: "26.1.1-alpha", notes: "" }, settings("alpha", false));
-    mockCommand("download_update", () => ({ version: "26.1.0-alpha", state: { state: "downloading", version: "26.1.1-alpha", done: 0, total: 10 }, whatsNew: null }));
+    mockCommand("download_update", () => ({ version: "26.1.0-alpha", state: { state: "downloading", version: "26.1.1-alpha", done: 0, total: 10 }, whatsNew: null, security: false }));
     await userEvent.click(await screen.findByRole("button", { name: "Download" }));
     expect(invokeMock).toHaveBeenCalledWith("download_update", undefined);
+  });
+
+  it("has Install security fixes automatically on by default, independent of Automatic updates", async () => {
+    mount({ state: "upToDate", checkedAt: 1 }, settings("stable", false, true));
+    const security = await screen.findByRole("switch", { name: "Install security fixes automatically" });
+    expect(security).toBeChecked();
+    expect(screen.getByRole("switch", { name: "Automatic updates" })).not.toBeChecked();
+    await userEvent.click(security);
+    expect(invokeMock).toHaveBeenCalledWith("update_settings", expect.objectContaining({ settings: expect.objectContaining({ updates: expect.objectContaining({ security: false, automatic: false }) }) }));
+  });
+
+  it("keeps Automatic updates as it was when the security switch changes, and the reverse", async () => {
+    mount({ state: "upToDate", checkedAt: 1 }, settings("stable", true, false));
+    await userEvent.click(await screen.findByRole("switch", { name: "Automatic updates" }));
+    expect(invokeMock).toHaveBeenCalledWith("update_settings", expect.objectContaining({ settings: expect.objectContaining({ updates: expect.objectContaining({ automatic: false, security: false }) }) }));
   });
 
   it("checks nothing in a development build", async () => {
@@ -128,5 +144,14 @@ describe("useUpdateNotices", () => {
     rerender();
     await act(async () => {});
     expect(toastStore.get().toasts.filter((t) => t.message === "Updated to 26.1.4-alpha")).toHaveLength(1);
+  });
+
+  it("says Lumen installed a security fix after one", async () => {
+    resetUpdateNotices();
+    toastStore.set({ toasts: [] });
+    mockCommand("take_update_receipt", () => ({ version: "26.3.5-stable", notes: "", security: true }));
+    renderHook(() => useUpdateNotices(), { wrapper: wrap });
+    await waitFor(() => expect(toastStore.get().toasts.map((t) => t.message)).toContain("Lumen installed a security fix (26.3.5-stable)"));
+    expect(toastStore.get().toasts.map((t) => t.message)).not.toContain("Updated to 26.3.5-stable");
   });
 });

@@ -12,11 +12,25 @@
     box-shadow: var(--shadow-lg) !important;
     backdrop-filter: blur(var(--blur));
     padding: var(--space-1) !important;
+    // A long app name widens the menu instead of wrapping onto two lines; past the cap it ends in "…".
+    min-width: 240px;
+    max-width: min(360px, 90vw);
+    .mantine-Menu-itemLabel {
+      min-width: 0;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
     // Mantine draws a submenu inside its parent's dropdown, which would clip it at the parent's
     // edge. Menus with a submenu are short (under 20 rows, they fit the 600 px minimum window), so
     // they don't scroll; `flip`/`shift` keep them and their submenu on screen. A flat menu keeps
     // the theme's scroll for the room left in the window.
     &[data-nested] { overflow: visible !important; }
+    // A dense menu (Round 24 §3: the mask menu): one step tighter rows and icons, this menu only.
+    &[data-dense] {
+      .mantine-Menu-item { padding: var(--menu-item-pad-dense) !important; }
+      .mantine-Menu-itemSection svg { width: var(--menu-icon-dense); height: var(--menu-icon-dense); }
+    }
   }
 
   &__stars {

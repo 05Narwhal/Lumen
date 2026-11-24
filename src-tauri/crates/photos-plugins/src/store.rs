@@ -24,12 +24,14 @@ use crate::manifest::{self, Manifest};
 use crate::package::{self, KindCheck, Report, Unpacked};
 use crate::signature::{self, Keys};
 use crate::{
-    host, theme, PluginAsset, PluginError, PluginInfo, PluginInspect, PluginPermission,
-    PluginSetting, PluginState, PluginTrust, PluginUpdate, API_VERSION,
+    host, PluginAsset, PluginError, PluginInfo, PluginInspect, PluginPermission,
+    PluginControl, PluginSection, PluginSetting, PluginState, PluginTrust, PluginUpdate, API_VERSION,
 };
 
 const STATE: &str = "plugins.json";
 const STATE_TMP: &str = "plugins.json.tmp";
+/// Icons of packages the install sheet has shown, kept only until the next start.
+const PREVIEW: &str = "preview";
 const KEY_CHANGED: &str = "This update was signed by a different key.";
 const JL_PREFIX: &str = "studio.jl.";
 
@@ -218,8 +220,12 @@ impl Store {
                 settings: prev.map(|e| e.settings.clone()).unwrap_or_default(),
                 extra: Map::new(),
             };
+            let media = Media {
+                icon_url: self.keep_preview_icon(&tmp).map(|h| format!("photos://plugin-preview/{h}")),
+                ..Media::default()
+            };
             Ok(PluginInspect {
-                info: make_info(m, &entry, None, None, None, &ctx.lumen),
+                info: make_info(m, &entry, media, None, None, &ctx.lumen),
                 adds: p.report.adds,
                 problems: p.report.problems,
                 notes: p.report.notes,
@@ -323,6 +329,34 @@ impl Store {
 
     pub fn icon_path(&self, id: &str) -> Option<PathBuf> {
         Some(self.get(id)?.dir.join("icon.png")).filter(|p| p.is_file())
+    }
+
+    /// An icon kept by [`Store::inspect`] for the install sheet, named by its blake3 hash.
+    pub fn preview_icon_path(&self, hash: &str) -> Option<PathBuf> {
+        let hex = hash.len() == 64 && hash.bytes().all(|b| b.is_ascii_hexdigit());
+        Some(self.dir.join(PREVIEW).join(format!("{hash}.png"))).filter(|p| hex && p.is_file())
+    }
+
+    /// Copies the unpacked package's `icon.png` to `preview/<hash>.png` (swept at the next
+    /// start) so the sheet can show it over `photos://`; the scratch folder is deleted.
+    fn keep_preview_icon(&self, unpacked: &Path) -> Option<String> {
+        let bytes = fs::read(unpacked.join("icon.png")).ok()?;
+        let hash = blake3::hash(&bytes).to_hex().to_string();
+        let dir = self.dir.join(PREVIEW);
+        fs::create_dir_all(&dir).ok()?;
+        fs::write(dir.join(format!("{hash}.png")), bytes).ok()?;
+        Some(hash)
+    }
+
+    /// The `n`th `[listing]` screenshot, by position: a file the manifest doesn't list is never named.
+    pub fn screenshot_path(&self, id: &str, n: usize) -> Option<PathBuf> {
+        let i = self.get(id)?;
+        Some(i.dir.join(i.manifest.screenshots.get(n)?)).filter(|p| p.is_file())
+    }
+
+    /// The plugin's `README.md` text (checked as UTF-8 and ≤ 64 KB when the package was opened).
+    pub fn readme(&self, id: &str) -> Option<String> {
+        fs::read_to_string(self.get(id)?.dir.join("README.md")).ok()
     }
 
     /// `plugins/data/<id>/`, the plugin's `storage` (not created here).
@@ -443,6 +477,19 @@ impl Store {
         Ok(())
     }
 
+    /// The executable the person chose with *Locate…* for a `[[detect]]` entry (kept in the
+    /// plugin's settings map under a key no manifest setting can have).
+    pub fn located(&self, id: &str, detect_id: &str) -> Option<PathBuf> {
+        let e = self.state.plugins.get(id).filter(|_| self.visible(id))?;
+        e.settings.get(&format!("@located:{detect_id}"))?.as_str().map(PathBuf::from)
+    }
+
+    pub fn set_located(&mut self, id: &str, detect_id: &str, exe: &Path) -> Result<(), PluginError> {
+        let key = format!("@located:{detect_id}");
+        self.entry_mut(id)?.settings.insert(key, Value::String(exe.to_string_lossy().into_owned()));
+        self.save()
+    }
+
     /// The stored value, else the manifest's default; `None` for an undeclared key.
     pub fn setting(&self, id: &str, key: &str) -> Option<Value> {
         self.get(id)?
@@ -544,7 +591,7 @@ impl Store {
         }
 
         let mut report = Report::default();
-        let builtin: [&dyn KindCheck; 2] = [&theme::ThemeCheck, &host::ImportsCheck];
+        let builtin: [&dyn KindCheck; 1] = [&host::ImportsCheck];
         let checks: Vec<&dyn KindCheck> = builtin
             .into_iter()
             .chain(ctx.checks.iter().map(|c| c.as_ref()))
@@ -559,6 +606,8 @@ impl Store {
         for c in &checks {
             c.check(pkg, dev_mode, &mut report);
         }
+        // Round 24 lane D: providers are declarative, so their lines come from the manifest.
+        report.adds.extend(m.provider_adds());
         if !runs_on(m, &ctx.lumen) {
             report.notes.push(
                 "This plugin needs a newer Lumen. It stays off until Lumen is updated.".into(),
@@ -676,12 +725,14 @@ impl Store {
         let (Some(i), Some(e)) = (self.installed.get(id), self.state.plugins.get(id)) else {
             return;
         };
-        let icon = i
-            .dir
-            .join("icon.png")
-            .is_file()
-            .then(|| format!("photos://plugin-icon/{id}"));
-        let info = make_info(&i.manifest, e, icon, self.stopped.get(id), self.problems.get(id), &self.lumen);
+        let media = Media {
+            icon_url: i.dir.join("icon.png").is_file().then(|| format!("photos://plugin-icon/{id}")),
+            screenshots: (0..i.manifest.screenshots.len())
+                .map(|n| format!("photos://plugin-shot/{id}/{n}"))
+                .collect(),
+            has_readme: i.dir.join("README.md").is_file(),
+        };
+        let info = make_info(&i.manifest, e, media, self.stopped.get(id), self.problems.get(id), &self.lumen);
         if let Some(i) = self.installed.get_mut(id) {
             i.granted = e.granted.clone();
             i.info = info;
@@ -718,10 +769,18 @@ fn unique() -> String {
     format!("{nanos}-{}", N.fetch_add(1, Ordering::Relaxed))
 }
 
+/// The files of a plugin's listing that exist on disk.
+#[derive(Default)]
+struct Media {
+    icon_url: Option<String>,
+    screenshots: Vec<String>,
+    has_readme: bool,
+}
+
 fn make_info(
     m: &Manifest,
     e: &Entry,
-    icon_url: Option<String>,
+    media: Media,
     stopped: Option<&String>,
     problem: Option<&String>,
     lumen: &semver::Version,
@@ -750,7 +809,11 @@ fn make_info(
         enabled: e.enabled,
         dev: e.dev,
         state,
-        icon_url,
+        icon_url: media.icon_url,
+        screenshots: media.screenshots,
+        has_readme: media.has_readme,
+        author_url: m.author_url.clone(),
+        repository: m.repository.clone(),
         settings: m
             .settings
             .iter()
@@ -765,8 +828,14 @@ fn make_info(
                     .cloned()
                     .unwrap_or_else(|| d.default.clone()),
                 choices: d.choices.clone(),
+                group: d.group.clone(),
+                requires: d.requires.clone(),
             })
             .collect(),
+        sections: sections_of(m, e),
+        contributions: m.contributions.clone(),
+        homepage: m.homepage.clone(),
+        detect_ids: m.detect.iter().map(|d| d.id.clone()).collect(),
         assets: m
             .assets
             .iter()
@@ -776,6 +845,43 @@ fn make_info(
             })
             .collect(),
     }
+}
+
+/// The settings page with each value control's stored value (a stored value the declaration
+/// no longer accepts reads as the default).
+fn sections_of(m: &Manifest, e: &Entry) -> Vec<PluginSection> {
+    m.sections
+        .iter()
+        .map(|sec| PluginSection {
+            title: sec.title.clone(),
+            description: sec.description.clone(),
+            controls: sec
+                .controls
+                .iter()
+                .map(|c| {
+                    let value = c.key.as_deref().filter(|_| c.kind.is_value()).and_then(|k| {
+                        let d = m.settings.iter().find(|d| d.key == k)?;
+                        Some(e.settings.get(k).filter(|v| d.accepts(v)).cloned().unwrap_or_else(|| d.default.clone()))
+                    });
+                    PluginControl {
+                        kind: c.kind,
+                        key: c.key.clone(),
+                        label: c.label.clone(),
+                        help: c.help.clone(),
+                        value,
+                        choices: c.choices.clone(),
+                        min: c.min,
+                        max: c.max,
+                        step: c.step,
+                        requires: c.requires.clone(),
+                        app: c.app.clone(),
+                        action: c.action.clone(),
+                        body: c.body.clone(),
+                    }
+                })
+                .collect(),
+        })
+        .collect()
 }
 
 fn broken_info(id: &str, e: &Entry, reason: &str) -> PluginInfo {
@@ -795,7 +901,15 @@ fn broken_info(id: &str, e: &Entry, reason: &str) -> PluginInfo {
             reason: reason.into(),
         },
         icon_url: None,
+        screenshots: Vec::new(),
+        has_readme: false,
+        author_url: None,
+        repository: None,
         settings: Vec::new(),
+        sections: Vec::new(),
+        contributions: Vec::new(),
+        homepage: None,
+        detect_ids: Vec::new(),
         assets: Vec::new(),
     }
 }
@@ -804,6 +918,7 @@ fn broken_info(id: &str, e: &Entry, reason: &str) -> PluginInfo {
 /// `installed/<id>.old/` (put back if the new folder never arrived).
 fn clean_leftovers(dir: &Path) {
     let _ = fs::remove_file(dir.join(STATE_TMP));
+    let _ = fs::remove_dir_all(dir.join(PREVIEW));
     let Ok(rd) = fs::read_dir(dir.join("installed")) else {
         return;
     };
@@ -849,7 +964,7 @@ mod tests {
         }
     }
 
-    const ALL: &[PluginKind] = &[Theme, Presets, Apps, Prompts, Importer, Tools];
+    const ALL: &[PluginKind] = &[Presets, Apps, Prompts, Importer, Tools];
 
     fn claim(kinds: &'static [PluginKind]) -> Box<dyn KindCheck> {
         Box::new(Claim {
@@ -868,8 +983,8 @@ mod tests {
         }
     }
 
-    /// The one theme every test plugin carries; the real `ThemeCheck` reads it.
-    const THEME_A: &[u8] = b"id = \"a\"\nname = \"A\"\nbase = \"gallery\"\n";
+    /// The one prompt every test plugin carries (themes left plugins in API 1.4).
+    const THEME_A: &[u8] = b"Retouch gently.\n";
 
     fn ctx() -> Ctx {
         ctx_with(None, vec![claim(ALL)])
@@ -881,16 +996,16 @@ mod tests {
         Jl(&'a TestKey),
     }
 
-    /// A theme plugin's manifest; `extra` goes before `[[themes]]` (top-level keys first).
+    /// A prompt plugin's manifest; `extra` goes before `[[prompts]]` (top-level keys first).
     fn theme_toml(id: &str, version: &str, extra: &str) -> String {
-        manifest(&format!("{extra}\n[[themes]]\nfile = \"themes/a.toml\""))
+        manifest(&format!("{extra}\n[[prompts]]\nname = \"a\"\ndescription = \"d\"\nfile = \"prompts/a.md\""))
             .replace("com.test.x", id)
             .replace("version = \"1.0.0\"", &format!("version = \"{version}\""))
     }
 
     fn package(m: &str, more: &[(&str, &[u8])], sign: Sign) -> (TempDir, PathBuf) {
         let mut files: Vec<(&str, &[u8])> =
-            vec![("plugin.toml", m.as_bytes()), ("themes/a.toml", THEME_A)];
+            vec![("plugin.toml", m.as_bytes()), ("prompts/a.md", THEME_A)];
         files.extend_from_slice(more);
         let sig = match sign {
             Sign::No => None,
@@ -968,7 +1083,7 @@ mod tests {
             ctx_with(
                 None,
                 vec![
-                    claim(&[Theme]),
+                    claim(&[Prompts]),
                     Box::new(Claim {
                         kinds: &[Presets],
                         problem,
@@ -1134,7 +1249,7 @@ mod tests {
             "1.0.0",
             "[[assets]]\npath = \"assets/fonts/Lora.woff2\"\nlicense = \"OFL-1.1\"",
         );
-        let icon = png(64, 64);
+        let icon = png(128, 128);
         let (_t, p) = package(
             &m,
             &[("assets/fonts/Lora.woff2", b"wOF2"), ("icon.png", &icon)],
@@ -1152,6 +1267,77 @@ mod tests {
         assert_eq!(s.asset_path("com.test.x", "plugin.toml"), None);
         assert_eq!(s.asset_path("com.test.x", "../x"), None);
         assert_eq!(s.asset_path("com.none", "assets/fonts/Lora.woff2"), None);
+    }
+
+    #[test]
+    fn listing_metadata_readme_and_screenshots_are_served_by_id() {
+        let (_a, dir) = app();
+        let k = TestKey::generate();
+        let mut s = Store::open(&dir).unwrap();
+        let extra = "author_url = \"https://example.com/me\"\nrepository = \"https://github.com/me/x\"\n\
+                     [listing]\nscreenshots = [\"screenshots/b.png\", \"screenshots/a.png\"]";
+        let m = theme_toml("com.test.x", "1.0.0", extra);
+        let (one, two) = (png(800, 600), png(640, 480));
+        let (_t, p) = package(
+            &m,
+            &[("README.md", b"# X\n\nHello"), ("screenshots/a.png", &one), ("screenshots/b.png", &two), ("screenshots/unlisted.png", &one)],
+            Sign::Author(&k),
+        );
+        let info = s.install(&p, &ctx()).unwrap();
+        assert_eq!(info.author_url.as_deref(), Some("https://example.com/me"));
+        assert_eq!(info.repository.as_deref(), Some("https://github.com/me/x"));
+        assert!(info.has_readme);
+        // In the order the manifest lists them.
+        assert_eq!(
+            info.screenshots,
+            ["photos://plugin-shot/com.test.x/0", "photos://plugin-shot/com.test.x/1"]
+        );
+        assert_eq!(s.readme("com.test.x").as_deref(), Some("# X\n\nHello"));
+        let shot = |n| s.screenshot_path("com.test.x", n);
+        assert!(shot(0).is_some_and(|p| p.ends_with("screenshots/b.png")));
+        assert!(shot(1).is_some_and(|p| p.ends_with("screenshots/a.png")));
+        // Only the listed ones, only by position, only for an installed plugin.
+        assert_eq!(shot(2), None);
+        assert_eq!(s.screenshot_path("com.none", 0), None);
+        assert_eq!(s.readme("com.none"), None);
+    }
+
+    #[test]
+    fn a_plugin_with_no_listing_has_none_of_it() {
+        let (_a, dir) = app();
+        let k = TestKey::generate();
+        let mut s = Store::open(&dir).unwrap();
+        let info = s.install(&signed("com.test.x", "1.0.0", "", &k).1, &ctx()).unwrap();
+        assert_eq!((info.author_url, info.repository, info.has_readme), (None, None, false));
+        assert!(info.screenshots.is_empty());
+        assert_eq!(s.readme("com.test.x"), None);
+    }
+
+    #[test]
+    fn inspect_keeps_the_icon_for_the_sheet_and_the_next_start_sweeps_it() {
+        let (_a, dir) = app();
+        let k = TestKey::generate();
+        let s = Store::open(&dir).unwrap();
+        let icon = png(128, 128);
+        let m = theme_toml("com.test.x", "1.0.0", "");
+        let (_t, p) = package(&m, &[("icon.png", &icon)], Sign::Author(&k));
+        let seen = s.inspect(&p, &ctx()).unwrap();
+        let url = seen.info.icon_url.expect("an icon shows before install");
+        let hash = url.strip_prefix("photos://plugin-preview/").expect("a preview url");
+        assert_eq!(hash, blake3::hash(&icon).to_hex().as_str());
+        let path = s.preview_icon_path(hash).expect("served by hash");
+        assert_eq!(fs::read(&path).unwrap(), icon);
+        // Only a hash of a kept icon names a file.
+        for bad in ["", "../icon", "ab", &"g".repeat(64), &"0".repeat(64)] {
+            assert_eq!(s.preview_icon_path(bad), None, "{bad}");
+        }
+        // A package without an icon has none to show.
+        let (_t2, p2) = package(&theme_toml("com.test.y", "1.0.0", ""), &[], Sign::Author(&k));
+        assert_eq!(s.inspect(&p2, &ctx()).unwrap().info.icon_url, None);
+        // Nothing is installed by looking, and the next start removes the kept icon.
+        assert!(s.get("com.test.x").is_none());
+        let s = Store::open(&dir).unwrap();
+        assert_eq!(s.preview_icon_path(hash), None);
     }
 
     #[test]
@@ -1313,11 +1499,80 @@ mod tests {
         assert_eq!(s.setting("com.test.x", "nope"), None);
     }
 
+    const UI_SECTIONS: &str = r#"
+[[ui.section]]
+title = "Scanning"
+description = "How a scan runs."
+
+[[ui.section.control]]
+type = "toggle"
+key = "deep"
+label = "Deep scan"
+help = "Reads every file."
+default = false
+
+[[ui.section.control]]
+type = "slider"
+key = "depth"
+label = "Depth"
+default = 3
+min = 1
+max = 8
+step = 1
+requires = "deep"
+
+[[ui.section.control]]
+type = "markdown"
+label = "About"
+body = "Hello."
+"#;
+
+    fn installed_ui(dir: &Path) -> Store {
+        let k = TestKey::generate();
+        let m = theme_toml("com.test.x", "1.0.0", UI_SECTIONS).replace("api = 1", "api = \"1.2\"");
+        let mut s = Store::open(dir).unwrap();
+        s.install(&package(&m, &[], Sign::Author(&k)).1, &ctx()).unwrap();
+        s
+    }
+
+    #[test]
+    fn info_carries_sections_with_current_values() {
+        let (_a, dir) = app();
+        let mut s = installed_ui(&dir);
+        let sec = &s.list()[0].sections;
+        assert_eq!(sec.len(), 1);
+        assert_eq!(sec[0].title.as_deref(), Some("Scanning"));
+        assert_eq!(sec[0].description.as_deref(), Some("How a scan runs."));
+        let c = &sec[0].controls;
+        assert_eq!(c.len(), 3);
+        assert_eq!((c[0].kind, c[0].key.as_deref()), (crate::PluginControlKind::Toggle, Some("deep")));
+        assert_eq!(c[0].value, Some(Value::Bool(false)));
+        assert_eq!(c[0].help.as_deref(), Some("Reads every file."));
+        assert_eq!(c[1].value, Some(Value::from(3)));
+        assert_eq!((c[1].min, c[1].max, c[1].step), (Some(1.0), Some(8.0), Some(1.0)));
+        assert_eq!(c[1].requires.as_deref(), Some("deep"));
+        assert_eq!(c[2].value, None);
+        assert_eq!(c[2].body.as_deref(), Some("Hello."));
+        s.set_setting("com.test.x", "depth", Value::from(5)).unwrap();
+        assert_eq!(s.list()[0].sections[0].controls[1].value, Some(Value::from(5)));
+    }
+
+    #[test]
+    fn flat_settings_read_as_one_untitled_section() {
+        let (_a, dir) = app();
+        let s = installed_one(&dir, SETTING);
+        let sec = &s.list()[0].sections;
+        assert_eq!(sec.len(), 1);
+        assert_eq!(sec[0].title, None);
+        assert_eq!(sec[0].controls[0].key.as_deref(), Some("albums_from_folders"));
+        assert_eq!(sec[0].controls[0].value, Some(Value::Bool(true)));
+    }
+
     fn dev_folder(root: &Path, version: &str) -> PathBuf {
         let f = root.join("my-plugin");
-        fs::create_dir_all(f.join("themes")).unwrap();
+        fs::create_dir_all(f.join("prompts")).unwrap();
         fs::write(f.join("plugin.toml"), theme_toml("com.dev.x", version, "")).unwrap();
-        fs::write(f.join("themes/a.toml"), THEME_A).unwrap();
+        fs::write(f.join("prompts/a.md"), THEME_A).unwrap();
         f
     }
 
@@ -1359,9 +1614,9 @@ mod tests {
         let mut s = installed_one(&dir, "");
         s.set_developer_mode(true).unwrap();
         let f = a.path().join("shadow");
-        fs::create_dir_all(f.join("themes")).unwrap();
+        fs::create_dir_all(f.join("prompts")).unwrap();
         fs::write(f.join("plugin.toml"), theme_toml("com.test.x", "2.0.0", "")).unwrap();
-        fs::write(f.join("themes/a.toml"), THEME_A).unwrap();
+        fs::write(f.join("prompts/a.md"), THEME_A).unwrap();
         assert_eq!(s.load_dev(&f, &ctx()).unwrap_err().code, "plugin_invalid");
         assert_eq!(s.list()[0].version, "1.0.0");
     }

@@ -3,7 +3,7 @@ members = ["crates/*"]
 resolver = "2"
 
 [workspace.package]
-version = "26.2.0-alpha"
+version = "26.3.0-alpha"
 edition = "2021"
 authors = ["JL Studios"]
 license = "GPL-3.0-or-later"
@@ -50,6 +50,7 @@ dirs.workspace = true
 # *Copy image* (Round 4G): pixels onto the system clipboard. The binary only.
 arboard = "3.6"
 rayon = "1"
+blake3 = "1"
 tauri = { version = "2", features = [] }
 tauri-plugin-opener = "2"
 tauri-plugin-dialog = "2"
@@ -57,6 +58,7 @@ serde.workspace = true
 serde_json.workspace = true
 thiserror.workspace = true
 ts-rs.workspace = true
+rusqlite.workspace = true
 http = "1"
 mime_guess = "2"
 fs4 = "1"
@@ -85,6 +87,8 @@ tauri-plugin-single-instance = "2"
 [target.'cfg(windows)'.dependencies]
 webview2-com = "0.39"
 windows-core = "0.62"
+# Starting a Store app with files (`IApplicationActivationManager`); the version wry already uses.
+windows = { version = "0.62", features = ["Win32_UI_Shell", "Win32_UI_Shell_Common", "Win32_System_Com"] }
 # Painting the 1 px tao leaves below a maximized window for an auto-hiding taskbar (window_edge).
 windows-sys = { version = "0.59", features = ["Win32_Foundation", "Win32_Graphics_Gdi", "Win32_UI_Shell", "Win32_UI_WindowsAndMessaging", "Win32_Devices_DeviceAndDriverInstallation", "Win32_Security", "Win32_Storage_FileSystem", "Win32_System_IO", "Win32_System_Ioctl", "Win32_System_Registry", "Win32_UI_Shell_Common", "Win32_System_Com"] }
 

@@ -1,11 +1,15 @@
-//! Plugin themes in the app: the enabled plugins' themes as a list and as the CSS the page fills
-//! `<style id="plugin-themes">` with (Round 23 lane B1). Rust writes every byte of that CSS.
+//! Installed `.lumentheme` themes in the app (Round 26 goal 4): the list, the CSS the page fills
+//! `<style id="plugin-themes">` with, install / remove, and the files `photos://theme-asset/` serves.
+//! Rust writes every byte of that CSS. Themes are apart from plugins (`themes/installed/`).
 
-use photos_plugins::theme::{self, PluginThemeMeta};
+use std::path::{Path, PathBuf};
 
-use super::Plugins;
+use photos_plugins::theme_pkg::{self, InstalledTheme, ThemePackage, ThemeStore, THEME_SLOT};
+use photos_plugins::PluginError;
 
-/// Where the page fetches `plugin-asset/<id>/<path>` from: the `photos://` scheme's per-OS form
+use super::state::Served;
+
+/// Where the page fetches `theme-asset/<id>/<path>` from: the `photos://` scheme's per-OS form
 /// (WebView2 only serves custom schemes as `http://photos.localhost/…`).
 pub fn asset_base() -> &'static str {
     if cfg!(windows) {
@@ -15,118 +19,133 @@ pub fn asset_base() -> &'static str {
     }
 }
 
-/// Every theme of every enabled, ready plugin. A plugin whose theme files no longer read is
-/// left out and logged, never an error for the page.
-fn enabled_themes(plugins: &Plugins) -> Vec<(PluginThemeMeta, String, theme::ThemeFile)> {
-    let store = plugins.read();
-    let mut out = Vec::new();
-    for inst in store.enabled().into_iter().filter(|i| !i.manifest.themes.is_empty()) {
-        match theme::themes_of(&inst.dir, &inst.manifest) {
-            Ok(themes) => {
-                let version = inst.manifest.version.to_string();
-                out.extend(themes.into_iter().map(|(m, f)| (m, version.clone(), f)));
-            }
-            Err(e) => tracing::warn!(plugin = %inst.manifest.id, error = %e, "a plugin's themes couldn't be read"),
-        }
+pub struct Themes {
+    store: ThemeStore,
+    lumen: semver::Version,
+}
+
+impl Themes {
+    pub fn load(app_dir: &Path) -> Themes {
+        let store = ThemeStore::new(app_dir);
+        // A *Try* never outlives a launch.
+        store.try_end();
+        Themes { store, lumen: env!("CARGO_PKG_VERSION").parse().expect("Lumen's version is semver") }
     }
-    out
-}
 
-/// The enabled plugin themes, for the theme picker.
-pub fn list(plugins: &Plugins) -> Vec<PluginThemeMeta> {
-    enabled_themes(plugins).into_iter().map(|(meta, _, _)| meta).collect()
-}
+    /// The installed themes, then the one being tried (so its rules come last and win).
+    fn packages(&self) -> Vec<ThemePackage> {
+        let mut out = self.store.list(&self.lumen);
+        if let Some(t) = self.store.tried(&self.lumen) {
+            out.retain(|p| p.meta.id != t.meta.id);
+            out.push(t);
+        }
+        out
+    }
 
-/// The CSS for the enabled plugin themes.
-pub fn css(plugins: &Plugins) -> String {
-    let themes: Vec<_> = enabled_themes(plugins).into_iter().map(|(meta, v, file)| (meta.plugin, v, file)).collect();
-    theme::css(&themes, asset_base())
+    pub fn list(&self) -> Vec<InstalledTheme> {
+        self.store.list(&self.lumen).into_iter().map(|p| p.meta).collect()
+    }
+
+    pub fn css(&self) -> String {
+        theme_pkg::css(&self.packages(), asset_base())
+    }
+
+    pub fn install(&self, file: &Path, dev: bool) -> Result<InstalledTheme, PluginError> {
+        self.store.install(file, &self.lumen, dev)
+    }
+
+    /// A package's meta and why it can't be installed, without installing it.
+    pub fn inspect(&self, file: &Path, dev: bool) -> Result<(InstalledTheme, Option<String>), PluginError> {
+        self.store.inspect(file, &self.lumen, dev)
+    }
+
+    /// The theme being tried, if any (the page needs its base while it is shown).
+    pub fn tried(&self) -> Option<InstalledTheme> {
+        self.store.tried(&self.lumen).map(|p| p.meta)
+    }
+
+    pub fn remove(&self, id: &str) -> Result<(), PluginError> {
+        self.store.remove(id)
+    }
+
+    /// *Try*: a downloaded, hash-checked package shown without installing.
+    /// The file's own blake3 must be `hash` (the index's), whatever handed it over.
+    pub fn try_file(&self, file: &Path, hash: &str) -> Result<InstalledTheme, PluginError> {
+        let bytes = std::fs::read(file).map_err(|e| PluginError::invalid(format!("The theme couldn't be read: {e}")))?;
+        if !blake3::hash(&bytes).to_hex().eq_ignore_ascii_case(hash) {
+            return Err(PluginError::invalid("The theme doesn't match the store's checksum"));
+        }
+        self.store.try_open(file, hash, &self.lumen).map(|p| p.meta)
+    }
+
+    pub fn try_end(&self) {
+        self.store.try_end();
+    }
+
+    /// *Keep* after *Try*: installs the tried theme.
+    pub fn keep(&self) -> Result<InstalledTheme, PluginError> {
+        let tried = self.store.tried(&self.lumen).ok_or_else(|| PluginError::invalid("No theme is being tried"))?;
+        let meta = self.store.install_folder(&tried.root, &self.lumen, false)?;
+        self.store.try_end();
+        Ok(meta)
+    }
+
+    pub fn is_installed(&self, id: &str) -> bool {
+        self.store.get(id, &self.lumen).is_some()
+    }
+
+    /// Installed, or the one being tried: what `theme_apply` may pick.
+    pub fn is_available(&self, id: &str) -> bool {
+        self.is_installed(id) || self.store.tried(&self.lumen).is_some_and(|t| t.meta.id == id)
+    }
+
+    /// The file behind `theme-asset/<id>/<path>` (percent-encoded path), installed or tried.
+    pub fn serve_asset(&self, id: &str, encoded: &str) -> Option<Served> {
+        let rel = super::state::percent_decode(encoded)?;
+        let path: PathBuf = self.store.asset_path(id, &rel, &self.lumen)?;
+        Some(Served { path, dev: false })
+    }
 }
 
 #[cfg(test)]
 mod tests {
     use std::fs;
-    use std::path::Path;
-    use std::time::Instant;
 
     use super::*;
 
-    const THEME: &str = "id = \"nord\"\nname = \"Nord\"\ntagline = \"Arctic blues.\"\nbase = \"darkroom\"\ndefault_scheme = \"dark\"\n\
-        [light]\nbg-base = \"oklch(96% 0.01 240)\"\nradius-md = \"10px\"\n[dark]\nbg-base = \"oklch(16% 0.004 60)\"\nshadow-md = \"0 6px 16px #00000080\"\n";
+    const TOML: &str = "id = \"studio.test.dusk\"\nname = \"Dusk\"\nversion = \"1.0.0\"\nauthor = \"T\"\ndescription = \"d\"\n\
+        license = \"MIT\"\nlumen = \">=26.0.0\"\nbase = \"darkroom\"\n[dark]\nbg-base = \"oklch(16% 0.004 60)\"\n";
 
-    /// An app folder with installed theme plugins `(id, enabled)`, written as the store keeps them.
-    fn app_with(plugins: &[(&str, bool)]) -> tempfile::TempDir {
+    /// A theme as the store keeps it once installed: unpacked under `themes/installed/<id>/`.
+    fn installed(app: &Path) {
+        let dir = app.join("themes/installed/studio.test.dusk");
+        fs::create_dir_all(dir.join("images")).unwrap();
+        fs::write(dir.join("theme.toml"), TOML).unwrap();
+        fs::write(dir.join("images/g.png"), b"PNG").unwrap();
+    }
+
+    #[test]
+    fn installed_themes_reach_the_picker_the_css_and_the_route() {
         let t = tempfile::tempdir().unwrap();
-        let dir = t.path().join("plugins");
-        let mut state = serde_json::Map::new();
-        for (id, enabled) in plugins {
-            let folder = dir.join("installed").join(id);
-            fs::create_dir_all(folder.join("themes")).unwrap();
-            fs::write(
-                folder.join("plugin.toml"),
-                format!(
-                    "id = \"{id}\"\nname = \"P\"\nversion = \"1.0.0\"\nauthor = \"T\"\ndescription = \"d\"\nlicense = \"MIT\"\nlumen = \">=26.0.0\"\napi = 1\n\n[[themes]]\nfile = \"themes/nord.toml\"\n"
-                ),
-            )
-            .unwrap();
-            fs::write(folder.join("themes/nord.toml"), THEME).unwrap();
-            state.insert(
-                (*id).to_string(),
-                serde_json::json!({
-                    "version": "1.0.0", "enabled": enabled, "granted": [], "key": "A1B2C3D4E5F60708",
-                    "trust": {"type": "author", "name": "T", "fingerprint": "A1B2-C3D4"},
-                    "installedAt": "2026-11-14T00:00:00Z", "dev": false, "settings": {}
-                }),
-            );
-        }
-        fs::write(dir.join("plugins.json"), serde_json::to_vec(&serde_json::json!({ "plugins": state })).unwrap())
-            .unwrap();
-        t
+        let themes = Themes::load(t.path());
+        installed(t.path());
+        let listed = themes.list();
+        assert_eq!(listed[0].id, "studio.test.dusk");
+        assert!(themes.css().contains("[data-plugin-theme=\"studio.test.dusk/theme\"]"));
+        assert!(themes.serve_asset("studio.test.dusk", "images/g.png").is_some());
+        assert!(themes.serve_asset("studio.test.dusk", "..%2Ftheme.toml").is_none());
+        themes.remove("studio.test.dusk").unwrap();
+        assert!(themes.list().is_empty() && themes.css().is_empty());
     }
 
     #[test]
-    fn themes_from_enabled_only() {
-        let t = app_with(&[("com.test.on", true), ("com.test.off", false)]);
-        let plugins = Plugins::load(t.path());
-        let list = list(&plugins);
-        assert_eq!(list.len(), 1, "{list:?}");
-        assert_eq!((list[0].plugin.as_str(), list[0].id.as_str()), ("com.test.on", "nord"));
-        let css = css(&plugins);
-        assert!(css.contains("com.test.on/nord"), "{css}");
-        assert!(!css.contains("com.test.off"), "{css}");
-    }
-
-    #[test]
-    fn a_theme_file_that_stopped_reading_is_left_out() {
-        let t = app_with(&[("com.test.on", true), ("com.test.bad", true)]);
-        fs::write(t.path().join("plugins/installed/com.test.bad/themes/nord.toml"), "id = 3").unwrap();
-        let plugins = Plugins::load(t.path());
-        let ids: Vec<String> = list(&plugins).into_iter().map(|m| m.plugin).collect();
-        assert_eq!(ids, vec!["com.test.on".to_string()]);
-    }
-
-    #[test]
-    fn asset_base_is_the_os_form() {
-        let base = asset_base();
-        assert!(base == "http://photos.localhost" || base == "photos://localhost");
-        assert_eq!(base.starts_with("http://"), cfg!(windows));
-    }
-
-    #[test]
-    fn theme_boot_budget() {
-        let ids: Vec<String> = (0..10).map(|n| format!("com.test.p{n}")).collect();
-        let t = app_with(&ids.iter().map(|i| (i.as_str(), true)).collect::<Vec<_>>());
-        let plugins = Plugins::load(Path::new(t.path()));
-        let mut times: Vec<_> = (0..5)
-            .map(|_| {
-                let start = Instant::now();
-                let css = css(&plugins);
-                let took = start.elapsed();
-                assert_eq!(css.matches("[data-plugin-theme=").count(), 20, "light and dark rule per theme");
-                took
-            })
-            .collect();
-        times.sort();
-        assert!(times[2].as_millis() < 10, "median {:?} of {times:?}", times[2]);
+    fn try_refuses_a_file_whose_blake3_isnt_the_index_s() {
+        let t = tempfile::tempdir().unwrap();
+        let themes = Themes::load(t.path());
+        let file = t.path().join("dusk.lumentheme");
+        fs::write(&file, b"not the indexed bytes").unwrap();
+        let e = themes.try_file(&file, &"0".repeat(64)).unwrap_err();
+        assert!(e.message.contains("checksum"), "{}", e.message);
+        assert!(!t.path().join("cache/theme-try").exists() && !themes.is_available("studio.test.dusk"));
     }
 }

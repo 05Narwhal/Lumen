@@ -1,0 +1,29 @@
+{
+  "recipeVersion": 3,
+  "name": "Sun-bleached",
+  "develop": {
+    "basic": {
+      "temperature": 6,
+      "exposure": 0.2,
+      "contrast": -0.15,
+      "highlights": -0.1,
+      "whites": 0.1,
+      "blacks": 0.15,
+      "saturation": -0.25
+    }
+  },
+  "panels": [
+    "basic"
+  ],
+  "look": {
+    "intent": "Overexposed holiday print: bleached colour, warm highlights, almost no deep black",
+    "hues": [
+      40,
+      55
+    ],
+    "mono": false,
+    "key": "high",
+    "skinSafe": true,
+    "likesSky": false
+  }
+}

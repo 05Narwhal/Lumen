@@ -1,5 +1,6 @@
 import {
   IconAlbum,
+  IconAperture,
   IconEye,
   IconLock,
   IconRotate2,
@@ -9,7 +10,7 @@ import {
   IconTrash,
   IconUserScan,
 } from "@tabler/icons-react";
-import { DIVIDER, icon, moreIcon, openWithItems, tidy, type MenuItem, type OpenWithContext } from "./parts";
+import { contributionItems, DIVIDER, icon, moreIcon, openWithItems, tidy, type MenuContribution, type MenuItem, type OpenWithContext } from "./parts";
 
 export interface PhotoMenuContext {
   favorite: boolean;
@@ -21,11 +22,15 @@ export interface PhotoMenuContext {
   mac: boolean;
   /** The installed apps that fit, and the default (Round 22 §9); left out, no app entries. */
   openWith?: OpenWithContext;
+  /** What installed plugins add to this menu (`library.selection-menu`), already resolved. */
+  contributions?: MenuContribution[];
 }
 
 /** What a photo menu can do; an action left out leaves its item out. */
 export interface PhotoMenuActions {
   open?: (id: number) => void;
+  /** One still photo in Develop; left out for videos and selections. */
+  develop?: (id: number) => void;
   favorite: (ids: number[], on: boolean) => void;
   rate?: (ids: number[], stars: number) => void;
   addToAlbum: (ids: number[]) => void;
@@ -56,6 +61,7 @@ export function photoMenu(ids: number[], ctx: PhotoMenuContext, a: PhotoMenuActi
   return tidy([
     a.rate && { label: "Rate", rating: ctx.rating ?? 0, onRate: (stars: number) => a.rate!(ids, stars) },
     one !== null && a.open && { label: "Open", icon: icon(IconEye), shortcut: "Enter", onSelect: () => a.open!(one) },
+    one !== null && a.develop && { label: "Develop", icon: icon(IconAperture), onSelect: () => a.develop!(one) },
     {
       label: ctx.favorite ? "Remove from Favorites" : one !== null ? "Add to Favorites" : `Add ${ids.length} to Favorites`,
       icon: icon(ctx.favorite ? IconStarOff : IconStar),
@@ -65,6 +71,8 @@ export function photoMenu(ids: number[], ctx: PhotoMenuContext, a: PhotoMenuActi
     { label: "Add to album…", icon: icon(IconAlbum), shortcut: "a", onSelect: () => a.addToAlbum(ids) },
     // Round 22 §9: the app's own editors, then the rarer actions folded under More.
     ...(openWith.length ? [DIVIDER, ...openWith] : []),
+    DIVIDER,
+    ...contributionItems(ctx.contributions, ids),
     DIVIDER,
     {
       label: "More",

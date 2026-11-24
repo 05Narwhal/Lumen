@@ -1,7 +1,7 @@
 import { Button, Select } from "@mantine/core";
-import { open as openDialog } from "@tauri-apps/plugin-dialog";
 import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "@/components/toast";
+import { pickFile, pickFolder } from "@/lib/dialogs";
 import { isMac } from "@/components/window-controls";
 import { useExternalApps } from "@/lib/external-apps";
 import { invoke, isAppError } from "@/lib/ipc";
@@ -57,12 +57,11 @@ export function ExternalAppsSection() {
   const choose = () =>
     run(async () => {
       const mac = isMac();
-      const path = await openDialog({
-        multiple: false,
-        directory: mac,
+      const opts = {
         title: "Choose an app",
         filters: mac ? undefined : [{ name: "Apps", extensions: ["exe", "bat", "cmd", "sh", "AppImage"] }],
-      });
+      };
+      const path = mac ? await pickFolder(opts) : await pickFile(opts);
       if (typeof path === "string") await invoke("add_custom_app", { path });
     }, "That isn't an app Lumen can open photos with.");
 

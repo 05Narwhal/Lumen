@@ -15,7 +15,7 @@ Maintainers can review and merge pull requests. They are invited by the lead mai
 ## How work is decided
 
 - Small changes: a pull request and a review.
-- Larger work: an issue or Discussion first, then a written plan (`docs/superpowers/plans/`), then the code. A decision that contradicts the architecture spine (`docs/superpowers/specs/2026-09-17-photos-app-design.md`, §3) changes that document first.
+- Larger work: an issue or Discussion first, then a short written plan, then the code. A decision that contradicts the architecture spine ([docs/ARCHITECTURE.md](docs/ARCHITECTURE.md), §3) changes that document first.
 - Releases are cut by the lead maintainer from `main` with a version tag; the release workflow builds and publishes them.
 
 ## Money
@@ -26,8 +26,9 @@ There is no paid tier of any kind. GitHub Sponsors donations are optional and ar
 
 The project must keep working without one person. These are the arrangements:
 
-- **Keys.** The updater private key and the plugin signing key are in an offline backup that Julian names in his private notes. They are not in this repository.
-- **Before stepping away**, Julian either transfers the repositories (`lumen`, `lumen-models`, `lumen-plugins`) to a GitHub organisation with at least one co-owner, or adds a co-owner's key as a **second updater public key** in a release, so that the co-owner can sign updates that installed apps accept.
+- **One updater key.** Tauri accepts a single updater public key, so there is no second key to hand out. The key and its password are in three places (GitHub secrets, a password-manager entry, two offline copies); `docs/RELEASING.md` (*The signing key*) lists them. None of it is in this repository.
+- **GitHub account successor.** Julian names a successor for the `05Narwhal` account in GitHub's settings. The successor may archive or transfer the repositories (`lumen`, `lumen-models`, `lumen-plugins`).
+- **A sealed escrow.** The offline copy of the key files plus written instructions are held by a person Julian names in his private notes (`CLAUDE.local.md`), not here. With them the successor transfers the repositories to a GitHub organisation, adds the secrets and releases.
 - **Installed apps follow a transfer.** GitHub redirects the old repository address after a transfer, and installed apps poll `https://github.com/05Narwhal/lumen/releases/download/channels/`. Never create a new repository under an old name after a transfer, because that breaks the redirect.
 - A personal account gives collaborators write access only, with no triage or maintain roles; that is why a transfer to an organisation is the first thing to arrange if the project grows.
-- If neither has happened and installed apps stop receiving updates, the community can fork under another name (see [TRADEMARKS.md](TRADEMARKS.md)): the code is GPL, and a fork needs its own updater key and endpoint.
+- If none of this has happened and installed apps stop receiving updates, the community can fork under another name (see [TRADEMARKS.md](TRADEMARKS.md)): the code is GPL, and a fork needs its own updater key and endpoint.

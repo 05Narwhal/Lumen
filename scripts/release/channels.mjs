@@ -5,24 +5,25 @@
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { pathToFileURL } from "node:url";
-import { parseVersion } from "./lib.mjs";
+import { isSecurityRelease, notesFor, parseVersion } from "./lib.mjs";
 import { ghCli, updateChannels } from "./publish.mjs";
-import { notesFor } from "./release.mjs";
 import { ROOT } from "./set-version.mjs";
+
+/**
+ * What the manifests are written from. `security` is the changelog heading's `· security` marker:
+ * it sets `minSafe` in the channels this build reaches.
+ */
+export function releasePlan({ version, changelog, installer, signature, now }) {
+  parseVersion(version);
+  return { version, notes: notesFor(changelog, version), security: isSecurityRelease(changelog, version), files: [{ name: installer }], signature: signature.trim(), now };
+}
 
 async function main([version, installer, sigFile]) {
   if (!version || !installer || !sigFile) {
     console.error("usage: node scripts/release/channels.mjs 26.X.Y-alpha|beta|stable <installer-name> <installer.sig>");
     return 2;
   }
-  parseVersion(version);
-  const plan = {
-    version,
-    notes: notesFor(readFileSync(join(ROOT, "docs/CHANGELOG.md"), "utf8"), version),
-    files: [{ name: installer }],
-    signature: readFileSync(sigFile, "utf8").trim(),
-    now: new Date().toISOString(),
-  };
+  const plan = releasePlan({ version, changelog: readFileSync(join(ROOT, "docs/CHANGELOG.md"), "utf8"), installer, signature: readFileSync(sigFile, "utf8"), now: new Date().toISOString() });
   await updateChannels(ghCli(), plan);
   console.log(`Channels now offer Lumen ${version}.`);
   return 0;

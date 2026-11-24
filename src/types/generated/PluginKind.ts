@@ -3,4 +3,4 @@
 /**
  * What a plugin adds (spec §1).
  */
-export type PluginKind = "theme" | "presets" | "apps" | "prompts" | "importer" | "tools";
+export type PluginKind = "presets" | "apps" | "prompts" | "importer" | "tools";

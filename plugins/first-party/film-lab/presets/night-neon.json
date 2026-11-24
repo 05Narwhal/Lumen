@@ -1,0 +1,56 @@
+{
+  "recipeVersion": 3,
+  "name": "Night Neon",
+  "develop": {
+    "basic": {
+      "exposure": -0.2,
+      "contrast": 0.2,
+      "blacks": -0.1,
+      "vibrance": 0.15
+    },
+    "grading": {
+      "shadows": {
+        "hue": 260,
+        "sat": 0.2,
+        "lum": 0
+      },
+      "midtones": {
+        "hue": 300,
+        "sat": 0.08,
+        "lum": 0
+      },
+      "highlights": {
+        "hue": 180,
+        "sat": 0.12,
+        "lum": 0
+      }
+    },
+    "effects": {
+      "glow": {
+        "amount": 0.25,
+        "size": 0.5
+      },
+      "halation": {
+        "amount": 0.2,
+        "size": 0.35
+      }
+    }
+  },
+  "panels": [
+    "basic",
+    "grading",
+    "effects"
+  ],
+  "look": {
+    "intent": "Wet night streets lit by signs: violet shadows, cyan and magenta light, glowing highlights",
+    "hues": [
+      180,
+      260,
+      300
+    ],
+    "mono": false,
+    "key": "low",
+    "skinSafe": false,
+    "likesSky": false
+  }
+}

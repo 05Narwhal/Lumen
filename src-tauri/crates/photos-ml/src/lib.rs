@@ -8,6 +8,7 @@ pub mod faces;
 pub mod facet;
 pub mod manifest;
 pub mod ocr;
+pub mod onnx_run;
 pub mod pets;
 pub mod retouch;
 pub mod store;

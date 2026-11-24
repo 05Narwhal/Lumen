@@ -1,0 +1,51 @@
+{
+  "recipeVersion": 3,
+  "name": "Soft Mono",
+  "develop": {
+    "basic": {
+      "saturation": -1,
+      "contrast": -0.1,
+      "blacks": 0.12,
+      "highlights": -0.1
+    },
+    "curve": {
+      "master": [
+        [
+          0,
+          0.05
+        ],
+        [
+          0.25,
+          0.28
+        ],
+        [
+          0.75,
+          0.726
+        ],
+        [
+          1,
+          0.96
+        ]
+      ]
+    },
+    "effects": {
+      "grain": {
+        "amount": 0.15,
+        "size": 0.3
+      }
+    }
+  },
+  "panels": [
+    "basic",
+    "curve",
+    "effects"
+  ],
+  "look": {
+    "intent": "Gentle black and white with lifted blacks, good for portraits and misty scenes",
+    "hues": [],
+    "mono": true,
+    "key": "high",
+    "skinSafe": true,
+    "likesSky": false
+  }
+}

@@ -1,0 +1,35 @@
+{
+  "recipeVersion": 3,
+  "name": "Warm Slide",
+  "develop": {
+    "basic": {
+      "temperature": 10,
+      "contrast": 0.28,
+      "saturation": 0.15,
+      "vibrance": 0.1,
+      "blacks": -0.15
+    },
+    "grading": {
+      "highlights": {
+        "hue": 40,
+        "sat": 0.08,
+        "lum": 0
+      }
+    }
+  },
+  "panels": [
+    "basic",
+    "grading"
+  ],
+  "look": {
+    "intent": "Warm reversal film: golden light, rich reds and oranges, strong blacks",
+    "hues": [
+      20,
+      45
+    ],
+    "mono": false,
+    "key": "mid",
+    "skinSafe": true,
+    "likesSky": false
+  }
+}

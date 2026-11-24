@@ -1,6 +1,6 @@
 import { Button } from "@mantine/core";
 import { IconCheck, IconPlugConnected, IconPlugConnectedX } from "@tabler/icons-react";
-import { open } from "@tauri-apps/plugin-dialog";
+import { pickFolder } from "@/lib/dialogs";
 import { toast } from "@/components/toast";
 import { useLibraries } from "@/hooks/use-libraries";
 import { isAppError } from "@/lib/ipc";
@@ -15,7 +15,7 @@ export function LibraryList() {
   const libraries = listing?.libraries ?? [];
 
   const locate = async (s: LibraryStatus) => {
-    const dir = await open({ directory: true, multiple: false, title: `Locate “${s.entry.name}”` });
+    const dir = await pickFolder({ title: `Locate “${s.entry.name}”` });
     if (typeof dir !== "string") return;
     try {
       await locateLibrary({ id: s.entry.id, path: dir });
@@ -26,7 +26,7 @@ export function LibraryList() {
   };
 
   const openOther = async () => {
-    const dir = await open({ directory: true, multiple: false, title: "Choose a library folder" });
+    const dir = await pickFolder({ title: "Choose a library folder" });
     if (typeof dir !== "string") return;
     try {
       if (!(await existsAt(dir))) {
@@ -41,7 +41,7 @@ export function LibraryList() {
   };
 
   const createNew = async () => {
-    const dir = await open({ directory: true, multiple: false, title: "Choose a folder for the new library" });
+    const dir = await pickFolder({ title: "Choose a folder for the new library" });
     if (typeof dir !== "string") return;
     try {
       await createLibrary(dir);

@@ -55,10 +55,6 @@ graphify-out/
 
 # Round 17: the release script's build output and third-party source
 dist-release/
-# Discord Application ID (Round 17): per-deployment, never committed
-discord_client_id.txt
-.discord_client_id
-plugin-pubkey.txt
 
 # Lumen Setup (installer/)
 installer/src-tauri/target/
@@ -70,10 +66,17 @@ plugins/fixtures/target/
 # Round 23 D1: plugin SDK, examples and any other plugin workspace build output
 plugins/**/target
 
-# Round 23 D1: built code examples (node scripts/plugins/build-examples.mjs)
-plugins/examples/*/plugin.wasm
-
 # Personal notes and scrub rules (never published)
 CLAUDE.local.md
 scripts/oss/*.local.json
 __pycache__/
+
+# Round 24 W5: Wayfinder build output
+plugins/first-party/wayfinder/plugin.wasm
+
+# Round 26 C2b: Takeout build output
+plugins/first-party/takeout/plugin.wasm
+
+# Round 26 C3: Clockwork and Captioner build output
+plugins/first-party/clockwork/plugin.wasm
+plugins/first-party/captioner/plugin.wasm

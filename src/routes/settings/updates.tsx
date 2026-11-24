@@ -13,7 +13,7 @@ export { useUpdateNotices } from "@/hooks/use-updates";
 
 type Update = ReturnType<typeof useSettings>["update"];
 
-const DEFAULTS: UpdateSettings = { automatic: true, channel: "stable" };
+const DEFAULTS: UpdateSettings = { automatic: true, channel: "stable", security: true };
 
 const WARNING = "Alpha and Beta are development builds. They are unstable and may have bugs that Stable doesn't. Your library is copied before any upgrade.";
 
@@ -60,6 +60,7 @@ export function updateLine(s: UpdateState): string {
 export function UpdatesSection({ settings, update }: { settings: Settings; update: Update }) {
   const u = settings.updates ?? DEFAULTS;
   const [automatic, setAutomatic] = useSettingValue(u.automatic);
+  const [security, setSecurity] = useSettingValue(u.security ?? true);
   const [channel, setChannel] = useSettingValue<UpdateChannel>(u.channel);
   const { status, check, download, installNow } = useUpdateStatus();
   const state = status?.state;
@@ -104,6 +105,20 @@ export function UpdatesSection({ settings, update }: { settings: Settings; updat
               const v = e.currentTarget.checked;
               setAutomatic(v);
               set({ automatic: v });
+            }}
+          />
+        </SettingRow>
+        <SettingRow
+          label="Security fixes"
+          hint="A build that fixes a known security problem is downloaded and installed the next time Lumen starts, or when you close it, even with Automatic updates off. Off, you are offered it like any update."
+        >
+          <Switch
+            aria-label="Install security fixes automatically"
+            checked={security}
+            onChange={(e) => {
+              const v = e.currentTarget.checked;
+              setSecurity(v);
+              set({ security: v });
             }}
           />
         </SettingRow>

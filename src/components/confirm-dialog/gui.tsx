@@ -86,6 +86,7 @@ export function ConfirmDialogHost() {
     <Modal
       opened={pending !== null}
       onClose={() => settle(false)}
+      data-part="confirm"
       title={pending?.title}
       centered
       size="sm"

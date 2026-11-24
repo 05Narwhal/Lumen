@@ -14,7 +14,7 @@ function jobDetail(j: Job): string | undefined {
  * all there is, Round 9B), easing toward each new value and never starting over while work
  * runs; a finished line holds at full a moment before it goes.
  */
-export function ActivityRing({ compact = false }: { compact?: boolean }) {
+export function ActivityRing({ compact = false, placement = "sidebar" }: { compact?: boolean; placement?: "sidebar" | "titlebar" }) {
   const shown = selectRunning(jobsStore.use());
   const active = shown.length > 0;
   const progress = ringProgress(shown);
@@ -22,11 +22,12 @@ export function ActivityRing({ compact = false }: { compact?: boolean }) {
   const c = 2 * Math.PI * r;
   const lead = shown.find((j) => j.state === "running") ?? shown[0];
   return (
-    <Popover position="right-end" withArrow shadow="md" width={280}>
+    <Popover position={placement === "titlebar" ? "bottom-end" : "right-end"} withArrow shadow="md" width={280}>
       <Popover.Target>
         <button
           type="button"
           className="activity-ring"
+          data-placement={placement}
           aria-label={active ? `${lead.label}, ${Math.round(progress * 100)}% done` : "Nothing running"}
           data-active={active}
         >

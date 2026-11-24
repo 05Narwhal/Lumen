@@ -3,4 +3,4 @@
 /**
  * API 1's four permissions (spec §3). Granted all or none.
  */
-export type PluginPermission = "importReadChosen" | "photosRead" | "developWriteDrafts" | "storage";
+export type PluginPermission = "importReadChosen" | "photosRead" | "developWriteDrafts" | "storage" | "models" | "libraryRead" | "placesWrite" | "originalsGps" | "datesWrite" | "tagsWrite" | "captionsWrite" | "peopleWrite";

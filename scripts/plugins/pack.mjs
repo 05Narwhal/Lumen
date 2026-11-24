@@ -2,6 +2,7 @@
 // Packs, signs and checks Lumen plugins (Round 23 D1).
 //
 //   node scripts/plugins/pack.mjs pack <folder> [--key <file>] [--out <file>]
+//        (without --out: plugins/store/dist/<folder>.lumenplugin, git-ignored, the dev store's folder)
 //   node scripts/plugins/pack.mjs keygen <name> [--dir <folder>]
 //   node scripts/plugins/pack.mjs digest <folder|file> --out <file>     (32 raw bytes)
 //   node scripts/plugins/pack.mjs verify <file> --pub <file>
@@ -37,6 +38,10 @@ const INTERFACE_PERMISSION = {
   photos: 'photos.read',
   drafts: 'develop.write-drafts',
   storage: 'storage',
+  // API 1.1 (Round 24)
+  models: 'models',
+  library: 'library.read',
+  places: 'places.write',
 };
 
 export class PackError extends Error {}
@@ -165,6 +170,71 @@ export function readManifest(text) {
   return m;
 }
 
+/** `author_url`, `repository` and `[listing] screenshots` of a manifest, without a TOML library. */
+export function readListing(text) {
+  const l = { authorUrl: null, repository: null, screenshots: [] };
+  let table = '';
+  const lines = text.split(/\r?\n/);
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i].replace(/^\s+/, '');
+    const header = /^\[\[?\s*([\w.-]+)\s*\]\]?/.exec(line);
+    if (header) {
+      table = header[1];
+      continue;
+    }
+    const str = /^(author_url|repository)\s*=\s*"([^"]*)"/.exec(line);
+    if (str && table === '') l[str[1] === 'author_url' ? 'authorUrl' : 'repository'] = str[2];
+    if (table === 'listing' && /^screenshots\s*=/.test(line)) {
+      let body = line.slice(line.indexOf('=') + 1);
+      while (!body.includes(']') && i + 1 < lines.length) body += ` ${lines[++i]}`;
+      l.screenshots = [...body.matchAll(/"([^"]*)"/g)].map((x) => x[1]);
+    }
+  }
+  return l;
+}
+
+export const MAX_SCREENSHOTS = 6;
+const PNG_MAGIC = Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]);
+const isPng = (b) => b.length >= 24 && b.subarray(0, 8).equals(PNG_MAGIC);
+const isJpeg = (b) => b.length >= 3 && b[0] === 0xff && b[1] === 0xd8 && b[2] === 0xff;
+
+/** The listing checks Lumen's package reader repeats: links, icon, README, screenshots. */
+function checkListing(names, toml) {
+  const l = readListing(toml);
+  for (const [field, url] of [['author_url', l.authorUrl], ['repository', l.repository]]) {
+    if (url !== null && !url.startsWith('https://')) fail(`${field} must be an https link`);
+  }
+  const icon = names.get('icon.png');
+  if (icon) {
+    if (!isPng(icon)) fail('icon.png must be a PNG');
+    if (icon.length > 256 * 1024) fail('icon.png can be at most 256 KB');
+    const [w, h] = [icon.readUInt32BE(16), icon.readUInt32BE(20)];
+    if (w !== h) fail(`icon.png must be square (it is ${w}x${h})`);
+    if (w < 128) fail(`icon.png must be at least 128 px (it is ${w})`);
+    if (w > 512) fail(`icon.png can be at most 512 px (it is ${w})`);
+  }
+  const readme = names.get('README.md');
+  if (readme) {
+    if (readme.length > 64 * 1024) fail('README.md can be at most 64 KB');
+    try {
+      new TextDecoder('utf-8', { fatal: true }).decode(readme);
+    } catch {
+      fail('README.md must be UTF-8 text');
+    }
+  }
+  if (l.screenshots.length > MAX_SCREENSHOTS) fail(`A plugin lists at most ${MAX_SCREENSHOTS} screenshots`);
+  const seen = new Set();
+  for (const shot of l.screenshots) {
+    if (!shot.startsWith('screenshots/')) fail(`${shot}: screenshots must be under screenshots/`);
+    if (seen.has(shot)) fail(`${shot} is listed twice`);
+    seen.add(shot);
+    const bytes = names.get(shot);
+    if (!bytes) fail(`${shot} is listed but isn't in the package`);
+    if (!isPng(bytes) && !isJpeg(bytes)) fail(`${shot} must be a PNG or JPEG`);
+    if (bytes.length > 2 * 1024 * 1024) fail(`${shot} can be at most 2 MB`);
+  }
+}
+
 function wasmToolsAvailable() {
   try {
     execFileSync('wasm-tools', ['--version'], { stdio: 'ignore' });
@@ -187,7 +257,11 @@ export function checkContent(files, { wasmFile } = {}) {
   const names = new Map(files);
   const toml = names.get('plugin.toml');
   if (!toml) fail('The package has no plugin.toml');
+  if (/^\s*\[\[themes\]\]/m.test(toml.toString('utf8'))) {
+    fail('[[themes]] left plugins in API 1.4: make the theme a .lumentheme (scripts/plugins/pack-theme.mjs, docs/THEMES.md)');
+  }
   const m = readManifest(toml.toString('utf8'));
+  checkListing(names, toml.toString('utf8'));
   const needsLicenceFile = [m.license, ...m.assetLicenses].some((l) => l?.startsWith('LicenseRef-'));
   if (needsLicenceFile && !names.has('LICENSE')) {
     fail('plugin.toml uses a LicenseRef-* licence, so the package needs a LICENSE file');
@@ -379,6 +453,12 @@ export function keygen(name, dir = defaultKeyDir()) {
 
 // ---------------------------------------------------------------- commands
 
+/** `plugins/store/dist/` in the Lumen repo (the dev store reads it); else the current folder. */
+export function defaultOutDir() {
+  const store = path.join(path.dirname(fileURLToPath(import.meta.url)), '..', '..', 'plugins', 'store');
+  return fs.existsSync(store) ? path.join(store, 'dist') : process.cwd();
+}
+
 /** Packs `folder` into a signed (when `keyFile` is given) `.lumenplugin`. */
 export function pack(folder, { keyFile, outFile } = {}) {
   const dir = path.resolve(folder);
@@ -392,7 +472,8 @@ export function pack(folder, { keyFile, outFile } = {}) {
     if (Buffer.byteLength(sig) > MAX_SIGNATURE) fail('SIGNATURE is too large');
     entries.push(['SIGNATURE', Buffer.from(sig)]);
   } else notes.push('No --key: the package is unsigned');
-  const out = path.resolve(outFile ?? `${path.basename(dir)}.lumenplugin`);
+  const out = path.resolve(outFile ?? path.join(defaultOutDir(), `${path.basename(dir)}.lumenplugin`));
+  fs.mkdirSync(path.dirname(out), { recursive: true });
   fs.writeFileSync(out, zipFiles(entries));
   return { out, notes, files: files.length };
 }

@@ -509,7 +509,7 @@ fn checked(decls: &[(String, String)], exported: Vec<Tool>) -> Result<Checked, S
 
 /// A plugin's error as the assistant gets it: one line, at most [`ERROR_MAX`] bytes (cut on a
 /// character boundary, ending with `…`).
-fn plugin_error(e: photos_plugins::PluginError) -> AppError {
+pub(crate) fn plugin_error(e: photos_plugins::PluginError) -> AppError {
     let mut e = AppError::from(e);
     e.message = capped_line(&e.message, ERROR_MAX);
     e
@@ -555,6 +555,7 @@ pub(crate) fn tools_ctx(plugins: &Arc<Plugins>, shared: &Arc<Shared>, id: &str) 
     let granted = inst.granted.clone();
     let photos = granted.contains(&PluginPermission::PhotosRead).then(|| Arc::new(McpPhotos::new(shared.clone(), Arc::downgrade(plugins), id)) as Arc<dyn PhotosHost>);
     let drafts = granted.contains(&PluginPermission::DevelopWriteDrafts).then(|| Arc::new(McpDrafts::new(shared.clone(), Arc::downgrade(plugins), id, &inst.manifest.name)) as Arc<dyn DraftsHost>);
+    let (models, library, places, proposals) = super::hosts::for_grants(&granted, plugins);
     Some(HostCtx {
         plugin: id.to_string(),
         granted,
@@ -565,11 +566,15 @@ pub(crate) fn tools_ctx(plugins: &Arc<Plugins>, shared: &Arc<Shared>, id: &str) 
         chosen: None,
         photos,
         drafts,
+        models,
+        library,
+        places,
+        proposals,
     })
 }
 
 /// The plugin's shared tools instance; its context is read from the store each time it is built.
-fn instance(plugins: &Arc<Plugins>, shared: &Arc<Shared>, id: &str, dir: &Path) -> AppResult<Arc<ToolsInstance>> {
+pub(crate) fn instance(plugins: &Arc<Plugins>, shared: &Arc<Shared>, id: &str, dir: &Path) -> AppResult<Arc<ToolsInstance>> {
     let engine = plugins.engine()?;
     engine.tools_at(id, &dir.join("plugin.wasm"), ctx_fn(plugins, shared, id)).map_err(plugin_error)
 }
@@ -593,6 +598,10 @@ fn ctx_fn(plugins: &Arc<Plugins>, shared: &Arc<Shared>, id: &str) -> impl Fn() -
             chosen: None,
             photos: None,
             drafts: None,
+            models: None,
+            library: None,
+            places: None,
+            proposals: None,
         })
     }
 }

@@ -58,6 +58,15 @@ describe("menu factories", () => {
     expect(a.rotate).toHaveBeenCalledWith([7], 1);
   });
 
+  it("offers Develop right after Open for one photo, never for a selection", () => {
+    const a = { ...photoActions(), develop: vi.fn() };
+    const items = photoMenu([7], { favorite: false, inHidden: false, mac: false }, a);
+    expect(labels(items).slice(0, 2)).toEqual(["Open", "Develop"]);
+    pick(items, "Develop").onSelect();
+    expect(a.develop).toHaveBeenCalledWith(7);
+    expect(labels(photoMenu([7, 8], { favorite: false, inHidden: false, mac: false }, a))).not.toContain("Develop");
+  });
+
   // Round 22 §9: Edit in <default> and Open with ▸, the rarer actions under More.
   it("puts the default app and Open with ▸ under Add to album, and the rest under More", () => {
     const a = { ...photoActions(), rate: vi.fn(), openWith: { editIn: vi.fn(), chooseApp: vi.fn() } };

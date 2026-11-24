@@ -29,9 +29,14 @@ export const mantineTheme = createTheme({
     // variables below; point it at the theme's accent so a bar matches its button.
     Progress: { defaultProps: { color: "var(--accent)" } },
     // Floating surfaces share one entrance, so dialogs, menus and popovers feel related.
-    Modal: { defaultProps: { transitionProps: { transition: "pop", duration: 180, timingFunction: "cubic-bezier(.2,.8,.2,1)" }, overlayProps: { blur: 2 } } },
+    // `data-part` is how a theme's `theme.css` names Lumen's parts (THEMES.md *Parts*). A modal is a
+    // `dialog` unless it says otherwise (`confirm`, `palette`, `install-sheet`); a menu's dropdown
+    // is a `menu`. Protected parts are never styled by a theme, nor anything inside them.
+    Modal: { defaultProps: { "data-part": "dialog", transitionProps: { transition: "pop", duration: 180, timingFunction: "cubic-bezier(.2,.8,.2,1)" }, overlayProps: { blur: 2 } } },
     Popover: { defaultProps: { ...floating, transitionProps: { transition: "pop", duration: 150 } } },
     Menu: { defaultProps: { ...floating, transitionProps: { transition: "pop", duration: 140 } } },
+    MenuDropdown: { defaultProps: { "data-part": "menu" } },
+    TextInput: { defaultProps: { "data-part": "input" } },
     HoverCard: { defaultProps: floating },
     Combobox: { defaultProps: floating },
     Select: { defaultProps: { ...combobox, allowDeselect: false, checkIconPosition: "right" } },
@@ -43,7 +48,7 @@ export const mantineTheme = createTheme({
     // Our accent is a CSS variable, so Mantine cannot derive a contrast colour for filled
     // buttons itself; point its text colour at the theme's accent-fg token.
     Button: Button.extend({
-      defaultProps: { radius: "md" },
+      defaultProps: { radius: "md", "data-part": "button" },
       vars: (_theme, props) =>
         props.variant === undefined || props.variant === "filled"
           ? { root: { "--button-color": "var(--accent-fg)" } }

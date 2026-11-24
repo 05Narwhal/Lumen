@@ -1,7 +1,7 @@
 {
   "name": "lumen-setup",
   "private": true,
-  "version": "26.2.0-alpha",
+  "version": "26.3.0-alpha",
   "type": "module",
   "description": "Lumen Setup UI. Not a Yarn workspace: dependencies resolve from the repository root's node_modules (same versions as the app), so the lockfile stays one.",
   "scripts": {

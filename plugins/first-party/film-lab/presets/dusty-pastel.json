@@ -1,0 +1,40 @@
+{
+  "recipeVersion": 3,
+  "name": "Dusty Pastel",
+  "develop": {
+    "basic": {
+      "exposure": 0.1,
+      "contrast": -0.25,
+      "saturation": -0.2,
+      "blacks": 0.2,
+      "vibrance": -0.05
+    },
+    "grading": {
+      "shadows": {
+        "hue": 260,
+        "sat": 0.08,
+        "lum": 0
+      },
+      "highlights": {
+        "hue": 30,
+        "sat": 0.1,
+        "lum": 0
+      }
+    }
+  },
+  "panels": [
+    "basic",
+    "grading"
+  ],
+  "look": {
+    "intent": "Light, chalky pastel: airy exposure, flat contrast, lilac shadows and peach highlights",
+    "hues": [
+      260,
+      30
+    ],
+    "mono": false,
+    "key": "high",
+    "skinSafe": true,
+    "likesSky": false
+  }
+}

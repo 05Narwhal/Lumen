@@ -6,4 +6,8 @@ export type UpdateStatus = { version: string, state: UpdateState,
 /**
  * Set for the session after an update, for Settings to keep showing the notes.
  */
-whatsNew: UpdateReceipt | null, };
+whatsNew: UpdateReceipt | null, 
+/**
+ * What is staged is a security fix: the banner *A security fix is ready* with *Install now*.
+ */
+security: boolean, };

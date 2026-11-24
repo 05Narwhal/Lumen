@@ -106,7 +106,7 @@ pub fn oversize_budget() -> u64 {
 
 /// An original decoded for a thumbnail or the display size: whole, or, when it is too large for
 /// the decoder, at `REDUCED_EDGE` with its real size alongside.
-fn decode_original_or_reduced(path: &Path, kind: MediaKind, ffmpeg: Option<&Ffmpeg>, hdr: HdrKind) -> Result<(image::DynamicImage, Option<(u32, u32)>), photos_media::MediaError> {
+pub(crate) fn decode_original_or_reduced(path: &Path, kind: MediaKind, ffmpeg: Option<&Ffmpeg>, hdr: HdrKind) -> Result<(image::DynamicImage, Option<(u32, u32)>), photos_media::MediaError> {
     match decode_preview_hdr(path, kind, ffmpeg, hdr) {
         Err(e) if photos_media::decode::is_too_large(&e) => {
             let r = photos_media::decode::decode_reduced(path, kind, photos_media::decode::REDUCED_EDGE, oversize_budget())?;

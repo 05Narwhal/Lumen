@@ -263,3 +263,37 @@ fn a_2048_preview_with_one_mask_using_every_local_tool() {
     eprintln!("2048 px preview: no mask {none:?}; local Basic {b:?} (+{:.0} %); every per-pixel tool {p:?} (+{:.0} %); glow {g:?} (+{:.0} %)", pct(b), pct(p), pct(g));
     assert!(p.as_secs_f64() <= none.as_secs_f64() * 1.3, "{p:?} vs {none:?}");
 }
+
+/// Round 24 §6.1: what one zoomed-view render costs with halation on an ellipse mask, as
+/// `render_region` runs it (the frame's airlight, the part's crop, every stage on the part),
+/// on a 24 MP frame at 200 % in a 2560 × 1440 view. Each slider pause past 120 ms asks for one.
+#[test]
+#[ignore = "timing; run with --release"]
+fn a_zoomed_region_with_halation_on_an_ellipse_is_measured() {
+    use photos_core::edits::Halation;
+    use photos_media::develop::masks::FrameMap;
+    use photos_media::develop::{develop_stages, frame_airlight, geometry, Region};
+    let (fw, fh) = (6048, 4024);
+    let frame = scene(fw, fh);
+    let mut r = Recipe::identity();
+    let shape = MaskShape::Radial { add: true, center: [0.5, 0.5], radius: [0.3, 0.35], angle: 0.0, feather: 0.5, inside: true };
+    let adjust = LocalAdjust { exposure: 0.5, halation: Halation { amount: 1.0, size: 0.8 }, ..Default::default() };
+    r.develop = Some(Develop { masks: vec![Mask { id: 1, name: "Ellipse".into(), shapes: vec![shape], invert: false, opacity: 1.0, adjust, visible: true }], basic: Basic { exposure: 0.3, ..Default::default() }, ..Default::default() });
+    let r = r.normalized();
+    let d = r.develop.clone().unwrap();
+    let map = FrameMap::new(fw, fh, &r);
+    let (vw, vh, margin) = (1280, 720, 350);
+    let (px, py) = (fw / 2 - vw / 2 - margin, fh / 2 - vh / 2 - margin);
+    let mut times = Vec::new();
+    for _ in 0..5 {
+        let t = Instant::now();
+        let airlight = frame_airlight(&frame, &d);
+        let a = t.elapsed();
+        let mut part = geometry::crop(&frame, px, py, vw + 2 * margin, vh + 2 * margin);
+        let ctx = Ctx { region: Some(Region { x: px, y: py, frame_width: fw, frame_height: fh }), airlight: Some(airlight), frame_map: Some(map), ..Ctx::new(1.0, 1) };
+        develop_stages(&mut part, &d, &ctx);
+        let _ = part.to_rgb8();
+        times.push((a, t.elapsed()));
+    }
+    eprintln!("zoomed region {}x{} with halation on an ellipse (airlight, total): {times:?}", vw + 2 * margin, vh + 2 * margin);
+}

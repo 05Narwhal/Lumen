@@ -68,5 +68,19 @@ export function openWithItems(ctx: OpenWithContext, a: OpenWithActions): MenuIte
   ]);
 }
 
+/** One entry a plugin adds to a menu (Round 25 P4a): already resolved, so a factory knows no plugin. */
+export interface MenuContribution {
+  id: string;
+  label: string;
+  icon: Icon | null;
+  /** `ids`: the photos the menu was opened on, for a plugin tool that works on a selection. */
+  run: (ids?: number[]) => void;
+}
+
+/** A menu's plugin entries as items; nothing when there are none. */
+export function contributionItems(list: MenuContribution[] | undefined, ids?: number[]): MenuItem[] {
+  return (list ?? []).map((c) => ({ label: c.label, icon: c.icon ? icon(c.icon) : undefined, onSelect: () => c.run(ids) }));
+}
+
 /** A submenu's icon for *More*. */
 export const moreIcon = () => icon(IconDots);

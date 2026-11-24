@@ -1,7 +1,7 @@
 import { Button } from "@mantine/core";
 import { useQuery } from "@tanstack/react-query";
 import { IconFolderOpen, IconHome, IconStarFilled } from "@tabler/icons-react";
-import { open } from "@tauri-apps/plugin-dialog";
+import { pickFolder } from "@/lib/dialogs";
 import { AnimatePresence, motion } from "motion/react";
 import { useState } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router";
@@ -128,7 +128,7 @@ export function HomeRoute() {
   const { startFolderImport } = useImport();
 
   const pick = async () => {
-    const dir = await open({ directory: true, multiple: false, title: "Choose a folder to import" });
+    const dir = await pickFolder({ title: "Choose a folder to import" });
     if (typeof dir !== "string") return;
     try {
       await startFolderImport({ path: dir });

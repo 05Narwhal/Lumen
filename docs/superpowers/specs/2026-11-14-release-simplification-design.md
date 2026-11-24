@@ -1,0 +1,143 @@
+# Simpler releases, signing and licensing — design
+
+**Date:** 2026-11-14 · **Status:** decisions taken with Julian 2026-11-14 (answers at the end) · **Next migration stays 0040** (none needed).
+
+## Why
+
+Lumen is now free GPL-3.0-or-later software with no Pro, no Cloud and no licence system (`plans/2026-11-14-open-source.md`, *Decisions*). The release machinery was built for a paid product made on one PC: a gated local script, a CPM button, a branded installer only that PC could build, a licence audit against a commercial bar, a stable-only gate for two service terms. Most of it now costs maintenance without protecting anyone. Julian is the sole maintainer, so every piece kept is a piece only he can fix. This design keeps what the law, the updater and user data safety need, and drops or automates the rest. It also adds a **security track**: emergency fixes that install silently, separate from the alpha / beta / stable feature channels.
+
+**Nothing is public yet.** No build has been published from `05Narwhal/lumen` and the only installed builds are Julian's own (`26.1.1-alpha` polls the old `lumen-releases` and is reinstalled anyway). Every change below is free of migration cost now and expensive after the first public release, which is why this lands first.
+
+## Goals, non-goals, anti-goals
+
+- **Goals:** one release path (CI from `v*` tags); GPL source obligations met for every file a release ships, on every platform; updates stay signed; a key backup and a step-away arrangement that work without Julian; silent security updates; fewer secrets, scripts, gates and docs.
+- **Non-goals:** code-signing certificates (SignPath stays a placeholder until approved), Apple notarization, the plugin registry itself (Round 24), a self-built FFmpeg (named below as a later project with its own spec).
+- **Anti-goals:** any loss of user data safety (the pre-migration safety copy and the refusal of newer libraries stay untouched); a new network request without a stated reason; a remote switch that changes Lumen's behaviour other than by a signed build; a silent install that interrupts a person's work.
+
+## Constraints (from the request and the repo)
+
+- Licences unchanged: GPL-3.0-or-later; `photos-raw` LGPL-2.1 (rawler), loaded at run time; the plugin SDK, WIT and examples MIT OR Apache-2.0.
+- GPL source obligations for FFmpeg, ExifTool and rawler still hold.
+- Tauri's updater needs signed artefacts and accepts **one** public key (`plugins.updater.pubkey`; `UpdaterBuilder::pubkey` replaces it, it does not add one). The new keypair is made before the first public release; nobody has the old one.
+- Releases are built by `.github/workflows/release.yml` from `v*` tags in public `05Narwhal/lumen`.
+- `CLAUDE.md` non-negotiables (two transports, crate graph, app data folder, originals never modified) are untouched.
+
+## What exists today (the parts this touches)
+
+| Piece | Where | Today |
+|---|---|---|
+| CI release | `.github/workflows/release.yml` | Tag → FFmpeg source release once → Windows, macOS universal, Linux builds via `tauri-action` into a draft → publish → `channels.mjs` writes manifests. No gates beyond the FFmpeg hash on Windows. Four secrets. |
+| Local release | `scripts/release/release.mjs`, `collect.mjs`, `gates.mjs`, `publish.mjs`, `publish.ps1`, `setup-build.mjs`, CPM's *Publish release* | 18 gates, Lumen Setup build, draft → verify hashes → publish → channels. |
+| Channels | `publish.mjs` `writeChannels`, `lib.mjs` `channelsUpdatedBy` | Release `channels` holds `alpha.json`, `beta.json`, `stable.json`; a `-stable` writes all three, `-beta` two, `-alpha` one; placeholders `0.0.0-<channel>` because the plugin reads any non-2xx as `ReleaseNotFound`, indistinguishable from a rate limit (`updater.rs` `check_fail`). |
+| Updater | `src-tauri/src/updater.rs`, `photos-core::settings::UpdateSettings {automatic, channel}` | Checks 90 s after start then every 6 h **only while `automatic` is on**; downloads with resume, verifies, stages; installs quietly (`installMode: "quiet"`) at exit only, with Develop flushed, no import, no other Lumen; *Install now* restarts. |
+| Lumen Setup | `installer/` (second Tauri app, ~150 KB Rust incl. `removal.rs`, `libraries.rs`, `models.rs`), `setup-build.mjs` | Branded install/update/repair/remove; downloads default models; can delete libraries; CI does not build it. |
+| FFmpeg | `sources.json` (782 sources), `btbn-*.mjs`, `svn-export.mjs`, `vendored-source/`, release `ffmpeg-sources-n9.0.2-47` | Windows: BtbN n9.0.2-47, source complete and gated. **macOS: evermeet.cx's build; Linux: BtbN `master-latest`. Neither has its source in any release.** |
+| Build-time values | `src-tauri/build.rs` | `LUMEN_PLUGIN_PUBKEY` / `LUMEN_DISCORD_CLIENT_ID` from env or git-ignored `plugin-pubkey.txt` / `discord_client_id.txt`; CI passes them as secrets. |
+| Paid-era leftovers | `CLAUDE.md` gotcha, `gates.json` + `stable-only` gate, `LICENSING-AUDIT.md`, `THIRD-PARTY-MODELS.md` | "Every dependency, model and API must allow commercial use"; Jamendo and Esri block `-stable` only. |
+
+**Found while reading** (each changes what gets built):
+1. **The macOS and Linux release artefacts break the GPL today.** `release.yml` bundles `fetch-ffmpeg.sh`'s builds (evermeet, BtbN `master-latest`) and publishes no source for them. Decision 4 fixes this before the first tag.
+2. **A stable security fix would hide newer previews.** `-stable` rewrites all three manifests; a `26.3.5-stable` hotfix published after `26.4.2-alpha` would point `alpha.json` back at 26.3.5, and alpha users would stop seeing new alphas. Decision 9 adds a *never lower* rule.
+3. **"A co-owner's key as a second updater pubkey"** (`GOVERNANCE.md`, *If Julian steps away*) is not possible: Tauri verifies against one key. Decision 8 replaces it.
+4. **The working tree has an uncommitted new `pubkey`** in `src-tauri/tauri.conf.json`. Julian confirmed it is the regenerated key, already backed up (Q7); phase 1 commits it.
+5. `STATE.md` *Versions, updates and releases* still names `lumen-releases`.
+
+## Decisions
+
+| # | Topic | Options (cost) | Recommendation |
+|---|---|---|---|
+| 1 | Public values kept as secrets | **a** keep secrets (two values only Julian can set; a contributor's build differs from the release); **b** GitHub *variables* (visible, still per-repo, still Julian-only); **c** tracked files `src-tauri/plugin-pubkey.txt`, `src-tauri/discord_client_id.txt`, env still overrides (none; both values are public by nature: a minisign public key, and an app id every Discord client sees) | **c.** Two fewer secrets; the tag builds the same binary anywhere. `TRADEMARKS.md` already asks forks to rename, which covers the Discord id. |
+| 2 | Release paths and gates | **a** keep both; **b** CI only, with a `preflight` job; **c** local only (no CI build) | **b.** Delete `release.mjs`'s build/publish, `collect.mjs`, `publish.ps1`, `publish()` (keep `updateChannels`), the CPM script. Gates kept (in `preflight`, pure functions from `gates.mjs`): `version`, `version-fields`, `changelog`, `next-version` (per line, decision 9), *tag is on `main` or `release/*`*, `notices`, `rawler`, `ffmpeg-source` (now run on the Windows job: hash + `ffmpeg -version` flags vs `sources.json`), `source-bundle`, `setup-sizes` (after the Windows build, before upload), `no-migration` (security builds on a stable line), `library-check` against **checked-in synthetic libraries** (one per published schema, made by a test; never a real library). `checks` = CI's existing jobs must be green on the tagged commit. Dropped: `clean`, `main` (implied by CI), `signing` (the build fails without the key), `no-test-overrides` (CI env is fixed; kept as one `env` assertion), `releases-repo`, `stable-only`. Julian may still run `--check-library` on a **copy** of his library by hand; it is no longer a gate. |
+| 3 | Lumen Setup | **a** keep and build it in CI; **b** freeze (bit-rots); **c** drop it for the plain NSIS installer | **a (Julian: Lumen Setup is the installer people get; it is why it exists and it looks better).** The Windows release job runs `setup-build.mjs` instead of `tauri-action` (its fixed order: slim Setup → NSIS with the overlay, signed during the build → full Setup with the payload), then uploads with `gh`. The release notes offer **`Lumen-Setup-<version>.exe` as the download**; the NSIS installer stays in the release only because the updater installs it (the notes say so). *Delete libraries…* stays (Julian's call; its guards in STATE.md *Lumen Setup* are unchanged). Setup keeps its own version fields, the `installer → photos-models` edge and the size gate. |
+| 4 | FFmpeg | **a (Julian)** keep bundling BtbN with 782 sources on Windows, and **ship Windows only** until the others have source (no new work; macOS/Linux users build from source); **b** a / Windows plus macOS/Linux **without** bundled FFmpeg, found on `PATH` or *Choose FFmpeg…* (videos are a state until then; the user's own FFmpeg is not distributed by Lumen); **c** first-run download from a pinned URL (Lumen stops distributing it, but BtbN deletes dailies, mirroring is distributing again, adds a request, breaks offline first run); **d** build a trimmed GPL FFmpeg (~10 libraries Lumen uses: x264, x265, aom, zimg, nvenc/amf/vpl headers) in CI on three OSes, source bundle made by the same job from the tarballs it compiled (one large project, then the obligation is met by construction and the installer shrinks) | **a now, d next.** a is already done and gated, and the updater is Windows-only anyway. d is the real simplification (782 → ~30 sources, three platforms, no 406-refusing hosts) and gets its own spec. c is rejected (new request, fragile). b is the fallback if Julian wants macOS/Linux artefacts before d. |
+| 5 | Channels | **a** keep alpha / beta / stable and placeholder manifests; **b** two (stable, preview); **c** one | **a.** The code is built and tested, a promotion is one tag, and Julian asked to keep the structure. Placeholders stay: they are why a 404 can be read as *could not check* (`check_fail`). One rule changes (decision 9): **X goes up for the first alpha after a stable**, so a stable line can take fixes without colliding with previews. |
+| 6 | Plugin key vs updater key; registry | **a** two keys (today); **b** one key for both (a plugin-key leak becomes an app-update leak); **c** retire the plugin key and ship first-party plugins as app resources | **a.** Separate blast radius at no extra cost: both are minisign keys kept in the same backup (decision 8). The plugin pubkey becomes a tracked file (decision 1). The registry stays Phase 4 of the open-source plan (sha256-pinned, author keys, policy in its CI), unaffected here. |
+| 7 | Paid-era leftovers | **a** leave; **b** reword and keep only what law or service terms need | **b.** `CLAUDE.md`: replace "must allow commercial use" with *dependencies GPL-3-compatible (`yarn run licenses` enforces), models by `THIRD-PARTY-MODELS.md`'s rule, online services only as their terms allow*. Jamendo and Esri are **service-terms** questions, not commercial ones. `gates.json` and the `stable-only` gate are deleted. **Amended 2026-11-14 (Julian, after reading the terms; *Map imagery and Jamendo* below):** the satellite layer moves off keyless Esri to **EOX Sentinel-2 cloudless** (keyless use explicitly allowed), with **Esri only through the person's own ArcGIS key**; Jamendo stays **bring-your-own-key** (it already is: `music.jamendo_client_id`, Lumen ships no Jamendo key) and closes its last term gaps. Both then leave *Known risks*. A **stop rule** stays: if a provider objects or blocks, the next build switches that feature off. This is engineering judgement, not legal advice. `LICENSING-AUDIT.md`: keep *What the licence obliges*, Adobe DNG Converter, Nominatim/ODbL, codec patents; move *Pets* to `THIRD-PARTY-MODELS.md`; drop the "note for forks that sell Lumen" row. Keep the NC-model rule (NC weights only in `lumen-models` as separate downloads, never in the installer). Archive `RELEASING.md`'s gyan/BtbN progress logs to the plan they came from. |
+| 8 | Updater key, password, backup, step-away | see *Keys and the step-away arrangement* below | One keypair now; password-manager entry plus two offline copies; minisign `-C` for password changes; key rotation only by a release signed with the old key that carries the new pubkey; GitHub *account successor* plus a sealed key escrow. |
+| 9 | Security updates | see *Security track* below | `minSafe` in each channel manifest, read on the existing 6 h check; its own switch, on by default (Julian, Q4); downloads at once and installs at the next close **or** next launch; stable fixes from `release/26.X` under the new version rule (Julian, Q5); *never lower* manifests. |
+
+## Map imagery and Jamendo (decision 7, amended)
+
+**Why keyless Esri can't ship.** `src/lib/map-style.ts` loads `server.arcgisonline.com/…/World_Imagery` tiles with no key for every user. Esri licenses World Imagery through an ArcGIS account (ArcGIS Online / Enterprise, or a Location Platform API key) with "Powered by Esri" attribution; Esri staff state the service is not free for keyless use. Being free and open source does not change that. EOX states the opposite for its own layer: "Feel free to use the provided service endpoints (WMTS or WMS) directly in your application", free for non-commercial use with attribution.
+
+**Satellite layer, default: EOX Sentinel-2 cloudless.** The newest yearly layer in Web Mercator (`s2cloudless-<year>_3857`, the exact XYZ template taken from `https://tiles.maps.eox.at/wmts/1.0.0/WMTSCapabilities.xml`; EOX notes its WMTS uses 2×2 metatiles, so the builder confirms tile addressing against a real tile before relying on it). About 10 m per pixel: towns, fields, coasts and mountains read well, single houses do not. Source max zoom from the capabilities document; the map's own max zoom over this layer is capped where it still looks sharp (builder measures, about 14–15). Attribution, year-specific, beside the map and in Settings → *Licences*: *EOxCloudless https://cloudless.eox.at by EOX IT Services GmbH (Contains modified Copernicus Sentinel data <year>)*; licence CC BY-NC-SA 4.0 (2018+ layers). Lumen is non-commercial; a fork that sells Lumen must swap it (noted in the Licences entry). If satellite tiles are ever drawn into an exported file, the attribution goes with them (builder checks whether any export does).
+
+**Satellite layer, optional: Esri with the person's own key.** Settings → Connections → Map gains *Detailed satellite imagery (Esri)*: a field for the person's own ArcGIS Location Platform API key (free tier at `location.arcgis.com`; by entering it they accept Esri's terms). With a key, the satellite style uses Esri's keyed imagery endpoint (the builder takes the exact tile URL and token parameter from Esri's current developer docs) at today's zoom limits, with *Powered by Esri* plus *Esri, Maxar, Earthstar Geographics* attribution. Without one, EOX. The key lives in `settings.json` (`map.esri_key`, `serde(default)`, no migration), is sent only to Esri inside tile requests, and is never logged. Nothing is requested from Esri without a key.
+
+**Jamendo: each person's own key.** Already so (`music.jamendo_client_id`, Settings → Connections → Music; empty means no Jamendo request at all). Terms checked (API Terms of Use, 2013): non-commercial use is free (§3.3); apps must not be *designed* to cache or offer offline access, caching only as "reasonably necessary for the operation" (§3.3), which downloading the one track a person picks for their slideshow is; a backlink from each track to its Jamendo page and credit to the artist and Jamendo (§4.1); each track used under its CC licence (§3.1), and since syncing music to pictures is always an adaptation under CC 4.0, `-nd` tracks are already excluded (`derivatives_allowed`). Gaps closed: (1) honour `audiodownload_allowed: false` (today ignored: such tracks are hidden from *Find*); (2) the per-track backlink (phase 1, done); (3) *Music from Jamendo* credit beside the results; (4) the Settings text says the id is the person's own and that by using it they accept Jamendo's API terms (with the link). No Jamendo key is ever built into Lumen, CI or the repo.
+
+**Network.** No new request: EOX replaces Esri for the same satellite style under the same *online map* switch; Esri is asked only once a person enters their own key.
+
+## Security track (decision 9)
+
+**What a person sees.** Settings → *Updates* gains *Install security fixes automatically* (on), independent of *Automatic updates*. When a fix is needed, Lumen downloads it in the background and installs it the next time Lumen closes or starts, whichever comes first; the next launch shows *Lumen installed a security fix (26.3.5)*. With the switch off, a persistent banner says *A security fix is ready* with *Install now*. Nothing ever restarts Lumen while it is open.
+
+**How the app knows.** Each channel manifest gains one Lumen field next to Tauri's: `"minSafe": "26.3.5-stable"`, the lowest build on that channel without a known vulnerability. Tauri's static format ignores unknown fields; Lumen reads it from the update's raw JSON (`Update::raw_json`, builder to confirm on the plugin version in use). If the running version is below `minSafe`, the newest build on the channel is a **security update**: it is taken even when *Automatic updates* is off, and it is the newest build, not the exact fixed one (the manifest names only one). `minSafe` survives later releases (the channel writer copies it forward), so someone who skipped the fix is still caught by a later ordinary manifest.
+
+**Network.** No new endpoint. The existing check (90 s after start, then every 6 h) now also runs when *Automatic updates* is off and the security switch is on, reading the same manifest. **Reason stated:** an emergency fix must reach people who turned feature updates off. With both switches off, Lumen makes no update request at all, as today.
+
+**Installing.** At close: the existing path and guards (Develop flushed, no import, no other Lumen, `INSTALL_GRACE`). At launch: in `setup`, after the single-instance plugin and **before the library is opened**, a staged update whose version is below the running `minSafe`-flagged target and whose signature was verified at download runs the quiet installer with restart. Never for `--mcp`, `--check-library` or a second instance. One launch attempt per version (recorded in `updates/`); a failure falls back to install-at-close and the banner.
+
+**Releasing a fix.**
+- A **stable line** lives on `release/26.X`, cut when `26.X.Y-stable` ships. The fix lands on `main`, is cherry-picked to `release/26.X`, and both are tagged: `v26.X.(Y+1)-stable` from the branch, the next alpha (and beta, if one is out) from `main`.
+- **Version rule:** X goes up with the first alpha after a stable, so `26.3.5-stable` < `26.4.0-alpha`. `next-version` checks order **within the line** (`26.X`), not globally.
+- A changelog heading marks it: `## 26.3.5-stable · security`. `channels.mjs` then sets `minSafe` to this version for the channels it reaches.
+- **Never lower:** `channels.mjs` reads each manifest first and writes only if the new version is higher. A stable hotfix updates `stable.json` (and `beta.json`/`alpha.json` only where it is higher).
+- **No migration in a stable security build:** the `no-migration` gate refuses a security tag on `release/*` whose `migrations/` differs from the line's previous tag. A silent install never rewrites a schema on a stable line. Previews may migrate (the safety copy still runs first).
+- `release.yml` accepts tags whose commit is on `main` or a `release/*` branch.
+- Platforms: Windows only until the updater serves others (decision 4).
+
+**Setup needed (Julian, once).** Nothing new to buy, no new key, no new secret, no new repo: the same updater key signs security builds and they use the same `channels` release. What is new: (1) branch protection on `release/*` like `main`; (2) GitHub *Private vulnerability reporting* on (already in Task 10's steps) and use of *Security advisories* with a temporary private fork to prepare a fix before it is public; (3) `SECURITY.md` names the supported versions: the newest stable line and `main`. Runbook in `RELEASING.md` (*Shipping a security fix*).
+
+## Keys and the step-away arrangement (decision 8)
+
+- **Make the key** (Julian, in his own terminal): `yarn tauri signer generate -w $env:USERPROFILE/.lumen-release/lumen.key` with a long random password from a password manager. Commit only `lumen.key.pub`'s content into `tauri.conf.json`.
+- **Where it lives:** (1) the GitHub secrets `TAURI_SIGNING_PRIVATE_KEY` / `_PASSWORD` (write-only, cannot be read back, so never the only copy); (2) a password-manager entry holding the key file's text and the password, with the manager's emergency access set for the successor; (3) two offline copies of the encrypted key file: a USB stick in a safe and a printout (it is a few hundred characters), the password stored apart from them. The plugin key gets the same three places.
+- **Changing the password** without changing the key: `minisign -C -s lumen.key`, then update the secret and the manager entry. Changing the key itself is only for a leak: a release signed with the old key that ships the new pubkey, then the old key retires. **A lost key strands every install**, hence the copies.
+- **If Julian steps away** (`GOVERNANCE.md` rewritten): GitHub's *account successor* on `05Narwhal` (they may archive or transfer the repos); a sealed escrow (the offline copy plus written instructions) held by a person Julian names in `CLAUDE.local.md`; the successor transfers the repos to an org, adds the secrets, and releases. Installed apps keep polling the old URLs, which GitHub redirects after a transfer; never recreate a repo under the old name. The "second pubkey" sentence is removed.
+
+## Risks
+
+| Risk | Mitigation |
+|---|---|
+| A silent security install fails or loops | One launch attempt per version; falls back to close-time install and the banner; never mid-session. |
+| A security build carries an unrelated regression | Stable fixes are cherry-picks on `release/26.X` with no migration; CI runs the full suite on the tag. |
+| Someone with the GitHub account edits a manifest | Only signed builds install and never a downgrade; `minSafe` can at most force the newest signed build. The key is the real asset. |
+| Lumen Setup in CI breaks its signing order (the updater `.sig` must be taken after Authenticode signing) | CI runs `setup-build.mjs` itself rather than `tauri-action` on Windows, so the order stays in one tested script; SignPath plugs into its `signCommand`. |
+| EOX blocks heavy use or changes its terms | Stop rule: next build falls back to no satellite layer (or Esri for those with a key); nothing in a library depends on it. |
+| The coarser EOX imagery disappoints | The Esri key option restores house-level detail for anyone who wants it. |
+| Windows-only releases disappoint macOS/Linux users | They can build from source; decision 4d brings them back with source in order. |
+| Synthetic library-check misses a real-library shape | Fixtures are made from every published schema; Julian's manual check on a copy remains available. |
+| Removing the CPM button leaves no local fallback | `tauri build` locally still works; publishing is a tag push. |
+
+## Phased plan (each phase one session, ≤ ~70k tokens)
+
+Every phase reads `CLAUDE.md`, this spec and its own plan. Branch from `main`; commit with DCO sign-off and no tool attribution.
+
+1. **Keys, public values, leftovers** (`rel-1-public`). Reads: `src-tauri/build.rs`, `.gitignore`, `release.yml`, `LICENSING-AUDIT.md`, `GOVERNANCE.md`, `docs/STATE.md` (*Versions…*), `RELEASING.md` (*signing key*), `scripts/release/gates.mjs` (`stable-only`) + test, the Jamendo track row (find with `graphify query "Jamendo track list"`). Owns: those files, plus new tracked `src-tauri/plugin-pubkey.txt`, `src-tauri/discord_client_id.txt`, `CLAUDE.md` (gotcha line), `THIRD-PARTY-MODELS.md` (*Pets* moved in), the committed `tauri.conf.json` pubkey; deletes `scripts/release/gates.json`. Tests: `cargo test -p lumen plugins::state discord`, `yarn vitest scripts/release`, the Jamendo row's test, `yarn run licenses`.
+2. **One release path, Setup in CI** (`rel-2-ci`). Reads: `scripts/release/{gates,collect,lib,release,publish,channels,setup-build}.mjs` + tests, `release.yml`, `ci.yml`, `src-tauri/tauri.release.conf.json`. Owns: new `scripts/release/preflight.mjs` (+ test), `release.yml` (`preflight` job; Windows-only matrix per decision 4a; the Windows job runs `setup-build.mjs` and uploads both installers to the draft; notes point at Lumen Setup), `gates.mjs`, `lib.mjs` (`notesFor` moved in), `setup-build.mjs` (any CI-only path fixes), synthetic-library fixtures and their generating test under `src-tauri/tests/`; deletes `release.mjs`, `collect.mjs`, `publish.ps1`, `publish()`; rewrites `RELEASING.md`. Tests: `yarn vitest scripts/release`, `actionlint`, one `workflow_dispatch` dry run of the Windows job on a throwaway tag in a fork or with publishing off.
+3. *(Removed: Lumen Setup stays, decision 3. Its CI build is part of phase 2.)*
+4. **Security track, app side** (`rel-4-security-app`). Reads: `updater.rs`, `photos-core/src/settings.rs` (`UpdateSettings`), `src-tauri/src/lib.rs` (`setup`), the Settings → *Updates* component. Owns: those plus generated types; TDD on `min_safe` parsing, `is_security_update`, launch-install guard, attempt record, the switch, the banner and toast. Tests: `cargo test -p lumen updater`, `yarn test` for the Updates panel, `/dev/ui` states.
+5. **Security track, release side** (`rel-5-security-release`). Reads: `channels.mjs`, `publish.mjs` (`updateChannels`), `lib.mjs` (`isNextVersion`, `channelsUpdatedBy`), `release.yml`, `preflight.mjs`. Owns: those, `SECURITY.md`, `RELEASING.md` (*Shipping a security fix*, version rule). TDD: never-lower, `minSafe` carried forward, per-line `next-version`, `no-migration`. Then one end-to-end run against a throwaway key and a test channels base (`LUMEN_UPDATE_TEST_BASE`) as Round 17 Task 7 did.
+6. **Later, own spec: a trimmed FFmpeg built in CI** (decision 4d), which restores macOS and Linux releases.
+7. **Map imagery and Jamendo** (`rel-5-services`; plan phase 5). Reads: `src/lib/map-style.ts` (+ test), `src/components/map-view/gui.tsx`, `src/routes/settings/sections.tsx` (Map and Music sections), `photos-core/src/settings.rs` (`MapSettings`), `src-tauri/src/music.rs` (`Raw`, the track mapping), `scripts/licenses/extra.json`, `docs/LICENSING-AUDIT.md`, `CLAUDE.md` (gotcha line). Owns: those plus generated types. Tests: `yarn vitest run src/lib/map-style.test.ts src/routes/settings src/routes/map`, `cargo test -p lumen music`, `cargo test -p photos-core settings`, `yarn run licenses`, `yarn typecheck`.
+
+Order: 1 → 2; 4 can start beside 2 (disjoint files); 5 after 2 and 4; 7 any time after 1 (disjoint files). The first public tag waits for 1, 2 and 7.
+
+## Calls made in this document (Julian to check)
+
+- Security fixes install the channel's **newest** build, not the exact patched one.
+- Launch-time install happens before the library opens, once per version.
+- Library-check in CI uses synthetic libraries only; the check on a copy of Julian's library becomes optional and manual.
+- The NSIS installer stays a release asset (the updater needs it) but the notes offer only Lumen Setup.
+- Jamendo's per-track backlink is added in phase 1 as the one cheap step towards its terms.
+
+## Julian's answers (2026-11-14)
+
+- **Q1 Jamendo and Esri:** first "accept the risk, provided there is no legal exposure or fee"; then, after reading the terms, **EOX Sentinel-2 cloudless by default, Esri only with the person's own key, Jamendo with each person's own key, never Julian's**. → decision 7 amended, *Map imagery and Jamendo*, phase 7.
+- **Q2 Lumen Setup:** keep it; it is the installer people use, not the plain NSIS one. → decision 3a, built in CI in phase 2.
+- **Q3 macOS/Linux:** Windows only for now. → decision 4a; 4d (self-built FFmpeg) next, own spec.
+- **Q4 Security installs:** their own switch, on by default; the check runs while it is on even if feature updates are off.
+- **Q5 Version rule:** X goes up with the first alpha after a stable; stable fixes from `release/26.X`.
+- **Q6 Successor and escrow:** Julian has someone in mind and names them only in `CLAUDE.local.md`.
+- **Q7 Updater pubkey:** the uncommitted one is the new key, already backed up; phase 1 commits it.

@@ -1,7 +1,7 @@
 import { Button } from "@mantine/core";
-import { open } from "@tauri-apps/plugin-dialog";
 import { useState } from "react";
 import { PageHeader } from "@/components/page-header";
+import { pickFile } from "@/lib/dialogs";
 import { invoke } from "@/lib/ipc";
 import { mediaUrl } from "@/utils/media";
 import "./styles.scss";
@@ -10,8 +10,7 @@ import "./styles.scss";
 export function DevTransportRoute() {
   const [url, setUrl] = useState<string | null>(null);
   const pick = async () => {
-    const file = await open({
-      multiple: false,
+    const file = await pickFile({
       filters: [{ name: "Video", extensions: ["mp4", "mov", "m4v", "webm"] }],
     });
     if (typeof file !== "string") return;

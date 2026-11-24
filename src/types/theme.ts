@@ -1,6 +1,6 @@
 export type { ThemeChoice } from "@/types/generated/ThemeChoice";
 import type { ThemeChoice } from "@/types/generated/ThemeChoice";
-import type { PluginThemeMeta } from "@/types/generated/PluginThemeMeta";
+import type { InstalledTheme } from "@/types/generated/InstalledTheme";
 
 export type ThemeId = "gallery" | "darkroom" | "paper" | "glass";
 export type SchemeChoice = "light" | "dark" | "auto";
@@ -19,8 +19,8 @@ export const THEMES: ThemeMeta[] = [
   { id: "glass", name: "Glass", tagline: "Frosted layers over a soft colour wash.", defaultScheme: "light" },
 ];
 
-/** What a theme choice is called: a built-in's name, or the plugin theme's own. */
-export function themeName(choice: ThemeChoice, plugins: PluginThemeMeta[] = []): string {
+/** What a theme choice is called: a built-in's name, or the installed theme's own. */
+export function themeName(choice: ThemeChoice, installed: InstalledTheme[] = []): string {
   if (typeof choice === "string") return THEMES.find((t) => t.id === choice)?.name ?? choice;
-  return plugins.find((m) => m.plugin === choice.plugin && m.id === choice.theme)?.name ?? choice.theme;
+  return installed.find((m) => m.id === choice.plugin)?.name ?? choice.plugin;
 }

@@ -1,0 +1,15 @@
+[package]
+name = "captioner"
+version = "1.0.0"
+edition = "2021"
+license = "MIT"
+publish = false
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+
+[dependencies]
+lumen-plugin = { path = "../../sdk/lumen-plugin", features = ["proposals"] }
+serde_json = "1"
+
+[workspace]

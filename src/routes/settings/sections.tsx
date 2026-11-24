@@ -55,7 +55,9 @@ import type { MlStatus } from "@/types/generated/MlStatus";
 import type { Settings } from "@/types/generated/Settings";
 import type { TileSize } from "@/types/generated/TileSize";
 import { themeName } from "@/types/theme";
-import { usePluginThemes } from "@/lib/plugin-theme";
+import { useInstalledThemes } from "@/lib/plugin-theme";
+import { useInstalledThemeList } from "@/lib/theme-manage";
+import { pickThemeToInstall } from "@/components/plugin-install";
 import { formatBytes } from "@/utils/format";
 import { AiAssistantsSection } from "./ai-assistants";
 import { DiscordSection } from "./discord";
@@ -114,12 +116,12 @@ function Appearance({ settings, update }: { settings: Settings; update: Update }
   // flush as a discrete update; the control would otherwise jump two frames later.
   const [tile, setTile] = useSettingValue(a.tileSize ?? "m");
   const [reduce, setReduce] = useSettingValue(a.reduceMotion ?? false);
-  const pluginThemes = usePluginThemes();
+  const { themes, remove } = useInstalledThemeList();
   return (
     <>
       <SettingGroup title="Theme">
         <SettingRow wide>
-          <ThemePicker value={{ theme: a.theme, scheme: a.scheme }} pluginThemes={pluginThemes} onChange={(v) => update((s) => ({ ...s, appearance: { ...s.appearance, theme: v.theme, scheme: v.scheme } }))} />
+          <ThemePicker value={{ theme: a.theme, scheme: a.scheme }} themes={themes} onRemove={remove} onInstallFile={() => void pickThemeToInstall()} onChange={(v) => update((s) => ({ ...s, appearance: { ...s.appearance, theme: v.theme, scheme: v.scheme } }))} />
         </SettingRow>
       </SettingGroup>
       <SettingGroup title="Layout and motion">
@@ -424,11 +426,12 @@ function SearchDates({ settings, update }: { settings: Settings; update: Update 
 function MapSection({ settings, update }: { settings: Settings; update: Update }) {
   const [online, setOnline] = useSettingValue(settings.map.online ?? true);
   const [exact, setExact] = useSettingValue(settings.exactPlaces ?? false);
+  const [esriKey, setEsriKey] = useSettingValue(settings.map.esriKey ?? "");
   return (
     <SettingGroup>
       <SettingRow
         label="Online map detail"
-        hint="Streets, place names and satellite imagery from OpenFreeMap and Esri. They see which areas you look at, never your photos. Off, the map is a built-in world outline that needs no connection."
+        hint="Streets and place names from OpenFreeMap, satellite imagery from EOX. They see which areas you look at, never your photos. Off, the map is a built-in world outline that needs no connection."
       >
         <Switch
           aria-label="Online map detail"
@@ -438,6 +441,20 @@ function MapSection({ settings, update }: { settings: Settings; update: Update }
             setOnline(v);
             update((s) => ({ ...s, map: { ...s.map, online: v } }));
           }}
+        />
+      </SettingRow>
+      <SettingRow
+        label="Detailed satellite imagery (Esri)"
+        hint="Your own free ArcGIS Location Platform key from location.arcgis.com. With it, Lumen asks Esri for detailed imagery under Esri's terms; without it, satellite imagery comes from EOX Sentinel-2 cloudless."
+      >
+        <PasswordInput
+          className="settings__field"
+          aria-label="Detailed satellite imagery (Esri)"
+          placeholder="Not set"
+          disabled={!online}
+          value={esriKey}
+          onChange={(e) => setEsriKey(e.currentTarget.value)}
+          onBlur={(e) => update((s) => ({ ...s, map: { ...s.map, esriKey: e.currentTarget.value.trim() || null } }))}
         />
       </SettingRow>
       <SettingRow
@@ -458,6 +475,8 @@ function MapSection({ settings, update }: { settings: Settings; update: Update }
   );
 }
 
+const JAMENDO_TERMS_URL = "https://devportal.jamendo.com/api_terms_of_use";
+
 function Music({ settings, update }: { settings: Settings; update: Update }) {
   const [key, setKey] = useSettingValue(settings.music.jamendoClientId ?? "");
   return (
@@ -466,7 +485,18 @@ function Music({ settings, update }: { settings: Settings; update: Update }) {
         label="Jamendo client id"
         hint={
           <>
-            A free id from <code className="settings__code">devportal.jamendo.com</code> turns on Creative Commons music for slideshows. Without one, Lumen asks Jamendo for nothing; with one, every request goes through Lumen, so the key stays on this computer.
+            This id is your own, free from <code className="settings__code">devportal.jamendo.com</code>. It turns on Creative Commons music for slideshows, and using it means accepting{" "}
+            <Anchor
+              href={JAMENDO_TERMS_URL}
+              size="sm"
+              onClick={(e) => {
+                e.preventDefault();
+                void openUrl(JAMENDO_TERMS_URL).catch(() => window.open(JAMENDO_TERMS_URL, "_blank", "noopener"));
+              }}
+            >
+              Jamendo's API terms
+            </Anchor>
+            . Without one, Lumen asks Jamendo for nothing; with one, every request goes through Lumen, so the key stays on this computer.
           </>
         }
       >
@@ -671,7 +701,7 @@ export function useSectionStatus(settings: Settings | undefined): Record<string,
   const backingUp = useBackupRunning(backup);
   const raw = useQuery(rawFormatsQuery).data;
   const externalApps = useExternalApps().apps;
-  const pluginThemes = usePluginThemes();
+  const pluginThemes = useInstalledThemes();
   if (!settings) return {};
   const a = settings.appearance;
   const theme = themeName(a.theme, pluginThemes);

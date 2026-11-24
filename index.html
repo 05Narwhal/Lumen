@@ -43,6 +43,11 @@
           if (c.scheme) s.colorScheme = c.scheme;
         }
       } catch (e) {}
+      // The person's theme before settings load (Round 24 §6.3); the key is THEME_KEY in use-theme.ts.
+      try {
+        var th = localStorage.getItem("lumen.theme");
+        if (th && /^(gallery|darkroom|paper|glass)$/.test(th)) document.documentElement.setAttribute("data-theme", th);
+      } catch (e) {}
       // Window buttons for a start that sticks (Round 21 §11): only inside Tauri; Close is the title
       // bar's own call and is never awaited.
       document.addEventListener("DOMContentLoaded", function () {

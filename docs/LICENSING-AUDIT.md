@@ -4,29 +4,32 @@
 
 **Dependencies.** The rule is `scripts/licenses/compat.mjs`: `yarn run licenses` refuses any crate, npm package or sidecar whose licence is not GPL-3-compatible, and writes the notices that Settings → *Licences* shows (`src/assets/licenses/notices.json`, `scripts/licenses/extra.json` for programs, data, services and credits). Re-run it whenever dependencies change. Models are data and follow `THIRD-PARTY-MODELS.md`.
 
-## Still open
+## Known risks
+
+Jamendo and Esri used to be accepted risks here. They are not any more: each is used only as its terms allow, under *Map imagery and Jamendo* below.
 
 | | What | Why | What to do |
 |---|---|---|---|
-| **Open** | **Jamendo** (music search and download) | API terms forbid apps that cache content or offer offline access, whatever the licence, and each track needs a backlink to its Jamendo page. Lumen saves tracks into the library. | Ask Jamendo, or drop it and keep *Use a file…* (the user's own music). |
-| **Open** | **Esri World Imagery** (the map's satellite layer) | Tiles are fetched from `server.arcgisonline.com/…/World_Imagery` with no key. Esri licenses its basemaps through ArcGIS with an account and key; keyless use is not covered. | An ArcGIS Location Platform key, another imagery provider, or no satellite layer. |
 | **Decide** | **Codec patents**: HEVC (HEIC, x265), H.264 (proxies, x264), AAC | Patent licences are separate from copyright licences and HEVC has several pools. | Prefer the OS's codecs; get advice before shipping x264 / x265 beyond the FFmpeg sidecar. |
-| Moot, note for forks | **Face models trained on non-commercial data**: YuNet (MIT weights, trained on WIDER FACE, CC BY-NC-ND) and SFace (Apache-2.0 weights, training data an open question, opencv_zoo#313) | Whether a model inherits its training data's NC terms is unsettled. Lumen is non-commercial, so it is not a problem here. | A fork that sells Lumen should find other weights. |
 | Risk | **Photon** (place search, komoot's public instance) and **Nominatim** (exact place names, opt-in) | Shared public instances: throttled, no availability guarantee. Nominatim: 1 request/s, identifying User-Agent, caching, attribution; names are ODbL (see below). | Self-host, or keep the bundled GeoNames atlas as the only search. |
+
+## Map imagery and Jamendo
+
+Decided 2026-11-14 (release simplification, phase 5). Neither provider is Lumen's customer or supplier: Lumen has no account with either, and ships no key of either. Engineering notes, not legal advice.
+
+- **Satellite imagery: EOX Sentinel-2 cloudless** (`tiles.maps.eox.at`, layer `s2cloudless-2025_3857`, about 10 m a pixel, so the map stops at zoom 15). The layer is CC BY-NC-SA 4.0 and EOX asks for the attribution on the map: Lumen shows its text and lists the layer under Settings → *Licences*. It is free for non-commercial use, which is how Lumen is distributed (free, GPL-3.0-or-later). **A fork that sells Lumen must use other imagery.** The app asks EOX for tiles of the area in view only when *Online map detail* is on.
+- **Detailed imagery: Esri World Imagery, only with a person's own key.** Esri licenses its basemaps through an ArcGIS Location Platform account and key, so Lumen asks Esri for nothing until a person pastes their own free key (Settings → Connections → Map → *Detailed satellite imagery (Esri)*). The key is stored in their settings, sent only to Esri inside tile requests and never logged; no key is built in, committed or used in tests. With the key, the person is Esri's user and Esri's terms and its *Powered by Esri* attribution apply.
+- **Jamendo: each person's own client id.** Lumen has no Jamendo id built in; music search is off until a person enters their own free id from `devportal.jamendo.com`, and Settings → Music says that using it means accepting Jamendo's API terms (link included). A track whose `audiodownload_allowed` is `false` is never offered, since Lumen saves a used track beside the slideshow. Each Jamendo track links back to its Jamendo page (*Open on Jamendo*), *Music from Jamendo* is shown beside the Find results, and the credit line and licence are saved beside every export.
+
+**Stop rule.** If EOX, Esri or Jamendo objects or blocks Lumen, the next build switches that feature off: satellite imagery → no satellite layer (or another keyless source whose licence fits); Jamendo → *Use a file…* only. Nothing in a library depends on any of them.
 
 ## What the licence obliges Lumen to ship
 
 - **GPL / LGPL source.** The FFmpeg sidecar (BtbN build, GPL-3.0 with x264 and x265) comes with its exact source in the release (`docs/RELEASING.md`). `rawler` lives alone in `crates/photos-raw` and is loaded at run time, so a person can rebuild and replace it (LGPL-2.1 §6). ExifTool (Artistic or GPL) stays a separate program.
 - **Notices** for MIT, BSD, Apache-2.0, ISC, Zlib, Unicode, OFL and CC BY: Settings → *Licences*. GeoNames (CC BY 4.0), OpenStreetMap (ODbL, "© OpenStreetMap contributors"), the IJG notice for `jpeg-encoder`, MPL-2.0 source links, fonts (OFL) and models are in `extra.json`.
-- **Services:** OpenFreeMap (attribution "OpenFreeMap © OpenMapTiles Data from OpenStreetMap", shown by MapLibre); Discord Rich Presence is local IPC to the person's own client (check Discord's Developer Terms for the Application before the first public release).
+- **Services:** EOX Sentinel-2 cloudless (attribution on the map, CC BY-NC-SA 4.0), OpenFreeMap (attribution "OpenFreeMap © OpenMapTiles Data from OpenStreetMap", shown by MapLibre); Discord Rich Presence is local IPC to the person's own client (check Discord's Developer Terms for the Application before the first public release).
+- **Models with non-commercial weights** (CC BY-NC) live only in `lumen-models` as separate downloads, never in the installer (`THIRD-PARTY-MODELS.md`).
 - **Apple:** Lumen talks to Apple's own usbmuxd service and ships no Apple code. "iPhone" names the device nominatively; no Apple logos.
-
-## Pets (Round 4C)
-
-- **Detector candidates:** D-FINE-S COCO-only, RT-DETR(v2) COCO-only, YOLOX-s — Apache-2.0 code and weights. **Excluded:** Ultralytics (AGPL-3.0); D-FINE and RT-DETR **Objects365** checkpoints (D-FINE's README: may be subject to the Objects365 terms, "should not be assumed to be commercially cleared").
-- **Identity candidates:** DINOv2 ViT-S/14 (Apache-2.0 code and weights; trained on LVD-142M) and the shipped CLIP tower. **Excluded:** `AvitoTech/DINO-v2-small-for-animal-identification` — its weights are Apache-2.0, but it was fine-tuned on **PetFace**, whose repository says "Our PetFace dataset, code in this repository, and pretrained models are for non-commercial research purpose only".
-- **Evaluation data** (used to measure, never shipped, never trained on): Cat Individual Images (518 cats, CC BY 4.0), DogFaceNet (1,393 dogs, CC BY 4.0), Dogs-World (126,550 dogs, CC0), COCO val2017 cats, dogs and other animals (annotations CC BY 4.0), Oxford-IIIT Pet (CC BY-SA 4.0). PetFace is not used (non-commercial, research institutions only).
-- **Test fixtures in the repo** (never in the app bundle): `photos-ml/tests/fixtures/socks-buddy-*.jpg`, three White House photographs of Socks the Cat and Buddy the Dog — US federal works, public domain (Wikimedia Commons, via DPLA).
 
 ## Adobe DNG Converter (Round 17)
 
@@ -58,5 +61,4 @@
 ## Before a release
 
 1. `yarn run licenses` passes and `src/lib/licenses.test.ts` is green.
-2. Jamendo and Esri are decided (above).
-3. The source for the GPL and LGPL parts shipped (FFmpeg, `photos-raw`) is public, or in the release (`docs/RELEASING.md`).
+2. The source for the GPL and LGPL parts shipped (FFmpeg, `photos-raw`) is public, or in the release (`docs/RELEASING.md`).

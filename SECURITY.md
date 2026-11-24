@@ -20,7 +20,12 @@ Useful in a report: the Lumen version (Settings → About), your operating syste
 
 ## Supported versions
 
-Lumen versions are `26.X.Y-<channel>`. Only the **latest release** of each channel (alpha, beta, stable) gets security fixes, and a fix ships as a new release on that channel; the app's updater offers it.
+Lumen versions are `26.X.Y-<channel>`. Security fixes go to:
+
+- **The newest stable line** (`26.X`, kept on a `release/26.X` branch): a fix ships as a new `-stable` release on that line, with no database migration.
+- **`main`**, which the alpha and beta releases are built from.
+
+Older stable lines and older builds are not patched: update to the latest release of your channel. A fix marked as a security fix is installed by Lumen itself, at the next close or start, unless you turned *Install security fixes automatically* off in Settings → Updates; then Lumen shows a banner with *Install now*.
 
 ## How updates are protected
 

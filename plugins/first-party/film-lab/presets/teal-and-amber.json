@@ -1,0 +1,81 @@
+{
+  "recipeVersion": 3,
+  "name": "Teal and Amber",
+  "develop": {
+    "basic": {
+      "contrast": 0.15,
+      "highlights": -0.1
+    },
+    "hsl": [
+      {
+        "h": 0,
+        "s": 0,
+        "l": 0
+      },
+      {
+        "h": 0,
+        "s": 0.05,
+        "l": 0
+      },
+      {
+        "h": 0,
+        "s": 0,
+        "l": 0
+      },
+      {
+        "h": 0,
+        "s": 0,
+        "l": 0
+      },
+      {
+        "h": 0,
+        "s": 0,
+        "l": 0
+      },
+      {
+        "h": 0,
+        "s": 0,
+        "l": 0
+      },
+      {
+        "h": 0,
+        "s": 0,
+        "l": 0
+      },
+      {
+        "h": 0,
+        "s": 0,
+        "l": 0
+      }
+    ],
+    "grading": {
+      "shadows": {
+        "hue": 190,
+        "sat": 0.22,
+        "lum": 0
+      },
+      "highlights": {
+        "hue": 35,
+        "sat": 0.2,
+        "lum": 0
+      },
+      "balance": 0.1
+    }
+  },
+  "panels": [
+    "basic",
+    "hsl",
+    "grading"
+  ],
+  "look": {
+    "intent": "The classic screen palette: teal shadows against warm skin and amber light",
+    "hues": [
+      30,
+      190
+    ],
+    "mono": false,
+    "key": "mid",
+    "skinSafe": true,
+    "likesSky": false
+  }
+}

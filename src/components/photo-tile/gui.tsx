@@ -160,6 +160,7 @@ export const PhotoTile = memo(function PhotoTile({
   return (
     <div
       className="photo-tile"
+      data-part="tile"
       id={`tile-${tile.id}`}
       style={{
         left: tile.x,
@@ -211,7 +212,13 @@ export const PhotoTile = memo(function PhotoTile({
             )}
             {pick === "locked" && <span className="photo-tile__locked">In album</span>}
             {tile.trashedAt != null && (
-              <span className="photo-tile__countdown">{daysLeft(tile.trashedAt)} days</span>
+              <span
+                className="photo-tile__countdown"
+                title={`${daysLeft(tile.trashedAt)} days left`}
+                aria-label={`${daysLeft(tile.trashedAt)} days left`}
+              >
+                {daysLeft(tile.trashedAt)}d
+              </span>
             )}
             {/* What kind of original this is. Narrow tiles step down by their own width (styles.scss
                 container queries) instead of dropping the badges: words, then compact, then a dot. */}

@@ -2,7 +2,7 @@ import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
-import { findSigntool, installedBytes, lumenExeName, mergePatch, nsisBuildArgs, nsisOverlay, resourceKey, signingFromEnv, signtoolArgs, SLIM_TARGET, tauriSignCommand, treeBytes } from "./setup-build.mjs";
+import { collectArtifacts, findSigntool, installedBytes, lumenExeName, mergePatch, nsisBuildArgs, nsisOverlay, resourceKey, signingFromEnv, signtoolArgs, SLIM_TARGET, sizesJson, tauriSignCommand, treeBytes, updaterKeyFromEnv } from "./setup-build.mjs";
 
 const THUMB = "0123456789abcdef0123456789abcdef01234567";
 
@@ -118,11 +118,67 @@ describe("test-identity overlays", () => {
     expect(lumenExeName({ mainBinaryName: "lumen-test" })).toBe("lumen-test.exe");
   });
 });
+describe("updaterKeyFromEnv", () => {
+  it("reads the signing key's text from the environment CI sets", () => {
+    expect(updaterKeyFromEnv({ TAURI_SIGNING_PRIVATE_KEY: "dW50cnVzdGVkIGNvbW1lbnQ6IHRlc3Q=" })).toBe(true);
+  });
+
+  it("refuses a missing key before anything is built, naming the variable", () => {
+    expect(() => updaterKeyFromEnv({})).toThrow(/TAURI_SIGNING_PRIVATE_KEY/);
+    expect(() => updaterKeyFromEnv({ TAURI_SIGNING_PRIVATE_KEY: "  " })).toThrow(/TAURI_SIGNING_PRIVATE_KEY/);
+  });
+
+  it("never reads the key from a file path on a PC", () => {
+    for (const path of ["C:/Users/someone/.lumen-release/lumen.key", "C:\\keys\\lumen.key", "/opt/keys/lumen.key", "~/.lumen-release/lumen.key", "lumen.key"]) {
+      expect(() => updaterKeyFromEnv({ TAURI_SIGNING_PRIVATE_KEY: path })).toThrow(/text, not a file path/);
+    }
+    expect(() => updaterKeyFromEnv({ TAURI_SIGNING_PRIVATE_KEY: "dW50cnVzdGVk", TAURI_SIGNING_PRIVATE_KEY_PATH: "C:/k/lumen.key" })).toThrow(/TAURI_SIGNING_PRIVATE_KEY_PATH/);
+  });
+});
+
+describe("collectArtifacts", () => {
+  let dir;
+  beforeEach(() => {
+    dir = mkdtempSync(join(tmpdir(), "lumen-artifacts-"));
+  });
+  afterEach(() => rmSync(dir, { recursive: true, force: true }));
+  const put = (name, bytes = 1) => writeFileSync(join(dir, name), Buffer.alloc(bytes));
+
+  it("finds both installers and the .sig in the folder the upload step globs", () => {
+    put("Lumen_26.2.1-alpha_x64-setup.exe", 50);
+    put("Lumen_26.2.1-alpha_x64-setup.exe.sig", 3);
+    put("Lumen-Setup-26.2.1-alpha.exe", 56);
+    put("Lumen_26.2.0-alpha_x64-setup.exe", 49);
+    const a = collectArtifacts(dir, "26.2.1-alpha");
+    expect([a.installer, a.sig, a.full].map((p) => p.split(/[\\/]/).pop())).toEqual(["Lumen_26.2.1-alpha_x64-setup.exe", "Lumen_26.2.1-alpha_x64-setup.exe.sig", "Lumen-Setup-26.2.1-alpha.exe"]);
+    expect(a.uploadGlobs).toEqual(["*_26.2.1-alpha_*-setup.exe*", "Lumen-Setup-26.2.1-alpha.exe"]);
+  });
+
+  it("refuses an installer without its .sig, because the updater could never take it", () => {
+    put("Lumen_26.2.1-alpha_x64-setup.exe");
+    put("Lumen-Setup-26.2.1-alpha.exe");
+    expect(() => collectArtifacts(dir, "26.2.1-alpha")).toThrow(/\.sig/);
+  });
+
+  it("refuses a missing full Setup", () => {
+    put("Lumen_26.2.1-alpha_x64-setup.exe");
+    put("Lumen_26.2.1-alpha_x64-setup.exe.sig");
+    expect(() => collectArtifacts(dir, "26.2.1-alpha")).toThrow(/Lumen-Setup-26\.2\.1-alpha\.exe/);
+  });
+});
+
+describe("sizesJson", () => {
+  it("is the three byte counts the setup-sizes gate reads", () => {
+    expect(sizesJson({ sizes: { nsis: 1, full: 2, slim: 3 }, other: 9 })).toEqual({ nsis: 1, full: 2, slim: 3 });
+  });
+});
+
 describe("resourceKey", () => {
   it("is relative to src-tauri with forward slashes (tauri-build drops an absolute path's drive)", () => {
     expect(resourceKey("X:/repo/src-tauri", "X:/repo/dist-release/26.1.0-alpha/lumen-setup.exe")).toBe("../dist-release/26.1.0-alpha/lumen-setup.exe");
   });
-  it("refuses a file on another drive", () => {
+  // `relative()` knows drives only on Windows, which is the only place the release is built.
+  it.runIf(process.platform === "win32")("refuses a file on another drive", () => {
     expect(() => resourceKey("X:/repo/src-tauri", "C:/temp/lumen-setup.exe")).toThrow(/same drive/);
   });
 });

@@ -1,0 +1,80 @@
+id = "jl.wayfinder"
+name = "Wayfinder"
+version = "1.0.0"
+author = "JL Studios"
+description = "Guesses where photos without a location were taken, from what they show, when they were taken and where you have been. You check the guesses before anything is saved."
+license = "MIT"
+lumen = ">=26.2.0"
+api = "1.2.0"
+author_url = "https://github.com/05Narwhal"
+repository = "https://github.com/05Narwhal/lumen-plugins"
+permissions = ["models", "library.read", "places.write", "originals.gps", "storage"]
+
+[[tools]]
+name = "find_locations"
+description = "Finds places for photos that have no location. Arguments: scope (selection, album or library; default library), album (an album id, for scope album), refresh (true to forget earlier guesses). The work takes several calls: call again while status is working, until it says done. Nothing is saved until the person writes the locations on the Place review screen."
+
+# The three files are GeoCLIP exported to ONNX (docs/THIRD-PARTY-MODELS.md, "Lumen Wayfinder 1.0").
+# They are published as a release of 05Narwhal/lumen-plugins; the blake3 and size of each are checked
+# on download, so a wrong URL can never install the wrong model.
+[[models]]
+id = "image"
+url = "https://github.com/05Narwhal/lumen-plugins/releases/download/wayfinder-model-1.0/wayfinder-image-fp16.onnx"
+blake3 = "f38c7758a7ebe02bb23c52ac7618d26531e755cc6cc5c23f63b6e2bab274b98f"
+size = 610526312
+licence = "CC-BY-NC-4.0"
+inputs = { pixel_values = { kind = "image", size = 224, mean = [0.48145466, 0.4578275, 0.40821073], std = [0.26862954, 0.26130258, 0.27577711], layout = "nchw" } }
+
+[[models]]
+id = "location"
+url = "https://github.com/05Narwhal/lumen-plugins/releases/download/wayfinder-model-1.0/wayfinder-location.onnx"
+blake3 = "33403c52f9b3b3d151867a745bf45879faea46fd77cb8792f281a4eac5aef87c"
+size = 37810602
+licence = "CC-BY-NC-4.0"
+inputs = { latlon = { kind = "tensor" } }
+
+[[models]]
+id = "gallery"
+url = "https://github.com/05Narwhal/lumen-plugins/releases/download/wayfinder-model-1.0/wayfinder-gallery.bin"
+blake3 = "49d33cec1f7d93fa00ea6de8e40903c7e83efaced57b722c218fcc2f3abbab40"
+size = 103200020
+licence = "CC-BY-NC-4.0"
+kind = "vectors"
+
+[[ui.section]]
+title = "Saving"
+description = "What happens when you accept guesses on the review screen."
+
+[[ui.section.control]]
+type = "toggle"
+key = "write_originals"
+label = "Write locations into original files"
+help = "Adds the location to files that have none. Never changes one a camera recorded."
+default = true
+
+[[ui.section]]
+title = "Finding"
+
+[[ui.section.control]]
+type = "toggle"
+key = "include_estimated"
+label = "Include photos already given an estimated place"
+help = "Looks again at photos that only have a guessed place."
+default = false
+
+# Where Wayfinder shows up in Lumen: the map's toolbar (and the palette) runs find_locations on the
+# whole library; the review is reachable from the palette too.
+[[ui.contribute]]
+slot = "map.toolbar"
+label = "Find locations"
+icon = "map-search"
+action = "tool:find_locations"
+
+[[ui.contribute]]
+slot = "palette"
+label = "Review guessed places"
+icon = "list-check"
+action = "open-review:places"
+
+[listing]
+screenshots = ["screenshots/place-review.png"]

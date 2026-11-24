@@ -9,7 +9,7 @@ import { queryKeys } from "@/lib/query-keys";
 import type { LibraryStats } from "@/types/generated/LibraryStats";
 import type { Settings } from "@/types/generated/Settings";
 import { themeName } from "@/types/theme";
-import { resolveTheme, usePluginThemes } from "@/lib/plugin-theme";
+import { resolveTheme, useInstalledThemes } from "@/lib/plugin-theme";
 import { formatStorage } from "@/utils/format";
 import { usePeoplePick } from "./people";
 import { usePointed } from "./search";
@@ -43,7 +43,7 @@ const CARDS: Record<string, (p: { settings: Settings }) => ReactNode> = {
 
 function Card({ title, children }: { title: string; children: ReactNode }) {
   return (
-    <div className="settings-inspector__card">
+    <div className="settings-inspector__card" data-part="card">
       <span className="settings-inspector__key">{title}</span>
       {children}
     </div>
@@ -87,7 +87,7 @@ const osDark = () => typeof window !== "undefined" && !!window.matchMedia?.("(pr
 
 function AppearanceCard({ settings }: { settings: Settings }) {
   const a = settings.appearance;
-  const pluginThemes = usePluginThemes() ?? [];
+  const pluginThemes = useInstalledThemes() ?? [];
   const preview = resolveTheme(a.theme, pluginThemes);
   const effective = a.scheme === "auto" ? (osDark() ? "dark" : "light") : a.scheme;
   const mode = a.scheme === "auto" ? `Automatic (${effective === "dark" ? "dark" : "light"} now)` : a.scheme === "dark" ? "Dark" : "Light";

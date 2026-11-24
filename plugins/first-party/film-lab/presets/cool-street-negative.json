@@ -1,0 +1,89 @@
+{
+  "recipeVersion": 3,
+  "name": "Cool Street Negative",
+  "develop": {
+    "basic": {
+      "temperature": -8,
+      "tint": -4,
+      "contrast": 0.1,
+      "highlights": -0.1
+    },
+    "hsl": [
+      {
+        "h": 0,
+        "s": 0,
+        "l": 0
+      },
+      {
+        "h": 0,
+        "s": 0,
+        "l": 0
+      },
+      {
+        "h": 0,
+        "s": 0,
+        "l": 0
+      },
+      {
+        "h": -0.1,
+        "s": -0.1,
+        "l": 0
+      },
+      {
+        "h": 0,
+        "s": 0,
+        "l": 0
+      },
+      {
+        "h": 0,
+        "s": 0,
+        "l": 0
+      },
+      {
+        "h": 0,
+        "s": 0,
+        "l": 0
+      },
+      {
+        "h": 0,
+        "s": 0,
+        "l": 0
+      }
+    ],
+    "grading": {
+      "shadows": {
+        "hue": 190,
+        "sat": 0.12,
+        "lum": 0
+      },
+      "highlights": {
+        "hue": 90,
+        "sat": 0.05,
+        "lum": 0
+      }
+    },
+    "effects": {
+      "grain": {
+        "amount": 0.25,
+        "size": 0.35
+      }
+    }
+  },
+  "panels": [
+    "basic",
+    "hsl",
+    "grading",
+    "effects"
+  ],
+  "look": {
+    "intent": "City street on cool-balanced negative: cyan-leaning shadows, restrained greens, visible grain",
+    "hues": [
+      180,
+      200
+    ],
+    "mono": false,
+    "key": "mid",
+    "skinSafe": false,
+    "likesSky": false
+  }
+}

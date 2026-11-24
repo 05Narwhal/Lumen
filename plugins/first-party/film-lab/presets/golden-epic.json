@@ -1,0 +1,51 @@
+{
+  "recipeVersion": 3,
+  "name": "Golden Epic",
+  "develop": {
+    "basic": {
+      "temperature": 14,
+      "contrast": 0.18,
+      "highlights": -0.2,
+      "vibrance": 0.15,
+      "saturation": 0.05
+    },
+    "grading": {
+      "shadows": {
+        "hue": 15,
+        "sat": 0.1,
+        "lum": 0
+      },
+      "highlights": {
+        "hue": 42,
+        "sat": 0.2,
+        "lum": 0
+      }
+    },
+    "effects": {
+      "glow": {
+        "amount": 0.15,
+        "size": 0.4
+      },
+      "halation": {
+        "amount": 0.2,
+        "size": 0.3
+      }
+    }
+  },
+  "panels": [
+    "basic",
+    "grading",
+    "effects"
+  ],
+  "look": {
+    "intent": "Sweeping, sunlit period-drama colour: gold highlights, warm brown shadows, soft bloom",
+    "hues": [
+      30,
+      45
+    ],
+    "mono": false,
+    "key": "mid",
+    "skinSafe": true,
+    "likesSky": false
+  }
+}

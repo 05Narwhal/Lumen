@@ -173,6 +173,10 @@ struct Raw {
     audio: String,
     #[serde(default)]
     audiodownload: String,
+    /// Jamendo's own flag: `false` means the artist or Jamendo bars downloading the file.
+    /// Absent counts as allowed.
+    #[serde(default)]
+    audiodownload_allowed: Option<bool>,
     #[serde(default)]
     shareurl: String,
     #[serde(default)]
@@ -212,7 +216,9 @@ fn licence_name(url: &str) -> String {
     }
 }
 
-/// Reads a `/tracks/` response. The error never carries the request, which holds the key.
+/// Reads a `/tracks/` response. A track Jamendo marks `audiodownload_allowed: false` is left
+/// out: Lumen saves the file beside the slideshow. The error never carries the request, which
+/// holds the key.
 pub fn parse_tracks(body: &str) -> AppResult<Vec<MusicTrack>> {
     let parsed: Response = serde_json::from_str(body).map_err(|e| AppError {
         code: "music_unreadable".into(),
@@ -222,6 +228,7 @@ pub fn parse_tracks(body: &str) -> AppResult<Vec<MusicTrack>> {
     Ok(parsed
         .results
         .into_iter()
+        .filter(|r| r.audiodownload_allowed != Some(false))
         .map(|r| {
             let tags = r.musicinfo.and_then(|m| m.tags).unwrap_or_default();
             MusicTrack {
@@ -1110,7 +1117,7 @@ mod tests {
     #[test]
     fn a_real_response_parses() {
         let tracks = parse_tracks(include_str!("../tests/jamendo_fixture.json")).unwrap();
-        assert_eq!(tracks.len(), 3);
+        assert_eq!(tracks.len(), 2, "the third track has audiodownload_allowed: false");
         let first = &tracks[0];
         assert_eq!(first.title, "Sunny Afternoon");
         assert_eq!(first.artist, "Jasmine Jordan");
@@ -1123,12 +1130,27 @@ mod tests {
 
     #[test]
     fn a_no_derivatives_track_is_not_usable_in_a_video() {
-        let tracks = parse_tracks(include_str!("../tests/jamendo_fixture.json")).unwrap();
-        let nd = tracks.iter().find(|t| t.licence_url.contains("-nd")).expect("the fixture has an ND track");
+        let body = r#"{"results":[{"id":"7","name":"Held","license_ccurl":"http://creativecommons.org/licenses/by-nc-nd/2.0/","audiodownload_allowed":true},
+            {"id":"8","name":"Shared","license_ccurl":"http://creativecommons.org/licenses/by-sa/4.0/"}]}"#;
+        let tracks = parse_tracks(body).unwrap();
+        let nd = tracks.iter().find(|t| t.licence_url.contains("-nd")).expect("the body has an ND track");
         assert!(!nd.derivatives_allowed);
         assert!(!usable(nd));
         assert_eq!(nd.licence_name, "CC BY-NC-ND 2.0");
         assert!(usable(&tracks[1]), "share-alike is fine");
+    }
+
+    /// Jamendo's terms: a track whose `audiodownload_allowed` is false is not offered, since
+    /// Lumen saves the file beside the slideshow. A missing field counts as allowed.
+    #[test]
+    fn a_track_jamendo_does_not_allow_downloading_is_not_returned() {
+        let tracks = parse_tracks(include_str!("../tests/jamendo_fixture.json")).unwrap();
+        let ids: Vec<&str> = tracks.iter().map(|t| t.id.as_str()).collect();
+        assert_eq!(ids, ["1886711", "1755327"]);
+        let body = r#"{"results":[{"id":"1","name":"No field","license_ccurl":"http://creativecommons.org/licenses/by/3.0/"},
+            {"id":"2","name":"Barred","audiodownload_allowed":false},{"id":"3","name":"Open","audiodownload_allowed":true}]}"#;
+        let ids: Vec<String> = parse_tracks(body).unwrap().into_iter().map(|t| t.id).collect();
+        assert_eq!(ids, ["1", "3"]);
     }
 
     #[test]

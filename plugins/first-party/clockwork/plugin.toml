@@ -1,0 +1,45 @@
+id = "jl.clockwork"
+name = "Clockwork"
+version = "1.0.0"
+author = "JL Studios"
+description = "Finds a camera whose clock was off, by lining its photos up with a phone's taken at the same moments, and proposes corrected dates. You review every date before anything changes."
+license = "MIT"
+lumen = ">=26.2.0"
+api = "1.4.0"
+author_url = "https://github.com/05Narwhal"
+repository = "https://github.com/05Narwhal/lumen-plugins"
+permissions = ["library.read", "dates.write"]
+
+[[tools]]
+name = "check_clocks"
+description = "Checks every camera that has no clock of its own to trust (not a phone, not a camera with GPS) against the cameras that do, trip by trip, and proposes corrected capture dates where one shift clearly lines the photos up. Arguments: scope (library or selection; default library: which photos may get a new date). Nothing is changed until the person accepts on the date review page."
+
+[[ui.section]]
+title = "Checking"
+description = "How sure Clockwork has to be before it proposes a date."
+
+[[ui.section.control]]
+type = "slider"
+key = "min_confidence"
+label = "Propose a date only above"
+help = "Higher means fewer, surer proposals. The review shows each one's confidence."
+min = 0.5
+max = 0.95
+step = 0.05
+default = 0.7
+
+# Clockwork is a command-palette tool: it works on the whole library, then the review page lists what it found.
+[[ui.contribute]]
+slot = "palette"
+label = "Check camera clocks"
+icon = "calendar"
+action = "tool:check_clocks"
+
+[[ui.contribute]]
+slot = "palette"
+label = "Review corrected dates"
+icon = "list-check"
+action = "open-review:date"
+
+[listing]
+screenshots = ["screenshots/how-it-works.png"]

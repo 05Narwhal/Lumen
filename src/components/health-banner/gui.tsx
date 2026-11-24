@@ -32,7 +32,7 @@ export function HealthBanner() {
     const first = stalls.find((s) => s.kind !== "Job") ?? stalls[0];
     const secs = busySince === null ? 0 : Math.round((Date.now() - busySince) / 1_000);
     return (
-      <div className="health-banner" data-state="slow" role="status">
+      <div className="health-banner" data-part="statusbar" data-state="slow" role="status">
         <span className="health-banner__text">
           Lumen is busy: {first ? busyName(first) : "working"} ({secs} s).
         </span>
@@ -40,7 +40,7 @@ export function HealthBanner() {
     );
   }
   return (
-    <div className="health-banner" data-state="stuck" role="alert">
+    <div className="health-banner" data-part="statusbar" data-state="stuck" role="alert">
       <span className="health-banner__text">Lumen is not responding.</span>
       <Button size="compact-sm" variant="default" onClick={() => setWaited(true)}>
         Wait

@@ -87,11 +87,18 @@
           "note": "Online map tiles: OpenFreeMap © OpenMapTiles, data from OpenStreetMap."
         },
         {
+          "name": "EOX Sentinel-2 cloudless",
+          "license": "CC-BY-NC-SA-4.0",
+          "texts": [],
+          "url": "https://s2maps.eu",
+          "note": "Satellite imagery: EOxCloudless https://cloudless.eox.at by EOX IT Services GmbH (Contains modified Copernicus Sentinel data 2025), under Creative Commons Attribution-NonCommercial-ShareAlike 4.0. A fork that sells Lumen must use other imagery."
+        },
+        {
           "name": "Esri World Imagery",
           "license": "service",
           "texts": [],
           "url": "https://www.arcgis.com/home/item.html?id=10df2279f9684e4a9f6a7f08febac2a9",
-          "note": "Satellite imagery © Esri, Maxar, Earthstar Geographics, and the GIS User Community."
+          "note": "Detailed satellite imagery © Esri, Maxar, Earthstar Geographics, and the GIS User Community. Used only with your own ArcGIS Location Platform key (Settings → Connections → Map), under Esri's terms."
         },
         {
           "name": "Photon",

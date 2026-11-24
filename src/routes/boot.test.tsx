@@ -1,8 +1,8 @@
-import { render, screen, waitFor } from "@testing-library/react";
+import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 import { Providers } from "@/app";
 import { mockCommand, mockLibraryDefaults } from "@/test/tauri-mock";
-import { Boot } from "./boot";
+import { Boot, STUCK_AFTER_MS } from "./boot";
 
 const settings = {
   version: 1,
@@ -34,11 +34,11 @@ describe("Boot", () => {
     await waitFor(() => expect(screen.queryByRole("status", { name: "Loading Lumen" })).toBeNull());
   });
 
-  it("opens where Restart Lumen left off, with no splash", async () => {
+  it("opens Home after Restart Lumen, with no splash and an alert that goes back to Develop", async () => {
     mockCommand("get_settings", () => settings);
     mockLibraryDefaults();
     mockCommand("get_current_library", () => null);
-    mockCommand("take_resume", () => "/develop/12?panel=detail");
+    mockCommand("resume_info", () => ({ reason: "restart", route: "/develop/12?panel=detail" }));
     const resume = vi.fn();
     render(
       <Providers>
@@ -48,7 +48,36 @@ describe("Boot", () => {
       </Providers>,
     );
     await waitFor(() => expect(screen.getByText("app")).toBeInTheDocument(), { timeout: 400 });
-    expect(resume).toHaveBeenCalledWith("/develop/12?panel=detail");
+    expect(resume).toHaveBeenCalledWith("/");
+    expect(resume).not.toHaveBeenCalledWith("/develop/12?panel=detail");
     await waitFor(() => expect(screen.queryByRole("status", { name: "Loading Lumen" })).toBeNull(), { timeout: 400 });
+    fireEvent.click(screen.getByRole("button", { name: "Back to Develop" }));
+    expect(resume).toHaveBeenLastCalledWith("/develop/12?panel=detail");
+    expect(screen.queryByRole("alert")).toBeNull();
+  });
+
+  it("a start that sticks shows the shell after ten seconds, or says what it waits for", async () => {
+    vi.useFakeTimers();
+    try {
+      mockLibraryDefaults();
+      mockCommand("get_current_library", () => null);
+      // Settings never arrive.
+      mockCommand("get_settings", () => new Promise(() => {}));
+      render(
+        <Providers>
+          <Boot>
+            <p>app</p>
+          </Boot>
+        </Providers>,
+      );
+      expect(screen.queryByRole("alert")).toBeNull();
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(STUCK_AFTER_MS + 100);
+      });
+      expect(screen.queryByText("app")).toBeNull();
+      expect(screen.getByRole("alert")).toHaveTextContent("still waiting for settings");
+    } finally {
+      vi.useRealTimers();
+    }
   });
 });

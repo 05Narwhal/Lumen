@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { channelsUpdatedBy, compareVersions, isNextVersion, parseVersion, writeSetupVersionFields, writeVersionFields } from "./lib.mjs";
+import { channelsUpdatedBy, compareVersions, isNextVersion, isSecurityRelease, notesFor, previousInLine, parseVersion, writeSetupVersionFields, writeVersionFields } from "./lib.mjs";
 
 describe("parseVersion", () => {
   it("reads the scheme", () => {
@@ -107,5 +107,68 @@ edition`);
 
   it("refuses a file with no version field", () => {
     expect(() => writeSetupVersionFields({ ...before, cargoToml: "[package]\nname = \"x\"\n" }, "26.2.0-beta")).toThrow(/Cargo.toml/);
+  });
+});
+
+describe("notesFor", () => {
+  const log = "# Changelog\n\n## 26.1.1-alpha\n\n- Faster grid.\n- Fixes.\n\n## 26.1.0-alpha\n\n- First alpha.\n";
+
+  it("takes the section for a version and nothing after it", () => {
+    expect(notesFor(log, "26.1.1-alpha")).toBe("- Faster grid.\n- Fixes.");
+    expect(notesFor(log, "26.1.0-alpha")).toBe("- First alpha.");
+  });
+
+  it("is empty for a version with no entry", () => {
+    expect(notesFor(log, "26.2.0-alpha")).toBe("");
+  });
+});
+
+describe("the version rule is per line (26.X)", () => {
+  it("a stable hotfix follows the last build of its own line, not the newest build overall", () => {
+    const published = ["26.3.0-stable", "26.3.4-stable", "26.4.2-alpha"];
+    const prev = previousInLine(published, "26.3.5-stable");
+    expect(prev).toBe("26.3.4-stable");
+    expect(isNextVersion(prev, "26.3.5-stable")).toBe(true);
+  });
+
+  it("a hotfix that does not go up within its line is still refused", () => {
+    const published = ["26.3.4-stable", "26.4.2-alpha"];
+    expect(isNextVersion(previousInLine(published, "26.3.4-beta"), "26.3.4-beta")).toBe(false);
+    expect(isNextVersion(previousInLine(published, "26.3.3-stable"), "26.3.3-stable")).toBe(false);
+  });
+
+  it("the first alpha of a new line follows the newest build of the lines before it", () => {
+    const published = ["26.3.4-stable", "26.3.5-stable"];
+    const prev = previousInLine(published, "26.4.0-alpha");
+    expect(prev).toBe("26.3.5-stable");
+    expect(isNextVersion(prev, "26.4.0-alpha")).toBe(true);
+    expect(isNextVersion(prev, "26.4.1-alpha")).toBe(false);
+  });
+
+  it("a line cannot be started behind a newer one", () => {
+    const prev = previousInLine(["26.4.2-alpha"], "26.3.0-stable");
+    expect(isNextVersion(prev, "26.3.0-stable")).toBe(false);
+  });
+
+  it("has nothing before the very first release", () => {
+    expect(previousInLine([], "26.1.0-alpha")).toBeNull();
+  });
+});
+
+describe("isSecurityRelease", () => {
+  const log = ["# Changelog", "", "## 26.3.5-stable · security", "", "Fixed a thing.", "", "## 26.4.0-alpha", "", "New.", "", "## 26.3.4-stable", ""].join("\n");
+  it("is the heading's `· security` marker, for that version only", () => {
+    expect(isSecurityRelease(log, "26.3.5-stable")).toBe(true);
+    expect(isSecurityRelease(log, "26.4.0-alpha")).toBe(false);
+    expect(isSecurityRelease(log, "26.3.4-stable")).toBe(false);
+  });
+
+  it("does not match a longer number that starts the same, or a mention in the notes", () => {
+    const other = ["## 26.3.50-stable · security", "", "## 26.3.5-stable", "", "Not a · security release.", ""].join("\n");
+    expect(isSecurityRelease(other, "26.3.5-stable")).toBe(false);
+  });
+
+  it("is false for a changelog with no such heading", () => {
+    expect(isSecurityRelease("## 26.1.0-alpha\n","26.1.0-alpha")).toBe(false);
   });
 });

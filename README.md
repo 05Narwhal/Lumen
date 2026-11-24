@@ -69,12 +69,12 @@ A virtualized justified grid with month sections, thumbnails at three sizes gene
 
 ## Docs
 
-- Architecture: `docs/superpowers/specs/2026-09-17-photos-app-design.md`
+- Architecture: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)
 - Product and UX: `docs/superpowers/specs/2026-09-17-lumen-ux-design.md`
 - As-built notes per area: `docs/STATE.md`
 - Project rules for agents and humans: `CLAUDE.md`
-- Contributing: `CONTRIBUTING.md` (arrives with the public repository)
-- Writing a plugin: `docs/PLUGINS.md`
+- Contributing: [CONTRIBUTING.md](CONTRIBUTING.md)
+- Writing a plugin: [docs/PLUGINS.md](docs/PLUGINS.md); a theme: [docs/THEMES.md](docs/THEMES.md)
 - Name and logo: `TRADEMARKS.md`
 
 ## Support Lumen

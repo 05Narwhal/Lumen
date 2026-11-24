@@ -1,0 +1,24 @@
+// Above the app, below the window controls: the person can read it and still move the window.
+.restart-alert {
+  position: fixed;
+  top: calc(var(--space-8) - var(--space-1));
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: var(--z-toast);
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  max-width: min(640px, calc(100vw - var(--space-6)));
+  padding: var(--space-2) var(--space-4);
+  background: var(--bg-raised);
+  border: var(--border-width) solid var(--border);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-md);
+  color: var(--fg-primary);
+  font-size: 13px;
+
+  &__text {
+    flex: 1;
+    min-width: 0;
+  }
+}

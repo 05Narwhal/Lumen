@@ -1,6 +1,46 @@
 # Changelog
 
-Each published build of Lumen, newest first. Versions are `26.X.Y-<channel>` (`docs/RELEASING.md`). The text under a version is what Lumen shows as that update's notes and the GitHub release's text, so it is written for the person using Lumen. Lumen shows it as plain text: use plain lines and `- ` bullets, never `**bold**` or `#` headings.
+Each published build of Lumen, newest first. Versions are `26.X.Y-<channel>` (`docs/RELEASING.md`). The text under a version is what Lumen shows as that update's notes and the GitHub release's text, so it is written for the person using Lumen. Lumen shows it as plain text: use plain lines and `- ` bullets, never `**bold**` or `#` headings. A heading may end ` · security` (`## 26.3.5-stable · security`): the release step then sets `minSafe` in the channels that build reaches (`docs/RELEASING.md`, *Shipping a security fix*). Use it only for a fix people should get without asking.
+
+## 26.3.0-alpha
+
+Next alpha 🗺️ Plugin store, Wayfinder and a steadier Develop.
+
+This is an alpha, a development build for testing. Keep a backup of photos you can't replace.
+
+🧩 Plugin store
+- Plugins has a Discover tab: browse what's available, see in plain words what each plugin asks to do, and install it with one click. It still shows the same install sheet first.
+- Installed plugins update themselves. A plugin that now asks for more than before is never updated in the background: you see the sheet first. Turn this off in Settings → Plugins.
+- Offline, Lumen shows the last list it saw.
+- Plugins can now ask Lumen to pick a file or folder, reveal a file, and detect an app you have installed. Each plugin has its own page in Settings → Plugins, and when two plugins can answer a file picker you choose which one Lumen uses.
+- Disk Atlas, if you have it, can answer Lumen's folder picker and Show in folder.
+
+🗺️ Wayfinder
+- A first-party plugin that suggests where photos without a location were taken, using the places of your other photos, their times and an offline model. Nothing leaves your PC.
+- Find locations for photos without one… (Ctrl K) works through your photos, then opens a review screen: confirm, reject, move a pin or type a place, one moment at a time.
+- Writing the locations is your choice. Lumen can add GPS to the photo files, but only to files that have none, checks each file afterwards, marks the location as estimated, and can undo it.
+- The model is a one-time download of about 750 MB, and Lumen asks before it starts.
+
+🎨 Develop
+- Drag masks to reorder them, rename a mask in place (F2 or double-click), and the mask menu is more compact.
+- Copy settings now copies text you can paste into a friend's Lumen. Pasting someone else's settings asks which panels to apply.
+- The before image no longer goes missing after Reset all.
+
+🛟 Stability
+- Fixed the Develop freeze behind the "page frozen" reloads: zooming into a photo with glow or halation on an area no longer queues up renders that starve the app.
+- After a crash or a restart Lumen opens on Home and offers to take you back to the photo you were editing.
+- A slow start can no longer hold the loading screen forever, and the splash keeps your theme.
+- Close always closes, even when the window has stopped answering.
+
+⚠️ Known limitations
+- Windows only. This build isn't code-signed yet, so Windows SmartScreen may warn the first time.
+- Disk Atlas needs a build that understands showing a file before Show in folder selects it.
+- Pasting settings that use an AI mask onto other photos in the filmstrip leaves that mask empty until you open the photo and detect it again.
+- Wayfinder: a video gets a location from the photos around it, not from its picture.
+
+📦 Installing
+- New to Lumen: download Lumen-Setup-<version>.exe and run it.
+- The file ending in _x64-setup.exe is the plain installer the updater uses. You don't need it.
 
 ## 26.2.0-alpha
 

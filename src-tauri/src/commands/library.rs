@@ -8,6 +8,12 @@ use crate::state::AppState;
 
 #[tauri::command(async)]
 pub fn list_libraries(state: State<'_, AppState>) -> AppResult<LibraryListing> {
+    // Round 24 §6.3, debug builds only: `LUMEN_DEBUG_SLOW_BOOT=<seconds>` holds the library load so
+    // the splash's ten-second ceiling and Close during a stuck start can be checked by hand.
+    #[cfg(debug_assertions)]
+    if let Some(secs) = std::env::var("LUMEN_DEBUG_SLOW_BOOT").ok().and_then(|v| v.parse::<u64>().ok()) {
+        std::thread::sleep(std::time::Duration::from_secs(secs));
+    }
     Ok(state.registry.read().expect("registry lock").listing())
 }
 

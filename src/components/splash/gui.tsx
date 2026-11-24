@@ -4,7 +4,7 @@ import { WindowControls } from "@/components/window-controls";
 import "./styles.scss";
 
 /** Full-screen loading surface shown while settings and the library registry load. */
-export function Splash({ visible }: { visible: boolean }) {
+export function Splash({ visible, note }: { visible: boolean; note?: string }) {
   return (
     <AnimatePresence>
       {visible && (
@@ -28,6 +28,12 @@ export function Splash({ visible }: { visible: boolean }) {
           <div className="splash__bar" aria-hidden>
             <i />
           </div>
+          {/* Round 24 §6.3: a start that sticks says why. */}
+          {note && (
+            <p className="splash__note" role="alert">
+              {note}
+            </p>
+          )}
         </motion.div>
       )}
     </AnimatePresence>

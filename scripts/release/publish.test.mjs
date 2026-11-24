@@ -1,30 +1,28 @@
 import { describe, expect, it } from "vitest";
-import { channelManifest, placeholderManifest, publish, updateChannels } from "./publish.mjs";
+import { channelManifest, placeholderManifest, updateChannels } from "./publish.mjs";
 
 /** A GitHub that records what was asked of it, in order. */
-function fakeGh({ channelsExists = true, verifyFails = false, publishFails = false } = {}) {
+function fakeGh({ channelsExists = true, manifests = {}, failRead = null } = {}) {
   const calls = [];
-  let uploaded = [];
+  const written = {};
   const gh = {
     calls,
+    written,
+    readChannel: async (name) => {
+      if (name === failRead) throw new Error(`could not read ${name}.json`);
+      return manifests[name] ?? null;
+    },
     releaseExists: async (tag) => {
       calls.push(["exists", tag]);
       return tag === "channels" ? channelsExists : false;
     },
     createRelease: async (tag, opts) => calls.push(["create", tag, opts.draft, opts.prerelease]),
-    upload: async (tag, files) => {
-      uploaded = files;
-      calls.push(["upload", tag, files.map((f) => f.name)]);
+    upload: async (tag, files) => calls.push(["upload", tag, files.map((f) => f.name)]),
+    publishRelease: async (tag) => calls.push(["publish", tag]),
+    uploadChannel: async (name, json) => {
+      written[name] = json;
+      calls.push(["channel", name, json.version]);
     },
-    downloadedHashes: async (tag) => {
-      calls.push(["download", tag]);
-      return Object.fromEntries(uploaded.map((f, i) => [f.name, verifyFails && i === 0 ? "different" : f.sha256]));
-    },
-    publishRelease: async (tag) => {
-      calls.push(["publish", tag]);
-      if (publishFails) throw new Error("GitHub said no");
-    },
-    uploadChannel: async (name, json) => calls.push(["channel", name, json.version]),
   };
   return gh;
 }
@@ -38,49 +36,6 @@ const plan = (version = "26.1.0-alpha") => ({
   ],
   signature: "c2ln",
   now: "2026-11-01T12:00:00Z",
-});
-
-describe("publish", () => {
-  it("drafts, verifies, publishes, and writes the channels last", async () => {
-    const gh = fakeGh();
-    await publish(gh, plan());
-    const kinds = gh.calls.map((c) => c[0]).filter((k) => k !== "exists");
-    expect(kinds).toEqual(["create", "upload", "download", "publish", "channel"]);
-    expect(gh.calls.find((c) => c[0] === "create")).toEqual(["create", "v26.1.0-alpha", true, true]);
-  });
-
-  it("never publishes what did not download back the same", async () => {
-    const gh = fakeGh({ verifyFails: true });
-    await expect(publish(gh, plan())).rejects.toThrow(/does not match/);
-    expect(gh.calls.some((c) => c[0] === "publish" || c[0] === "channel")).toBe(false);
-  });
-
-  it("never touches a channel when publishing failed", async () => {
-    const gh = fakeGh({ publishFails: true });
-    await expect(publish(gh, plan())).rejects.toThrow();
-    expect(gh.calls.some((c) => c[0] === "channel")).toBe(false);
-  });
-
-  it("writes all three channels the first time, so every manifest exists", async () => {
-    const gh = fakeGh({ channelsExists: false });
-    await publish(gh, plan());
-    expect(gh.calls.filter((c) => c[0] === "channel")).toEqual([
-      ["channel", "alpha", "26.1.0-alpha"],
-      ["channel", "beta", "0.0.0-beta"],
-      ["channel", "stable", "0.0.0-stable"],
-    ]);
-    expect(gh.calls.find((c) => c[0] === "create" && c[1] === "channels")).toBeTruthy();
-  });
-
-  it("an alpha touches only alpha; a stable touches all three", async () => {
-    const a = fakeGh();
-    await publish(a, plan("26.1.0-alpha"));
-    expect(a.calls.filter((c) => c[0] === "channel").map((c) => c[1])).toEqual(["alpha"]);
-    const s = fakeGh();
-    await publish(s, plan("26.2.0-stable"));
-    expect(s.calls.filter((c) => c[0] === "channel").map((c) => c[1])).toEqual(["stable", "beta", "alpha"]);
-    expect(s.calls.find((c) => c[0] === "create" && c[1] === "v26.2.0-stable")[3]).toBe(false);
-  });
 });
 
 describe("manifests", () => {
@@ -114,10 +69,129 @@ describe("updateChannels (the release workflow's manifest step)", () => {
     expect(gh.calls.some((c) => ["create", "upload", "publish"].includes(c[0]))).toBe(false);
   });
 
+  it("an alpha touches only alpha; a stable touches all three", async () => {
+    const a = fakeGh();
+    await updateChannels(a, plan("26.1.0-alpha"));
+    expect(a.calls.filter((c) => c[0] === "channel").map((c) => c[1])).toEqual(["alpha"]);
+    const s = fakeGh();
+    await updateChannels(s, plan("26.2.0-stable"));
+    expect(s.calls.filter((c) => c[0] === "channel").map((c) => c[1])).toEqual(["stable", "beta", "alpha"]);
+  });
+
   it("creates the channels release and all three manifests the first time", async () => {
     const gh = fakeGh({ channelsExists: false });
     await updateChannels(gh, plan());
     expect(gh.calls.find((c) => c[0] === "create")).toEqual(["create", "channels", false, false]);
     expect(gh.calls.filter((c) => c[0] === "channel").map((c) => c[1])).toEqual(["alpha", "beta", "stable"]);
+  });
+});
+
+describe("never lower a channel", () => {
+  const offering = (version) => ({ version, notes: "n", pub_date: "2026-10-01T00:00:00Z", platforms: { "windows-x86_64": { signature: "old", url: `https://example/${version}` } } });
+  const written = (gh) => gh.calls.filter((c) => c[0] === "channel").map((c) => c[1]);
+
+  it("a stable hotfix published after a newer alpha leaves alpha.json and a higher beta.json alone", async () => {
+    const gh = fakeGh({ manifests: { alpha: offering("26.4.2-alpha"), beta: offering("26.4.0-beta"), stable: offering("26.3.4-stable") } });
+    await updateChannels(gh, plan("26.3.5-stable"));
+    expect(written(gh)).toEqual(["stable"]);
+    expect(gh.written.stable.version).toBe("26.3.5-stable");
+  });
+
+  it("still moves a channel that is behind the hotfix", async () => {
+    const gh = fakeGh({ manifests: { alpha: offering("26.3.2-alpha"), beta: offering("26.4.0-beta"), stable: offering("26.3.4-stable") } });
+    await updateChannels(gh, plan("26.3.5-stable"));
+    expect(written(gh)).toEqual(["stable", "alpha"]);
+    expect(gh.written.alpha.version).toBe("26.3.5-stable");
+  });
+
+  it("a placeholder, a missing manifest and a missing channels release are all replaced", async () => {
+    const gh = fakeGh({ manifests: { beta: placeholderManifest("beta", "2026-10-01T00:00:00Z") } });
+    await updateChannels(gh, plan("26.1.0-stable"));
+    expect(written(gh)).toEqual(["stable", "beta", "alpha"]);
+  });
+
+  it("an alpha never touches beta or stable, whatever they hold", async () => {
+    const gh = fakeGh({ manifests: { alpha: offering("26.4.1-alpha"), beta: offering("26.4.0-beta"), stable: offering("26.3.4-stable") } });
+    await updateChannels(gh, plan("26.4.2-alpha"));
+    expect(written(gh)).toEqual(["alpha"]);
+  });
+
+  it("running the same version again finishes a half-done update", async () => {
+    const gh = fakeGh({ manifests: { stable: offering("26.3.5-stable"), beta: offering("26.3.4-stable"), alpha: offering("26.3.4-stable") } });
+    await updateChannels(gh, plan("26.3.5-stable"));
+    expect(written(gh)).toEqual(["stable", "beta", "alpha"]);
+  });
+
+  it("if a manifest cannot be read nothing is written, rather than risk lowering it", async () => {
+    const gh = fakeGh({ failRead: "beta", manifests: { stable: offering("26.3.4-stable") } });
+    await expect(updateChannels(gh, plan("26.3.5-stable"))).rejects.toThrow(/beta\.json/);
+    expect(written(gh)).toEqual([]);
+  });
+});
+
+describe("minSafe (the security track)", () => {
+  const offering = (version, minSafe) => ({
+    version,
+    notes: "n",
+    pub_date: "2026-10-01T00:00:00Z",
+    platforms: { "windows-x86_64": { signature: "old", url: `https://example/${version}` } },
+    ...(minSafe ? { minSafe } : {}),
+  });
+  const security = (version) => ({ ...plan(version), security: true });
+
+  it("a security release sets minSafe in every manifest it reaches", async () => {
+    const gh = fakeGh({ manifests: { alpha: offering("26.3.3-alpha"), beta: offering("26.3.3-beta"), stable: offering("26.3.4-stable") } });
+    await updateChannels(gh, security("26.3.5-stable"));
+    for (const name of ["stable", "beta", "alpha"]) expect(gh.written[name].minSafe).toBe("26.3.5-stable");
+  });
+
+  it("a security release sets only the channels it reaches", async () => {
+    const gh = fakeGh({ manifests: { alpha: offering("26.4.1-alpha"), beta: offering("26.4.0-beta"), stable: offering("26.3.4-stable") } });
+    await updateChannels(gh, security("26.4.2-alpha"));
+    expect(Object.keys(gh.written)).toEqual(["alpha"]);
+    expect(gh.written.alpha.minSafe).toBe("26.4.2-alpha");
+  });
+
+  it("a channel kept at a higher build still learns minSafe, and keeps its own build", async () => {
+    const gh = fakeGh({ manifests: { alpha: offering("26.4.2-alpha"), beta: offering("26.4.0-beta"), stable: offering("26.3.4-stable") } });
+    await updateChannels(gh, security("26.3.5-stable"));
+    expect(gh.written.alpha).toEqual(offering("26.4.2-alpha", "26.3.5-stable"));
+    expect(gh.written.beta).toEqual(offering("26.4.0-beta", "26.3.5-stable"));
+    expect(gh.written.stable.version).toBe("26.3.5-stable");
+  });
+
+  it("a later ordinary release copies minSafe forward", async () => {
+    const gh = fakeGh({ manifests: { alpha: offering("26.4.2-alpha", "26.3.5-stable") } });
+    await updateChannels(gh, plan("26.4.3-alpha"));
+    expect(gh.written.alpha.version).toBe("26.4.3-alpha");
+    expect(gh.written.alpha.minSafe).toBe("26.3.5-stable");
+  });
+
+  it("minSafe only goes up", async () => {
+    const gh = fakeGh({ manifests: { alpha: offering("26.4.2-alpha", "26.4.1-alpha"), beta: offering("26.4.0-beta"), stable: offering("26.3.4-stable") } });
+    await updateChannels(gh, security("26.3.5-stable"));
+    expect(gh.written.alpha).toBeUndefined(); // already carries a higher minSafe and a higher build: nothing to write
+    expect(gh.written.stable.minSafe).toBe("26.3.5-stable");
+    expect(gh.written.beta.minSafe).toBe("26.3.5-stable");
+  });
+
+  it("an unreadable minSafe in a manifest is ignored, not copied", async () => {
+    const gh = fakeGh({ manifests: { alpha: offering("26.4.2-alpha", "soon") } });
+    await updateChannels(gh, plan("26.4.3-alpha"));
+    expect("minSafe" in gh.written.alpha).toBe(false);
+  });
+
+  it("with no security release ever, manifests carry no minSafe at all", async () => {
+    const gh = fakeGh({ manifests: { alpha: offering("26.4.2-alpha"), beta: offering("26.4.0-beta"), stable: offering("26.3.4-stable") } });
+    await updateChannels(gh, plan("26.4.3-stable"));
+    for (const json of Object.values(gh.written)) expect("minSafe" in json).toBe(false);
+    expect(channelManifest(plan())).not.toHaveProperty("minSafe");
+  });
+
+  it("the first release writes placeholders without minSafe", async () => {
+    const gh = fakeGh({ channelsExists: false });
+    await updateChannels(gh, security("26.1.0-alpha"));
+    expect(gh.written.alpha.minSafe).toBe("26.1.0-alpha");
+    expect("minSafe" in gh.written.beta).toBe(false);
   });
 });

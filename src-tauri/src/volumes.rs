@@ -178,6 +178,8 @@ pub fn start(app: AppHandle) {
 mod tests {
     use super::*;
 
+    // A library path from a Windows PC: only Windows splits `D:\Photos\...` into components.
+    #[cfg(windows)]
     #[test]
     fn candidates_keep_the_tail_and_add_the_default() {
         let c = candidates(Path::new("D:\\Photos\\Lumen Library"), Path::new("/Volumes/SSD"));

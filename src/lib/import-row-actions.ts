@@ -2,7 +2,7 @@
 // the files that failed, copy the errors, or dismiss the row from *Recent imports*.
 
 import type { QueryClient } from "@tanstack/react-query";
-import { revealItemInDir } from "@tauri-apps/plugin-opener";
+import { revealPath } from "@/lib/dialogs";
 import { toast } from "@/components/toast";
 import { invoke, isAppError } from "@/lib/ipc";
 import { importRowMenu, type MenuItem } from "@/lib/menus";
@@ -55,7 +55,7 @@ export function importRowItems(batch: ImportBatchSummary, qc: QueryClient): Menu
   return importRowMenu({
     showInFolder:
       folder && batch.sourcePath
-        ? () => void revealItemInDir(batch.sourcePath!).catch(() => toast({ message: "That folder is no longer there." }))
+        ? () => void revealPath(batch.sourcePath!).catch(() => toast({ message: "That folder is no longer there." }))
         : undefined,
     retryFailed:
       folder && failed

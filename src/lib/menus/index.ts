@@ -3,7 +3,7 @@
 // offers is tested without rendering anything, and every surface showing that object (a
 // card, a sidebar row, the palette) offers the same things under the same labels.
 
-export { DIVIDER, icon, labels, tidy, type MenuItem } from "./parts";
+export { contributionItems, DIVIDER, icon, labels, tidy, type MenuContribution, type MenuItem } from "./parts";
 export { albumMenu, albumPageMenu, collectionMenu, type AlbumMenuActions, type AlbumPageMenuActions, type CollectionMenuActions } from "./album";
 export { deviceMenu, type DeviceMenuActions } from "./device";
 export { photoMenu, type PhotoMenuActions, type PhotoMenuContext } from "./photo";

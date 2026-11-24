@@ -1,6 +1,6 @@
 import { Button } from "@mantine/core";
 import { useQuery } from "@tanstack/react-query";
-import { open } from "@tauri-apps/plugin-dialog";
+import { pickFolder } from "@/lib/dialogs";
 import { useState } from "react";
 import { toast } from "@/components/toast";
 import { useLibraries } from "@/hooks/use-libraries";
@@ -31,7 +31,7 @@ export function LibraryStep({ onBack, onNext }: { onBack: () => void; onNext: ()
   const [busy, setBusy] = useState(false);
 
   const pick = async () => {
-    const dir = await open({ directory: true, multiple: false, title: "Choose a library folder" });
+    const dir = await pickFolder({ title: "Choose a library folder" });
     if (typeof dir === "string") setPath(dir);
   };
 

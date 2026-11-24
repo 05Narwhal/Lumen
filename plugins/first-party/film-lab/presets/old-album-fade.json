@@ -1,0 +1,73 @@
+{
+  "recipeVersion": 3,
+  "name": "Old Album Fade",
+  "develop": {
+    "basic": {
+      "temperature": 10,
+      "tint": 3,
+      "contrast": -0.2,
+      "saturation": -0.3,
+      "blacks": 0.2
+    },
+    "curve": {
+      "master": [
+        [
+          0,
+          0.09
+        ],
+        [
+          0.25,
+          0.27
+        ],
+        [
+          0.75,
+          0.75
+        ],
+        [
+          1,
+          0.93
+        ]
+      ]
+    },
+    "grading": {
+      "shadows": {
+        "hue": 40,
+        "sat": 0.1,
+        "lum": 0
+      },
+      "highlights": {
+        "hue": 50,
+        "sat": 0.08,
+        "lum": 0
+      }
+    },
+    "effects": {
+      "vignette": {
+        "amount": -0.3,
+        "midpoint": 0.4,
+        "feather": 0.7
+      },
+      "grain": {
+        "amount": 0.3,
+        "size": 0.5
+      }
+    }
+  },
+  "panels": [
+    "basic",
+    "curve",
+    "grading",
+    "effects"
+  ],
+  "look": {
+    "intent": "A photo album page from decades ago: yellowed, washed out, dark corners and coarse grain",
+    "hues": [
+      40,
+      50
+    ],
+    "mono": false,
+    "key": "mid",
+    "skinSafe": true,
+    "likesSky": false
+  }
+}

@@ -7,7 +7,7 @@
 # It depends on photos-models only.
 [package]
 name = "lumen-setup"
-version = "26.2.0-alpha"
+version = "26.3.0-alpha"
 edition = "2021"
 authors = ["JL Studios"]
 license = "GPL-3.0-or-later"

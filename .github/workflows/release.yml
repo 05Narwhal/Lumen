@@ -2,14 +2,21 @@ name: Release
 
 # Runs when a version tag is pushed (`git tag v26.2.0-alpha && git push origin v26.2.0-alpha`). The
 # tag's version must already be in package.json, tauri.conf.json and docs/CHANGELOG.md
-# (`node scripts/release/set-version.mjs`). Builds Windows, macOS (universal) and Linux (AppImage
-# and deb) into a draft release, publishes it, then points the update channels at it.
+# (`node scripts/release/set-version.mjs`). The one release path (docs/RELEASING.md):
 #
-# Secrets (Settings → Secrets and variables → Actions). A fork without them still builds; the
-# features they switch on are hidden:
+#   ffmpeg-sources  the FFmpeg source bundle, once per FFmpeg build
+#   preflight       every gate that needs no build (scripts/release/preflight.mjs before)
+#   build           Windows only (the other platforms wait for a self-built FFmpeg with its source):
+#                   Lumen Setup and the NSIS installer in their fixed order (setup-build.mjs), then
+#                   the gates that need the build (preflight.mjs after), then a draft release
+#   publish         the draft goes public, then the update channels point at it
+#
+# Secrets (Settings → Secrets and variables → Actions), two only:
 #   TAURI_SIGNING_PRIVATE_KEY, TAURI_SIGNING_PRIVATE_KEY_PASSWORD  signs the updater artefacts
-#   LUMEN_PLUGIN_PUBKEY                                            the "From JL Studios" plugin key
-#   LUMEN_DISCORD_CLIENT_ID                                        the opt-in Discord status
+# The plugin public key and the Discord application id are public values, tracked in
+# src-tauri/plugin-pubkey.txt and src-tauri/discord_client_id.txt, so a tag builds the same binary
+# anywhere. The updater's public key is tracked in tauri.conf.json, so a fork without the signing
+# secrets stops at the build rather than shipping an unsigned update.
 
 on:
   push:
@@ -18,6 +25,8 @@ on:
 
 permissions:
   contents: write
+  # preflight reads CI's check runs on the tagged commit.
+  checks: read
 
 concurrency:
   group: release-${{ github.ref_name }}
@@ -62,14 +71,15 @@ jobs:
           version="${TAG#v}"
           node --input-type=module -e '
             import { readFileSync, appendFileSync } from "node:fs";
-            import { notesFor } from "./scripts/release/release.mjs";
+            import { notesFor } from "./scripts/release/lib.mjs";
             const version = process.argv[1];
             const section = notesFor(readFileSync("docs/CHANGELOG.md", "utf8"), version);
             if (!section) { console.error(`docs/CHANGELOG.md has no section for ${version}`); process.exit(1); }
             const body = [
               section, "",
-              "**Unsigned.** Windows SmartScreen will warn when you open the installer: choose *More info* → *Run anyway*.",
-              "macOS builds are not notarized: right-click the app and choose *Open* the first time.",
+              "**Download `Lumen-Setup-" + version + ".exe`.** It is the installer: it installs, updates, repairs and removes Lumen. The other installer in this release, `Lumen_" + version + "_x64-setup.exe`, is only here because Lumen's own updater installs it; you do not need it.",
+              "",
+              "Windows only for now. **Unsigned:** Windows SmartScreen will warn when you open the installer: choose *More info* → *Run anyway*. On macOS and Linux, build from source (see the README).",
               "",
               "The exact source of the FFmpeg build is the release `" + process.env.FFMPEG_SOURCES_TAG + "`; every other source is this tag.",
             ].join("\n");
@@ -77,19 +87,33 @@ jobs:
             appendFileSync(process.env.GITHUB_OUTPUT, "prerelease=" + (version.endsWith("-stable") ? "false" : "true") + "\n");
           ' "$version"
 
+  # Every gate that needs no build. It runs on Windows because the FFmpeg sidecar is a Windows
+  # program (`ffmpeg-source` runs it and hashes it).
+  preflight:
+    needs: ffmpeg-sources
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          # tag-ref asks which branches contain the tagged commit.
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: yarn
+      - uses: dtolnay/rust-toolchain@stable
+      - run: yarn install --frozen-lockfile
+      - uses: ./.github/actions/windows-sidecars
+      - name: Gates before the build
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ github.ref_name }}
+        run: node scripts/release/preflight.mjs before "${TAG#v}"
+
   build:
-    needs: [ffmpeg-sources, notes]
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          - os: windows-latest
-            args: ""
-          - os: macos-latest
-            args: "--target universal-apple-darwin"
-          - os: ubuntu-22.04
-            args: ""
-    runs-on: ${{ matrix.os }}
+    needs: [preflight, notes]
+    runs-on: windows-latest
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -97,74 +121,66 @@ jobs:
           node-version: 24
           cache: yarn
       - uses: dtolnay/rust-toolchain@stable
-        with:
-          targets: ${{ matrix.os == 'macos-latest' && 'aarch64-apple-darwin,x86_64-apple-darwin' || '' }}
       - uses: Swatinem/rust-cache@v2
         with:
-          workspaces: src-tauri
-      - if: runner.os == 'Linux'
-        run: sudo apt-get update && sudo apt-get install -y libwebkit2gtk-4.1-dev libappindicator3-dev librsvg2-dev patchelf
+          workspaces: |
+            src-tauri
+            installer/src-tauri
       - run: yarn install --frozen-lockfile
-
-      # FFmpeg and ffprobe are sidecars. On Windows they must be the build whose source the
-      # release carries: taken from the FFmpeg source release when its assets include them, else
-      # fetched, and in both cases checked against the hash recorded in sources.json.
-      - name: FFmpeg sidecars (Windows)
-        if: runner.os == 'Windows'
+      - uses: ./.github/actions/windows-sidecars
+      # ort-sys copies its DLLs next to the program; a runner cannot symlink, so it copies, and the
+      # copy fails when `examples/` does not exist on a clean build.
+      - name: Folders ort-sys copies into
         shell: pwsh
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: |
-          gh release download $env:FFMPEG_SOURCES_TAG --pattern '*-x86_64-pc-windows-msvc.exe' --dir src-tauri/binaries
-          if (-not (Test-Path src-tauri/binaries/ffmpeg-x86_64-pc-windows-msvc.exe)) {
-            Write-Host "The source release has no FFmpeg binary; fetching one."
-            pwsh scripts/fetch-ffmpeg.ps1
-          }
-          pwsh scripts/fetch-exiftool.ps1
-          $want = (Get-Content scripts/release/sources.json -Raw | ConvertFrom-Json).ffmpeg.sidecarSha256
-          $have = (Get-FileHash src-tauri/binaries/ffmpeg-x86_64-pc-windows-msvc.exe -Algorithm SHA256).Hash.ToLower()
-          if ($want -and $have -ne $want.ToLower()) {
-            throw "ffmpeg-x86_64-pc-windows-msvc.exe is not the build the source release describes ($have, expected $want). Upload that exact binary to the release $env:FFMPEG_SOURCES_TAG."
-          }
-      - name: FFmpeg sidecars (macOS, Linux)
-        if: runner.os != 'Windows'
-        run: |
-          bash scripts/fetch-ffmpeg.sh
-          if [ "$RUNNER_OS" = "macOS" ]; then
-            # tauri's universal build looks for the -universal- name; the fetched build serves both.
-            for bin in ffmpeg ffprobe; do
-              src=$(ls src-tauri/binaries/$bin-*-apple-darwin | head -n 1)
-              cp "$src" "src-tauri/binaries/$bin-universal-apple-darwin"
-            done
-          fi
-      - name: Windows signing
-        if: runner.os == 'Windows'
-        shell: pwsh
-        run: |
-          # SignPath Foundation signing is wired here once the project is approved (it signs the
-          # installer, so the updater signature is made after it). Until then the build is unsigned
-          # and the release notes say so.
-          Write-Host "Windows code signing is not configured: this installer is unsigned."
+        run: New-Item -ItemType Directory -Force src-tauri/target/release/examples, src-tauri/target/release/deps | Out-Null
 
-      - uses: tauri-apps/tauri-action@v0
+      # Windows code signing: SignPath Foundation plugs in here once the project is approved. It
+      # signs through `signCommand` inside setup-build.mjs (the slim Setup, the installer during its
+      # build, the full Setup), because the updater's .sig is taken over the finished installer.
+      # Until then everything builds unsigned and the release notes say so.
+      - name: Build Lumen Setup and the installer
+        shell: bash
         env:
-          GITHUB_TOKEN: ${{ github.token }}
+          TAG: ${{ github.ref_name }}
           TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
           TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
-          LUMEN_PLUGIN_PUBKEY: ${{ secrets.LUMEN_PLUGIN_PUBKEY }}
-          LUMEN_DISCORD_CLIENT_ID: ${{ secrets.LUMEN_DISCORD_CLIENT_ID }}
-        with:
-          projectPath: .
-          tagName: ${{ github.ref_name }}
-          releaseName: Lumen ${{ github.ref_name }}
-          releaseBody: ${{ needs.notes.outputs.body }}
-          releaseDraft: true
-          prerelease: ${{ needs.notes.outputs.prerelease == 'true' }}
-          args: ${{ matrix.args }} --config src-tauri/tauri.release.conf.json
+        run: node scripts/release/setup-build.mjs "${TAG#v}"
+
+      - name: Gates that need the build
+        shell: bash
+        env:
+          TAG: ${{ github.ref_name }}
+        run: |
+          version="${TAG#v}"
+          node scripts/release/preflight.mjs after "$version" --sizes "dist-release/$version/sizes.json" --exe src-tauri/target/release/lumen.exe
+
+      - name: Make the draft release and upload
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ github.ref_name }}
+          NOTES: ${{ needs.notes.outputs.body }}
+          PRERELEASE: ${{ needs.notes.outputs.prerelease }}
+        run: |
+          version="${TAG#v}"
+          if ! gh release view "$TAG" >/dev/null 2>&1; then
+            flags=(--draft --latest=false)
+            if [ "$PRERELEASE" = "true" ]; then flags+=(--prerelease); fi
+            gh release create "$TAG" "${flags[@]}" --title "Lumen $TAG" --notes "$NOTES"
+          fi
+          # The files setup-build.mjs wrote (its built.json lists the same globs): the NSIS
+          # installer the updater takes, its .sig, and the full Setup people download.
+          cd src-tauri/target/release/bundle/nsis
+          gh release upload "$TAG" --clobber ./*_"${version}"_*-setup.exe* "./Lumen-Setup-${version}.exe"
 
   publish:
     needs: build
     runs-on: ubuntu-latest
+    # One channel update at a time, across tags: channels.mjs reads each manifest before it writes
+    # (never lower), so a stable hotfix and an alpha must not interleave their read and write.
+    concurrency:
+      group: release-channels
+      cancel-in-progress: false
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4

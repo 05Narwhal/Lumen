@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { open as openDialog } from "@tauri-apps/plugin-dialog";
+import { pickFolder } from "@/lib/dialogs";
 import { toast } from "@/components/toast";
 import { invoke, isAppError } from "@/lib/ipc";
 import { queryKeys } from "@/lib/query-keys";
@@ -37,7 +37,7 @@ export function useBackup() {
 
   /** Asks for a folder or drive, then uses it. */
   const chooseDestination = async () => {
-    const picked = await openDialog({ directory: true, title: "Back up to…" });
+    const picked = await pickFolder({ title: "Back up to…" });
     if (typeof picked === "string") await setDestination.mutateAsync(picked).catch(() => {});
   };
 

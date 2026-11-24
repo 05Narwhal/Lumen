@@ -44,6 +44,10 @@ fn ctx(dir: &Path, granted: Vec<PluginPermission>, settings: serde_json::Value) 
         chosen: None,
         photos: None,
         drafts: None,
+        models: None,
+        library: None,
+        places: None,
+        proposals: None,
     };
     (ctx, lines)
 }

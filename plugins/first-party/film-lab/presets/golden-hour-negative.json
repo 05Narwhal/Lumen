@@ -1,0 +1,68 @@
+{
+  "recipeVersion": 3,
+  "name": "Golden Hour Negative",
+  "develop": {
+    "basic": {
+      "temperature": 12,
+      "contrast": -0.05,
+      "highlights": -0.2,
+      "shadows": 0.15,
+      "vibrance": 0.1
+    },
+    "curve": {
+      "master": [
+        [
+          0,
+          0.04
+        ],
+        [
+          0.25,
+          0.274
+        ],
+        [
+          0.75,
+          0.732
+        ],
+        [
+          1,
+          0.97
+        ]
+      ]
+    },
+    "grading": {
+      "shadows": {
+        "hue": 220,
+        "sat": 0.08,
+        "lum": 0
+      },
+      "highlights": {
+        "hue": 38,
+        "sat": 0.16,
+        "lum": 0
+      }
+    },
+    "effects": {
+      "halation": {
+        "amount": 0.15,
+        "size": 0.3
+      }
+    }
+  },
+  "panels": [
+    "basic",
+    "curve",
+    "grading",
+    "effects"
+  ],
+  "look": {
+    "intent": "Warm colour negative in low sun: amber highlights, soft shadows with a touch of blue, a faint red glow round bright lights",
+    "hues": [
+      30,
+      45
+    ],
+    "mono": false,
+    "key": "mid",
+    "skinSafe": true,
+    "likesSky": false
+  }
+}

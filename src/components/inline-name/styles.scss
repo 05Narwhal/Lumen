@@ -1,0 +1,15 @@
+// The field replaces the name where it sits: same font, same width, no box of its own.
+.inline-name {
+  font: inherit;
+  letter-spacing: inherit;
+  color: var(--fg-primary);
+  width: 100%;
+  min-width: 0;
+  flex: 1;
+  padding: 0 var(--space-1);
+  margin: 0;
+  background: var(--bg-base);
+  border: var(--border-width) solid var(--accent);
+  border-radius: var(--radius-sm);
+  outline: none;
+}

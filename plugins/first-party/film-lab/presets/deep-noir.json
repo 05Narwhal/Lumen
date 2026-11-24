@@ -1,0 +1,35 @@
+{
+  "recipeVersion": 3,
+  "name": "Deep Noir",
+  "develop": {
+    "basic": {
+      "saturation": -1,
+      "exposure": -0.2,
+      "contrast": 0.4,
+      "blacks": -0.3
+    },
+    "effects": {
+      "vignette": {
+        "amount": -0.4,
+        "midpoint": 0.45,
+        "feather": 0.5
+      },
+      "grain": {
+        "amount": 0.3,
+        "size": 0.4
+      }
+    }
+  },
+  "panels": [
+    "basic",
+    "effects"
+  ],
+  "look": {
+    "intent": "Hard, dark black and white: crushed shadows, bright highlights, grainy and moody",
+    "hues": [],
+    "mono": true,
+    "key": "low",
+    "skinSafe": true,
+    "likesSky": false
+  }
+}

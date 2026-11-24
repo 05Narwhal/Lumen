@@ -1,0 +1,61 @@
+{
+  "recipeVersion": 3,
+  "name": "Overcast Teal",
+  "develop": {
+    "basic": {
+      "temperature": -12,
+      "exposure": 0.05,
+      "contrast": -0.05,
+      "vibrance": 0.05,
+      "saturation": -0.1
+    },
+    "curve": {
+      "master": [
+        [
+          0,
+          0.04
+        ],
+        [
+          0.25,
+          0.274
+        ],
+        [
+          0.75,
+          0.732
+        ],
+        [
+          1,
+          0.97
+        ]
+      ]
+    },
+    "grading": {
+      "shadows": {
+        "hue": 195,
+        "sat": 0.16,
+        "lum": 0
+      },
+      "highlights": {
+        "hue": 55,
+        "sat": 0.06,
+        "lum": 0
+      }
+    }
+  },
+  "panels": [
+    "basic",
+    "curve",
+    "grading"
+  ],
+  "look": {
+    "intent": "Grey-day colour: cool, muted, teal in the shadows with warm highlights holding skin together",
+    "hues": [
+      185,
+      200
+    ],
+    "mono": false,
+    "key": "mid",
+    "skinSafe": true,
+    "likesSky": false
+  }
+}

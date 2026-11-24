@@ -31,7 +31,7 @@ jobs:
       - run: yarn install --frozen-lockfile
       # The release scripts' tests are vitest and run in the frontend job (yarn test).
       - name: Script tests
-        run: node --test scripts/licenses/*.test.mjs scripts/oss/*.test.mjs scripts/plugins/*.test.mjs
+        run: node --test scripts/licenses/*.test.mjs scripts/oss/*.test.mjs scripts/plugins/*.test.mjs plugins/store/*.test.mjs
       - name: No personal data in the files that would be published
         run: git ls-files | node scripts/oss/scrub.mjs --stdin --exclude scripts/oss/public-exclude.txt
       - name: Licence notices are committed
@@ -62,7 +62,15 @@ jobs:
           pwsh scripts/fetch-exiftool.ps1
       - name: Sidecars (macOS, Linux)
         if: runner.os != 'Windows'
-        run: bash scripts/fetch-ffmpeg.sh
+        run: |
+          bash scripts/fetch-ffmpeg.sh
+          bash scripts/fetch-exiftool.sh
+      # ort-sys copies its DLLs next to the test programs; a runner cannot symlink, so it copies,
+      # and the copy fails when `examples/` does not exist on a clean build.
+      - name: Folders ort-sys copies into (Windows)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: New-Item -ItemType Directory -Force src-tauri/target/debug/examples, src-tauri/target/debug/deps | Out-Null
       - run: cargo test --workspace
         working-directory: src-tauri
       - run: cargo clippy --workspace --all-targets -- -D warnings

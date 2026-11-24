@@ -93,10 +93,22 @@ pub fn restart_lumen(app: tauri::AppHandle, location: String) -> AppResult<()> {
     Ok(())
 }
 
-/// Where *Restart Lumen* left off, once (Round 15): the page opens there at boot.
+/// How this run opens (Round 24 §6.2), once: a normal launch opens as always; after a crash
+/// (the `running.json` marker), a watchdog restart or *Restart Lumen* it opens Home with an alert,
+/// and `route` (Round 15's saved location, or the marker's last route) is only for the alert's
+/// *Back to …* button. A reloaded page asks again and gets `normal`.
 #[tauri::command(async)]
-pub fn take_resume(state: State<'_, AppState>) -> Option<String> {
-    crate::restart::take_resume(&state.settings, &state.paths.settings_file())
+pub fn resume_info(state: State<'_, AppState>) -> crate::crash_marker::ResumeInfo {
+    crate::crash_marker::resume_info(
+        crate::restart::take_resume(&state.settings, &state.paths.settings_file()),
+        crate::crash_marker::take_previous(),
+    )
+}
+
+/// The page's current screen, kept in the `running.json` marker for the next start's alert.
+#[tauri::command(async)]
+pub fn note_route(route: String) {
+    crate::crash_marker::set_route(&route);
 }
 
 /// *Stop import and close*: cancel every running import, give each up to five seconds to

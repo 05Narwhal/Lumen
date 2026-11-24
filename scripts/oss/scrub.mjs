@@ -52,6 +52,7 @@ export function loadRules(publicPath, localPath) {
     words: pub.words ?? {},
     mediaAllow: [...(pub.mediaAllow ?? [])],
     skipText: pub.skipText ?? [],
+    exifAllow: pub.exifAllow ?? [],
     localDeny: [],
     activeWords: [],
   };
@@ -165,7 +166,7 @@ export function scanFile(path, bytes, rules) {
   const findings = scanText(path, p, rules).map(({ rule }) => ({ path, rule }));
   if (IMAGE.test(p)) {
     if (!matchesAny(p, rules.mediaAllow)) return [...findings, { path, rule: "media-not-allowed" }];
-    if (EXIF_IMAGE.test(p)) {
+    if (EXIF_IMAGE.test(p) && !matchesAny(p, rules.exifAllow ?? [])) {
       const tags = new Set();
       for (const b of exifBlocks(bytes)) for (const t of tiffTags(bytes, b)) tags.add(t);
       for (const t of ["GPS", "Artist", "Copyright", "BodySerialNumber"]) {

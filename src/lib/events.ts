@@ -4,7 +4,7 @@ import type { ModelsProgress } from "@/types/generated/ModelsProgress";
 import type { PeopleProgress } from "@/types/generated/PeopleProgress";
 import type { QueryClient } from "@tanstack/react-query";
 import { listen } from "@tauri-apps/api/event";
-import { revealItemInDir } from "@tauri-apps/plugin-opener";
+import { revealPath } from "@/lib/dialogs";
 import { exportFinishedMessage, openExportLosses } from "@/components/export-sheet";
 import { formatTimeLeft } from "@/utils/format";
 import { importFinishedMessage, noteImportFinished } from "@/lib/import-messages";
@@ -350,7 +350,7 @@ export async function startEventBridge(qc: QueryClient): Promise<() => void> {
         f.losses.length > 0
           ? { label: "Details", run: () => openExportLosses(f.losses) }
           : f.done > 0 && !f.library
-            ? { label: "Reveal", run: () => void revealItemInDir(f.dir).catch(() => {}) }
+            ? { label: "Reveal", run: () => void revealPath(f.dir).catch(() => {}) }
             : undefined;
       toast({ message: exportFinishedMessage(f), action, durationMs: f.losses.length > 0 ? 12000 : undefined });
     }),
@@ -369,7 +369,7 @@ export async function startEventBridge(qc: QueryClient): Promise<() => void> {
       const what = f.memory ? "Memory" : "Slideshow";
       if (f.ok && f.path) {
         const path = f.path;
-        toast({ message: `${what} exported`, action: { label: "Reveal", run: () => void revealItemInDir(path).catch(() => {}) } });
+        toast({ message: `${what} exported`, action: { label: "Reveal", run: () => void revealPath(path).catch(() => {}) } });
       } else if (f.error !== "cancelled") {
         toast({ message: f.error ? `${what} export failed: ${f.error}` : `${what} export failed.` });
       }

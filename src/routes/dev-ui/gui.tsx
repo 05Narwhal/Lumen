@@ -47,9 +47,11 @@ const PLUGIN_INFO: PluginInfo = {
   state: { type: "ready" },
   iconUrl: null,
   settings: [],
-  assets: [],
+  sections: [],
+  contributions: [],
+  homepage: null, authorUrl: null, repository: null, screenshots: [], hasReadme: false, detectIds: [], assets: [],
 };
-const DATA_ONLY: PluginInfo = { ...PLUGIN_INFO, id: "studio.jl.ember", name: "Ember", kinds: ["theme"], permissions: [], license: "CC-BY-4.0" };
+const DATA_ONLY: PluginInfo = { ...PLUGIN_INFO, id: "studio.jl.ember", name: "Ember", kinds: ["presets"], permissions: [], license: "CC-BY-4.0" };
 const inspect = (over: Partial<PluginInspect> = {}, info: Partial<PluginInfo> = {}): PluginInspect => ({
   info: { ...PLUGIN_INFO, ...info },
   adds: ["An importer: Google Takeout"],

@@ -1,15 +1,23 @@
 import { beforeEach, describe, expect, it } from "vitest";
 import { applyPluginThemes, resolveTheme } from "@/lib/plugin-theme";
-import type { PluginThemeMeta } from "@/types/generated/PluginThemeMeta";
+import type { InstalledTheme } from "@/types/generated/InstalledTheme";
 import { mockCommand } from "@/test/tauri-mock";
 
-const NORD: PluginThemeMeta = {
-  plugin: "a.b",
-  id: "nord",
+const NORD: InstalledTheme = {
+  id: "a.b",
   name: "Nord",
-  tagline: "Arctic blues.",
+  author: "Nobody",
+  version: "1.0.0",
+  description: "Arctic blues.",
+  license: "MIT",
   base: "darkroom",
   defaultScheme: "dark",
+  layout: false,
+  hasIcon: false,
+  tokens: {
+    light: { bg: "#fff", surface: "#fff", sidebar: "#fff", fg: "#000", fg2: "#555", accent: "#00f", placeholder: "#eee", radius: "8px", gap: "4px" },
+    dark: { bg: "#000", surface: "#111", sidebar: "#111", fg: "#fff", fg2: "#aaa", accent: "#0af", placeholder: "#222", radius: "8px", gap: "4px" },
+  },
 };
 
 describe("applyPluginThemes", () => {
@@ -49,12 +57,12 @@ describe("resolveTheme", () => {
     expect(resolveTheme("paper", [])).toEqual({ base: "paper", plugin: null });
   });
 
-  it("a plugin theme sits on its own base", () => {
-    expect(resolveTheme({ plugin: "a.b", theme: "nord" }, [NORD])).toEqual({ base: "darkroom", plugin: "a.b/nord" });
+  it("an installed theme sits on its own base", () => {
+    expect(resolveTheme({ plugin: "a.b", theme: "theme" }, [NORD])).toEqual({ base: "darkroom", plugin: "a.b/theme" });
   });
 
-  it("a plugin theme that is off or gone is the default theme, with no plugin attribute", () => {
-    expect(resolveTheme({ plugin: "a.b", theme: "nord" }, [])).toEqual({ base: "gallery", plugin: null });
-    expect(resolveTheme({ plugin: "a.b", theme: "other" }, [NORD])).toEqual({ base: "gallery", plugin: null });
+  it("an installed theme that is gone is the default theme, with no plugin attribute", () => {
+    expect(resolveTheme({ plugin: "a.b", theme: "theme" }, [])).toEqual({ base: "gallery", plugin: null });
+    expect(resolveTheme({ plugin: "c.d", theme: "theme" }, [NORD])).toEqual({ base: "gallery", plugin: null });
   });
 });

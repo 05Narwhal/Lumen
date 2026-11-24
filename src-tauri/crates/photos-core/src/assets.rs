@@ -320,6 +320,11 @@ pub fn set_video_facts(
 /// `assets.media_type` for the still half of a Live Photo. It is neither a plain photo
 /// nor a video: the grid shows one tile that can play its MOV.
 pub const MEDIA_TYPE_LIVE: i64 = 2;
+/// `assets.place_source` of a place a plugin suggested and the person confirmed (Round 24 §8.6):
+/// 0 = atlas or nothing, 1 = named online, 2 = outside the online areas, 3 = estimated. The
+/// column is an integer that `AssetDetail` reads as one, so the plugin's id is not stored in it
+/// but in `place_writes.plugin_id` (and in the file's `ESTIMATED:<id>` marker).
+pub const PLACE_SOURCE_ESTIMATED: i64 = 3;
 
 /// The movie half of a Live Photo, for a query that names the table `a`. It is reached only
 /// through its still, so it is never a tile, never counted and never listed on its own.

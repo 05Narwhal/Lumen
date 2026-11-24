@@ -1,6 +1,6 @@
 import { IconBrandApple, IconDeviceMobile, IconDeviceSdCard, IconDeviceUsb, IconFolder } from "@tabler/icons-react";
 import { useQuery } from "@tanstack/react-query";
-import { open } from "@tauri-apps/plugin-dialog";
+import { pickFolder } from "@/lib/dialogs";
 import type { ReactNode } from "react";
 import { invoke } from "@/lib/ipc";
 import { queryKeys } from "@/lib/query-keys";
@@ -32,7 +32,7 @@ export function SourceChips({
 }) {
   const sources = useQuery({ queryKey: queryKeys.repairSources, queryFn: () => invoke<RepairSource[]>("list_repair_sources"), staleTime: 5_000 }).data ?? [];
   const folder = async () => {
-    const picked = await open({ directory: true, multiple: false, title: "Choose the folder to check" });
+    const picked = await pickFolder({ title: "Choose the folder to check" });
     if (typeof picked === "string") onCheck({ kind: "folder", id: picked }, baseName(picked));
   };
   return (

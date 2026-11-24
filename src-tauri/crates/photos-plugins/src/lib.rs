@@ -7,12 +7,19 @@ pub mod host;
 pub mod licences;
 pub mod manifest;
 pub mod package;
+pub mod platform;
 pub mod signature;
 pub mod store;
 pub mod theme;
+pub mod theme_css;
+pub mod theme_pkg;
 pub mod types;
 
 pub use types::*;
 
-/// The plugin API this Lumen speaks (the WIT package `lumen:plugin@1.0.0`).
-pub const API_VERSION: u32 = 1;
+pub use manifest::ApiVersion;
+pub use platform::{DetectHost, DetectStatus, PickFilter, PickOutcome, PickRequest, ProviderHost};
+
+/// The plugin API this Lumen speaks (API 1.2 adds `[[ui.section]]` settings pages; 1.0 and 1.1
+/// plugins keep working). A manifest with a newer `api` waits for a newer Lumen.
+pub const API_VERSION: ApiVersion = ApiVersion { major: 1, minor: 4 };

@@ -8,6 +8,7 @@ pub mod app;
 pub mod catalog;
 pub mod denoise;
 pub mod develop;
+pub mod dialogs; // Round 24 lane D2
 pub mod discord;
 pub mod device_browser;
 pub mod devices;
@@ -25,6 +26,8 @@ pub mod people;
 pub mod pets;
 pub mod plugin_import; // Round 23 A3
 pub mod plugin_tools; // Round 23 A4
+pub mod places; // Round 24 lane W3
+pub mod proposals; // Round 25 P4b
 pub mod plugins; // Round 23 C1
 pub mod raw_formats;
 pub mod search;
@@ -42,3 +45,4 @@ pub mod storage;
 pub mod updates;
 pub mod vault;
 pub mod plugin_themes; // Round 23 lane B1
+pub mod store; // Round 24 lane C

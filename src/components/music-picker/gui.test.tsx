@@ -2,6 +2,7 @@ import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { MemoryRouter } from "react-router";
+import { openUrl } from "@tauri-apps/plugin-opener";
 import { Providers } from "@/app";
 import { invokeMock, mockCommand, mockLibraryDefaults } from "@/test/tauri-mock";
 import { MusicPicker } from "./gui";
@@ -107,6 +108,54 @@ describe("MusicPicker", () => {
     await waitFor(() => expect(invokeMock).toHaveBeenCalledWith("music_download", expect.anything()));
     await waitFor(() => expect(onUse).toHaveBeenCalledWith(expect.objectContaining({ path: "C:/lib/music/9.mp3" }), expect.any(Number)));
   });
+  it("links each Jamendo track to its Jamendo page and opens it in the system browser", async () => {
+    mockCommand("get_settings", () => ({
+      version: 1,
+      appearance: { theme: "gallery", scheme: "auto", tileSize: "m", reduceMotion: false, sidebarCollapsed: false },
+      import: { duplicates: "skip", promptOnVolume: true },
+      playback: { loopVideos: false, muteByDefault: false },
+      map: { online: true, style: "map" },
+      music: { jamendoClientId: "KEY" },
+      window: { width: 1280, height: 800, x: null, y: null, maximized: false },
+    }));
+    mockCommand("list_library_music", () => []);
+    mockCommand("music_search", () => [track("42", "Lantern Song")]);
+    mount();
+    await userEvent.click(await screen.findByRole("tab", { name: "Find music" }));
+    await userEvent.click(await screen.findByRole("button", { name: "Open Lantern Song on Jamendo" }));
+    expect(openUrl).toHaveBeenCalledWith("https://www.jamendo.com/track/42");
+  });
+
+  it("credits Jamendo beside the Find results, and not on the library tab", async () => {
+    mockCommand("get_settings", () => ({
+      version: 1,
+      appearance: { theme: "gallery", scheme: "auto", tileSize: "m", reduceMotion: false, sidebarCollapsed: false },
+      import: { duplicates: "skip", promptOnVolume: true },
+      playback: { loopVideos: false, muteByDefault: false },
+      map: { online: true, style: "map" },
+      music: { jamendoClientId: "KEY" },
+      window: { width: 1280, height: 800, x: null, y: null, maximized: false },
+    }));
+    mockCommand("list_library_music", () => [saved("My Own File", "C:/lib/music/2.mp3")]);
+    mockCommand("music_search", () => [track("42", "Lantern Song")]);
+    mount();
+    expect(await screen.findByText("My Own File")).toBeInTheDocument();
+    expect(screen.getByText("Music from Jamendo")).not.toBeVisible(); // the Find panel is mounted but hidden
+    await userEvent.click(await screen.findByRole("tab", { name: "Find music" }));
+    expect(await screen.findByText("Lantern Song")).toBeInTheDocument();
+    expect(screen.getByText("Music from Jamendo")).toBeVisible();
+  });
+
+  it("shows the backlink for a saved Jamendo track and none for a file the person brought", async () => {
+    mockCommand("list_library_music", () => [
+      { ...saved("Saved Song", "C:/lib/music/1.mp3"), shareUrl: "https://www.jamendo.com/track/1" },
+      saved("My Own File", "C:/lib/music/2.mp3"),
+    ]);
+    mount();
+    expect(await screen.findByRole("button", { name: "Open Saved Song on Jamendo" })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Open My Own File on Jamendo" })).not.toBeInTheDocument();
+  });
+
   it("plays at the chosen volume, and passes it on as the show's level", async () => {
     mockCommand("list_library_music", () => [saved("Lantern Song", "C:/lib/music/1.mp3")]);
     const onUse = mount();

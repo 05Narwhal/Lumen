@@ -1,7 +1,7 @@
 // jsdom has no WebGL, so tests that mount the map get this stand-in for maplibre-gl's Map:
 // it fires `load` and `moveend` like the real one, reports a fixed viewport, projects
 // points linearly and records camera calls so a test can assert on them. Use it with
-//   vi.mock("maplibre-gl", async () => ({ Map: (await import("@/test/maplibre-mock")).FakeMap, setWorkerUrl: () => {} }));
+//   vi.mock("maplibre-gl", async () => ({ Map: (await import("@/test/maplibre-mock")).FakeMap, setWorkerUrl: () => {}, addProtocol: () => {} }));
 type Handler = (...args: unknown[]) => void;
 
 export const mapCalls = { fitBounds: [] as unknown[][], flyTo: [] as unknown[], setStyle: [] as unknown[] };

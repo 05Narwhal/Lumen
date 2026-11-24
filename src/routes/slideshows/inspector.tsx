@@ -1,6 +1,6 @@
 import { Button, Select, NumberInput, Slider, Switch } from "@mantine/core";
 import { IconArrowsShuffle, IconMusic, IconSparkles, IconTrash, IconWaveSine } from "@tabler/icons-react";
-import { open } from "@tauri-apps/plugin-dialog";
+import { pickFile } from "@/lib/dialogs";
 import { useState } from "react";
 import { MusicPicker } from "@/components/music-picker";
 import { Segmented } from "@/components/segmented";
@@ -221,7 +221,7 @@ function DocumentPanel({
     void fit(path);
   };
   const chooseFile = async () => {
-    const picked = await open({ multiple: false, directory: false, filters: [{ name: "Audio", extensions: AUDIO_EXTENSIONS }] });
+    const picked = await pickFile({ filters: [{ name: "Audio", extensions: AUDIO_EXTENSIONS }] });
     if (typeof picked !== "string") return;
     setPicking(false);
     attach(picked);

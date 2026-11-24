@@ -1,0 +1,52 @@
+{
+  "recipeVersion": 3,
+  "name": "Muted Drama",
+  "develop": {
+    "basic": {
+      "contrast": 0.12,
+      "saturation": -0.3,
+      "highlights": -0.15,
+      "shadows": 0.05,
+      "clarity": 0.1
+    },
+    "grading": {
+      "shadows": {
+        "hue": 210,
+        "sat": 0.1,
+        "lum": 0
+      },
+      "highlights": {
+        "hue": 45,
+        "sat": 0.06,
+        "lum": 0
+      }
+    },
+    "effects": {
+      "vignette": {
+        "amount": -0.2,
+        "midpoint": 0.5,
+        "feather": 0.6
+      },
+      "grain": {
+        "amount": 0.1,
+        "size": 0.3
+      }
+    }
+  },
+  "panels": [
+    "basic",
+    "grading",
+    "effects"
+  ],
+  "look": {
+    "intent": "Restrained independent-film colour: low saturation, firm contrast, quiet blue and warm split",
+    "hues": [
+      210,
+      45
+    ],
+    "mono": false,
+    "key": "mid",
+    "skinSafe": true,
+    "likesSky": false
+  }
+}

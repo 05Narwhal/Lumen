@@ -79,7 +79,7 @@ Your manual steps:
      git remote add origin https://github.com/05Narwhal/lumen.git and git push -u origin main).
   3. Make 05Narwhal/lumen-models public.
   4. Turn on Discussions, private vulnerability reporting and branch protection on main (CI and DCO required).
-  5. Add the secrets: TAURI_SIGNING_PRIVATE_KEY, TAURI_SIGNING_PRIVATE_KEY_PASSWORD, LUMEN_PLUGIN_PUBKEY, LUMEN_DISCORD_CLIENT_ID.
+  5. Add the secrets: TAURI_SIGNING_PRIVATE_KEY and TAURI_SIGNING_PRIVATE_KEY_PASSWORD (the plugin key and Discord id are tracked files).
   6. Point the dev checkout's origin at the public repo and keep the archive as a second remote.
   7. Apply to SignPath Foundation.
   8. Set up GitHub Sponsors.

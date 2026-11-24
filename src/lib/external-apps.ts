@@ -1,8 +1,8 @@
 import { useQuery, useQueryClient, type QueryClient } from "@tanstack/react-query";
 import { useCallback, useMemo } from "react";
-import { open as openDialog } from "@tauri-apps/plugin-dialog";
 import { openPaletteSub } from "@/components/command-palette/store";
 import { toast } from "@/components/toast";
+import { pickFile, pickFolder } from "@/lib/dialogs";
 import { isMac } from "@/components/window-controls";
 import { selectionStore } from "@/hooks/use-selection";
 import { invoke, isAppError } from "@/lib/ipc";
@@ -84,12 +84,12 @@ export async function editIn(qc: QueryClient, ids: number[], app: ExternalApp): 
 /** *Choose another app…*: the OS file dialog, the app remembered, then *Edit in* with it. */
 export async function chooseAnotherApp(qc: QueryClient, ids: number[]): Promise<void> {
   const mac = isMac();
-  const path = await openDialog({
-    multiple: false,
-    directory: mac,
+  const opts = {
     title: "Choose an app",
     filters: mac ? undefined : [{ name: "Apps", extensions: ["exe", "bat", "cmd", "sh", "AppImage"] }],
-  });
+  };
+  // macOS apps are folders (`.app`), which its dialog treats as a folder pick.
+  const path = mac ? await pickFolder(opts) : await pickFile(opts);
   if (typeof path !== "string") return;
   try {
     const app = await invoke<ExternalApp>("add_custom_app", { path });

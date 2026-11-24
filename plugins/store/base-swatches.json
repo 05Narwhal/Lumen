@@ -1,0 +1,98 @@
+{
+  "darkroom": {
+    "dark": {
+      "accent": "oklch(80% 0.14 80)",
+      "bg": "oklch(14% 0.004 60)",
+      "fg": "oklch(93% 0.005 80)",
+      "fg2": "oklch(66% 0.01 80)",
+      "gap": "4px",
+      "placeholder": "oklch(11% 0.004 60)",
+      "radius": "8px",
+      "sidebar": "oklch(17% 0.005 60)",
+      "surface": "oklch(18% 0.005 60)"
+    },
+    "light": {
+      "accent": "oklch(52% 0.15 70)",
+      "bg": "oklch(93% 0.006 70)",
+      "fg": "oklch(18% 0.01 60)",
+      "fg2": "oklch(40% 0.012 60)",
+      "gap": "4px",
+      "placeholder": "oklch(89% 0.007 70)",
+      "radius": "8px",
+      "sidebar": "oklch(91% 0.006 70)",
+      "surface": "oklch(97% 0.005 70)"
+    }
+  },
+  "gallery": {
+    "dark": {
+      "accent": "oklch(95% 0 0)",
+      "bg": "oklch(12% 0 0)",
+      "fg": "oklch(95% 0 0)",
+      "fg2": "oklch(68% 0 0)",
+      "gap": "2px",
+      "placeholder": "oklch(9% 0 0)",
+      "radius": "4px",
+      "sidebar": "oklch(14% 0 0)",
+      "surface": "oklch(16% 0 0)"
+    },
+    "light": {
+      "accent": "oklch(20% 0 0)",
+      "bg": "oklch(100% 0 0)",
+      "fg": "oklch(16% 0 0)",
+      "fg2": "oklch(46% 0 0)",
+      "gap": "2px",
+      "placeholder": "oklch(96.5% 0 0)",
+      "radius": "4px",
+      "sidebar": "oklch(98.5% 0 0)",
+      "surface": "oklch(100% 0 0)"
+    }
+  },
+  "glass": {
+    "dark": {
+      "accent": "oklch(72% 0.17 265)",
+      "bg": "oklch(20% 0.02 260)",
+      "fg": "oklch(95% 0.01 260)",
+      "fg2": "oklch(74% 0.02 260)",
+      "gap": "6px",
+      "placeholder": "oklch(16% 0.02 260)",
+      "radius": "12px",
+      "sidebar": "oklch(100% 0 0 / 0.06)",
+      "surface": "oklch(100% 0 0 / 0.08)"
+    },
+    "light": {
+      "accent": "oklch(53% 0.2 265)",
+      "bg": "oklch(95% 0.012 260)",
+      "fg": "oklch(18% 0.03 260)",
+      "fg2": "oklch(42% 0.03 260)",
+      "gap": "6px",
+      "placeholder": "oklch(91% 0.014 260)",
+      "radius": "12px",
+      "sidebar": "oklch(100% 0 0 / 0.55)",
+      "surface": "oklch(100% 0 0 / 0.7)"
+    }
+  },
+  "paper": {
+    "dark": {
+      "accent": "oklch(75% 0.14 290)",
+      "bg": "oklch(18% 0.012 80)",
+      "fg": "oklch(94% 0.01 80)",
+      "fg2": "oklch(68% 0.012 80)",
+      "gap": "8px",
+      "placeholder": "oklch(14% 0.012 80)",
+      "radius": "6px",
+      "sidebar": "oklch(18% 0.012 80)",
+      "surface": "oklch(22% 0.012 80)"
+    },
+    "light": {
+      "accent": "oklch(52% 0.18 290)",
+      "bg": "oklch(96% 0.012 80)",
+      "fg": "oklch(20% 0.02 60)",
+      "fg2": "oklch(42% 0.02 60)",
+      "gap": "8px",
+      "placeholder": "oklch(92% 0.014 80)",
+      "radius": "6px",
+      "sidebar": "oklch(96% 0.012 80)",
+      "surface": "oklch(99% 0.008 80)"
+    }
+  }
+}

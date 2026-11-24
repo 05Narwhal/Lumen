@@ -156,6 +156,9 @@ impl Applied<'_> {
     /// weights: the masks' half of a stage after the curve.
     pub fn run(&self, img: &mut Linear, ctx: &Ctx, tool: fn(&LocalAdjust) -> Option<local_tools::Tool>) {
         for area in &self.areas {
+            if ctx.cancelled() {
+                return;
+            }
             if let Some(t) = tool(area.adjust) {
                 let reach = t.reach(ctx, ctx.frame_long(img));
                 if t.weighted() {
@@ -211,6 +214,9 @@ impl Area<'_> {
             Vec::new()
         };
         effect(&mut part, &pctx, &box_weights);
+        if ctx.cancelled() {
+            return;
+        }
         img.data.par_chunks_mut(w as usize).enumerate().skip(y0 as usize).take((y1 - y0) as usize).for_each(|(y, row)| {
             let prow = &part.data[(y - by0 as usize) * pw..];
             for x in x0 as usize..x1 as usize {
@@ -242,6 +248,9 @@ pub fn apply<'a>(img: &mut Linear, masks: &'a [Mask], ctx: &Ctx, guide: Option<&
     let long = ctx.frame_long(img);
     let mut airlight = ctx.airlight;
     for mask in effective {
+        if ctx.cancelled() {
+            break;
+        }
         let weights = rasterize_with(mask, &frame, w, h, ctx.ai_rasters, guide);
         let Some((x0, y0, x1, y1)) = coverage(&weights, w, h) else { continue };
         let a = &mask.adjust;

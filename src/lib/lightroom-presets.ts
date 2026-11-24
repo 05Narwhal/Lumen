@@ -1,4 +1,4 @@
-import { open } from "@tauri-apps/plugin-dialog";
+import { pickFiles, pickFolder } from "@/lib/dialogs";
 import type { QueryClient } from "@tanstack/react-query";
 import { openPresetNotes } from "@/components/preset-import";
 import { toast } from "@/components/toast";
@@ -40,8 +40,8 @@ export async function importLightroomPresets(paths: string[], qc: QueryClient): 
 export async function pickLightroomPresets(kind: "files" | "folder", qc: QueryClient): Promise<void> {
   const picked =
     kind === "folder"
-      ? await open({ directory: true, multiple: false, title: "Choose a folder of Lightroom presets" })
-      : await open({ multiple: true, title: "Choose Lightroom presets", filters: [{ name: "Lightroom presets", extensions: ["xmp", "lrtemplate"] }] });
+      ? await pickFolder({ title: "Choose a folder of Lightroom presets" })
+      : await pickFiles({ title: "Choose Lightroom presets", filters: [{ name: "Lightroom presets", extensions: ["xmp", "lrtemplate"] }] });
   const paths = picked === null ? [] : Array.isArray(picked) ? picked : [picked];
   await importLightroomPresets(paths, qc);
 }

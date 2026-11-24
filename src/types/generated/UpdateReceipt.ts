@@ -3,4 +3,8 @@
 /**
  * The updated version's notes, shown once after updating.
  */
-export type UpdateReceipt = { version: string, notes: string, };
+export type UpdateReceipt = { version: string, notes: string, 
+/**
+ * What was installed was a security fix: the toast says so.
+ */
+security: boolean, };

@@ -11,6 +11,8 @@ use crate::{PluginKind, PluginPermission};
 pub(crate) enum Need {
     Free,
     Permission(PluginPermission),
+    /// Linked when any of them is granted (API 1.3 `proposals`); each call checks its own.
+    AnyOf(&'static [PluginPermission]),
     Network,
     Unknown,
 }
@@ -25,6 +27,10 @@ pub(crate) fn need(import: &str) -> Need {
         ("lumen:plugin", "photos") => Need::Permission(PluginPermission::PhotosRead),
         ("lumen:plugin", "drafts") => Need::Permission(PluginPermission::DevelopWriteDrafts),
         ("lumen:plugin", "storage") => Need::Permission(PluginPermission::Storage),
+        ("lumen:plugin", "models") => Need::Permission(PluginPermission::Models),
+        ("lumen:plugin", "library") => Need::Permission(PluginPermission::LibraryRead),
+        ("lumen:plugin", "places") => Need::Permission(PluginPermission::PlacesWrite),
+        ("lumen:plugin", "proposals") => Need::AnyOf(&PluginPermission::PROPOSING),
         ("wasi:sockets" | "wasi:http", _) => Need::Network,
         // Inert in Lumen's WASI: no preopens, no env, no args; clocks and random are allowed.
         ("wasi:cli" | "wasi:io" | "wasi:clocks" | "wasi:random" | "wasi:filesystem", _) => Need::Free,
@@ -90,6 +96,11 @@ impl KindCheck for ImportsCheck {
                     "plugin.wasm uses {} without asking for it",
                     shown(import)
                 )),
+                Need::AnyOf(ps) if ps.iter().any(|p| m.permissions.contains(p)) => {}
+                Need::AnyOf(_) => report.problems.push(format!(
+                    "plugin.wasm uses {} without asking for a permission to propose anything",
+                    shown(import)
+                )),
                 Need::Network => network = true,
                 Need::Unknown => report.problems.push(format!(
                     "plugin.wasm uses {}, which Lumen doesn't offer to plugins",
@@ -123,6 +134,23 @@ impl KindCheck for ImportsCheck {
                     .problems
                     .push("The manifest declares tools but plugin.wasm doesn't export them".into());
             }
+        }
+        let has_ui = exports_interface(&exports, "lumen:plugin/ui") && exports_interface(&exports, "lumen:plugin/tools");
+        let live = m.sections.iter().flat_map(|s| &s.controls).any(|c| c.kind.needs_code());
+        if live && !has_ui {
+            report.problems.push(
+                "The settings page has buttons, stats or lists but plugin.wasm doesn't export `ui` (with `tools`)".into(),
+            );
+        }
+        if crate::manifest::needs_ui_export(m) && !has_ui {
+            report.problems.push(
+                "A contribution runs a plugin action but plugin.wasm doesn't export `ui` (with `tools`)".into(),
+            );
+        }
+        if exports_interface(&exports, "lumen:plugin/review") && !m.permissions.contains(&PluginPermission::PlacesWrite) {
+            report
+                .problems
+                .push("plugin.wasm answers the Place review but doesn't ask for places.write".into());
         }
     }
 }

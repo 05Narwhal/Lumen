@@ -3,7 +3,7 @@
 //! `photos_core::beatgrid`, shared with the learned front end in `photos-ml`.
 
 use std::path::Path;
-use std::process::{Command, Stdio};
+use std::process::Stdio;
 
 use photos_core::beatgrid::{energy, track, BeatGrid};
 
@@ -16,7 +16,9 @@ pub const DSP_SAMPLE_RATE: u32 = 22_050;
 
 /// The file as mono samples in −1..1 at `sample_rate`.
 pub fn decode_mono(ff: &Ffmpeg, path: &Path, sample_rate: u32) -> Result<Vec<f32>, MediaError> {
-    let out = Command::new(&ff.ffmpeg)
+    // `ffmpeg::cmd`, never a bare `Command`: on Windows a bare spawn flashes a console window
+    // for every track memory prep listens to.
+    let out = crate::ffmpeg::cmd(&ff.ffmpeg)
         .args(["-v", "error", "-i"])
         .arg(path)
         .args(["-f", "s16le", "-acodec", "pcm_s16le", "-ac", "1", "-ar"])

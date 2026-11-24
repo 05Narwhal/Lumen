@@ -62,6 +62,10 @@ pub struct Cluster {
     pub asset_id: Option<i64>,
     /// The cell, so a click can zoom to exactly what it contains.
     pub bounds: Bounds,
+    /// How many of `count` have an estimated place (Round 24: a plugin's guess the person
+    /// confirmed). The map draws a pin hollow when all of them do.
+    #[ts(type = "number")]
+    pub estimated: i64,
 }
 
 /// Degrees per grid cell at `zoom` (fractional: the map zooms smoothly). Four cells per
@@ -102,6 +106,7 @@ fn merge_overlapping(mut clusters: Vec<Cluster>, zoom: f64) -> Vec<Cluster> {
                     k.lat = (k.lat * k.count as f64 + c.lat * c.count as f64) / n;
                     k.lon = (k.lon * k.count as f64 + c.lon * c.count as f64) / n;
                     k.count += c.count;
+                    k.estimated += c.estimated;
                     k.cover_asset_id = k.cover_asset_id.max(c.cover_asset_id);
                     k.asset_id = None;
                     k.bounds = Bounds {
@@ -164,7 +169,7 @@ fn clusters_in(conn: &Connection, b: Bounds, zoom: f64, scope: &LayoutScope) -> 
     // way the statement is a straight walk of the covering index and the buckets are a
     // hash map. Measured at 250k rows: roughly half the time.
     let sql = format!(
-        "SELECT a.gps_lat, a.gps_lon, a.id
+        "SELECT a.gps_lat, a.gps_lon, a.id, a.place_source
          {from_where}
            AND a.gps_lat IS NOT NULL
            AND a.gps_lat BETWEEN ? AND ?
@@ -178,19 +183,22 @@ fn clusters_in(conn: &Connection, b: Bounds, zoom: f64, scope: &LayoutScope) -> 
         lat_sum: f64,
         lon_sum: f64,
         newest: i64,
+        estimated: i64,
     }
     let mut cells: std::collections::HashMap<(i32, i32), Cell> = std::collections::HashMap::new();
     while let Some(r) = rows.next()? {
         let lat: f64 = r.get(0)?;
         let lon: f64 = r.get(1)?;
         let id: i64 = r.get(2)?;
+        let estimated = i64::from(r.get::<_, i64>(3)? == crate::assets::PLACE_SOURCE_ESTIMATED);
         // Shift into positive space so a truncating cast is a floor.
         let key = (((lat + 90.0) / cell) as i32, ((lon + 180.0) / cell) as i32);
-        let e = cells.entry(key).or_insert(Cell { count: 0, lat_sum: 0.0, lon_sum: 0.0, newest: id });
+        let e = cells.entry(key).or_insert(Cell { count: 0, lat_sum: 0.0, lon_sum: 0.0, newest: id, estimated: 0 });
         e.count += 1;
         e.lat_sum += lat;
         e.lon_sum += lon;
         e.newest = e.newest.max(id);
+        e.estimated += estimated;
     }
 
     Ok(cells
@@ -201,6 +209,7 @@ fn clusters_in(conn: &Connection, b: Bounds, zoom: f64, scope: &LayoutScope) -> 
             count: c.count,
             cover_asset_id: c.newest,
             asset_id: if c.count == 1 { Some(c.newest) } else { None },
+            estimated: c.estimated,
             bounds: Bounds {
                 min_lat: cy as f64 * cell - 90.0,
                 max_lat: (cy + 1) as f64 * cell - 90.0,
@@ -319,6 +328,24 @@ mod tests {
 
     /// Grid cells alone let two markers sit on top of each other whenever their photos
     /// fall either side of a cell boundary. Markers closer than a marker's width merge.
+    #[test]
+    fn a_cluster_counts_its_estimated_places() {
+        let db = Db::open_in_memory().unwrap();
+        db.with_conn(|c| {
+            insert(c, 1, Some(0.0), Some(-0.02));
+            insert(c, 2, Some(0.0), Some(0.02));
+            insert(c, 3, Some(0.0), Some(0.32));
+            c.execute("UPDATE assets SET place_source = ?1 WHERE id IN (2, 3)", [crate::assets::PLACE_SOURCE_ESTIMATED])?;
+            let got = map_clusters(c, Bounds::world(), 10.0, &LayoutScope::library())?;
+            let pair = got.iter().find(|k| k.count == 2).expect("the two close photos merge");
+            assert_eq!(pair.estimated, 1, "one of the two is a guess the person confirmed");
+            let alone = got.iter().find(|k| k.count == 1).unwrap();
+            assert_eq!(alone.estimated, 1);
+            Ok(())
+        })
+        .unwrap();
+    }
+
     #[test]
     fn markers_that_would_overlap_on_screen_become_one() {
         let db = Db::open_in_memory().unwrap();

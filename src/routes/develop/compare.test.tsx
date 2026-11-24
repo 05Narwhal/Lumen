@@ -52,7 +52,9 @@ describe("before and after", () => {
     };
     await pick("Split");
     expect(stage().dataset.compare).toBe("split");
-    expect(await screen.findByRole("img", { name: "The photo before develop" })).toHaveAttribute("src", expect.stringContaining("before"));
+    // Its alt is empty: a failed load never shows alt text (Round 24 §4).
+    await waitFor(() => expect(document.querySelector(".develop-canvas__layer--before img")).toHaveAttribute("src", expect.stringContaining("before")));
+    expect(document.querySelector(".develop-canvas__layer--before img")).toHaveAttribute("alt", "");
     expect(screen.getByRole("separator", { name: "Divider between before and after" })).toBeInTheDocument();
     await pick("Side by side");
     expect(stage().dataset.compare).toBe("side");

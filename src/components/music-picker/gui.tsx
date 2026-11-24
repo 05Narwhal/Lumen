@@ -1,6 +1,7 @@
 import { ActionIcon, Button, Modal, Tabs, TextInput } from "@mantine/core";
-import { IconFolder, IconPlayerPlayFilled, IconPlayerStopFilled, IconSearch, IconTrash, IconVolume } from "@tabler/icons-react";
+import { IconExternalLink, IconFolder, IconPlayerPlayFilled, IconPlayerStopFilled, IconSearch, IconTrash, IconVolume } from "@tabler/icons-react";
 import { useEffect, useMemo, useRef, useState } from "react";
+import { openUrl } from "@tauri-apps/plugin-opener";
 import { Link } from "react-router";
 import { Segmented } from "@/components/segmented";
 import { Spinner } from "@/components/spinner";
@@ -45,6 +46,7 @@ function Row({
   artist,
   durationMs,
   licence,
+  shareUrl,
   playable,
   playing,
   onPlay,
@@ -55,6 +57,8 @@ function Row({
   artist: string;
   durationMs: number;
   licence: string;
+  /** Jamendo's page for the track; its terms ask every use to link back to it. Empty for a file the person brought. */
+  shareUrl?: string;
   playable: boolean;
   playing: boolean;
   onPlay: (id: string | null) => void;
@@ -78,6 +82,17 @@ function Row({
           {[artist, durationMs ? formatDuration(durationMs) : null, licence].filter(Boolean).join(" · ")}
         </span>
       </span>
+      {shareUrl && (
+        <ActionIcon
+          variant="subtle"
+          color="gray"
+          aria-label={`Open ${title} on Jamendo`}
+          title="Open on Jamendo"
+          onClick={() => void openUrl(shareUrl).catch(() => window.open(shareUrl, "_blank", "noopener"))}
+        >
+          <IconExternalLink size={16} />
+        </ActionIcon>
+      )}
       {actions}
     </div>
   );
@@ -189,6 +204,7 @@ export function MusicPicker({
                 artist={t.artist}
                 durationMs={t.durationMs}
                 licence={t.licenceName}
+                shareUrl={t.shareUrl}
                 playable
                 playing={playing === t.path}
                 onPlay={(id) => play(id, mediaUrl("library-music", t.path.split(/[\\/]/).pop() ?? ""))}
@@ -215,6 +231,7 @@ export function MusicPicker({
             </p>
           ) : (
             <>
+              <p className="music-picker__credit">Music from Jamendo</p>
               <TextInput
                 role="searchbox"
                 aria-label="Search for music"
@@ -252,6 +269,7 @@ export function MusicPicker({
                     artist={t.artist}
                     durationMs={t.durationMs}
                     licence={t.licenceName}
+                    shareUrl={t.shareUrl}
                     playable
                     playing={playing === t.id}
                     onPlay={(id) => play(id, mediaUrl("music-preview", t.id))}

@@ -1,16 +1,19 @@
 import { useQuery } from "@tanstack/react-query";
 import { invoke } from "@/lib/ipc";
-import type { PluginThemeMeta } from "@/types/generated/PluginThemeMeta";
+import type { InstalledTheme } from "@/types/generated/InstalledTheme";
 import type { ThemeChoice } from "@/types/generated/ThemeChoice";
 import type { ThemeId } from "@/types/generated/ThemeId";
 
-export const PLUGIN_THEMES_KEY = ["plugin-themes"] as const;
+export const PLUGIN_THEMES_KEY = ["installed-themes"] as const;
+
+/** The one theme a `.lumentheme` carries: `appearance.theme` is `{plugin: <id>, theme: "theme"}`. */
+export const THEME_SLOT = "theme";
 
 /** The theme a missing or disabled plugin theme falls back to. */
 const DEFAULT_THEME: ThemeId = "gallery";
 
 /**
- * Fills `<style id="plugin-themes">` with the CSS Rust wrote for the enabled plugin themes
+ * Fills `<style id="plugin-themes">` with the CSS Rust wrote for the installed themes
  * (creating the tag the first time). Called at start and on `plugins://changed`. A failure keeps
  * whatever is there: themes are never worth an error on the page.
  */
@@ -31,22 +34,28 @@ export async function applyPluginThemes(): Promise<void> {
 
 /**
  * The built-in theme the page is drawn on and the `data-plugin-theme` value to set (`null`
- * for none). A plugin theme whose plugin is off or gone is the default theme, unadorned.
+ * for none). An installed theme sits on its own base; one that is gone is the default theme,
+ * unadorned.
  */
-export function resolveTheme(choice: ThemeChoice, plugins: PluginThemeMeta[]): { base: ThemeId; plugin: string | null } {
+export function resolveTheme(choice: ThemeChoice, themes: InstalledTheme[]): { base: ThemeId; plugin: string | null } {
   if (typeof choice === "string") return { base: choice, plugin: null };
-  const meta = plugins.find((m) => m.plugin === choice.plugin && m.id === choice.theme);
-  return meta ? { base: meta.base, plugin: `${meta.plugin}/${meta.id}` } : { base: DEFAULT_THEME, plugin: null };
+  const meta = choice.theme === THEME_SLOT ? themes.find((m) => m.id === choice.plugin) : undefined;
+  return meta ? { base: meta.base, plugin: `${meta.id}/${THEME_SLOT}` } : { base: DEFAULT_THEME, plugin: null };
 }
 
 /**
- * The enabled plugin themes. `undefined` while the first answer is on its way; an empty list
- * when the command fails (a theme that can't be listed is a theme that isn't there).
+ * The installed themes, and the one being tried (it is not installed, but the page draws it).
+ * `undefined` while the first answer is on its way; an empty list when the command fails (a
+ * theme that can't be listed is a theme that isn't there).
  */
-export function usePluginThemes(): PluginThemeMeta[] | undefined {
+export function useInstalledThemes(): InstalledTheme[] | undefined {
   const q = useQuery({
     queryKey: PLUGIN_THEMES_KEY,
-    queryFn: () => invoke<PluginThemeMeta[]>("list_plugin_themes"),
+    queryFn: async () => {
+      const [list, tried] = await Promise.all([invoke<InstalledTheme[]>("themes_list"), invoke<InstalledTheme | null>("theme_tried").catch(() => null)]);
+      const all = Array.isArray(list) ? list : [];
+      return tried ? [...all.filter((t) => t.id !== tried.id), tried] : all;
+    },
     staleTime: Infinity,
     retry: false,
   });

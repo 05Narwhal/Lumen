@@ -17,6 +17,17 @@ function mount(children: React.ReactNode) {
 }
 
 describe("AppShell", () => {
+  // Round 26: the parts a theme.css names (THEMES.md *Parts*). The shell is a grid of named areas.
+  it("marks the shell's parts and lays them out as grid areas", () => {
+    mount(<p>content</p>);
+    const part = (p: string) => document.querySelector(`[data-part="${p}"]`);
+    for (const p of ["shell", "titlebar", "sidebar", "sidebar-item", "main", "toolbar", "window-controls"]) expect(part(p), p).not.toBeNull();
+    expect(part("main")?.contains(screen.getByRole("main"))).toBe(true);
+    // The title bar and the page are the shell's own children (the body is only a wrapper).
+    expect(part("shell")?.contains(part("titlebar"))).toBe(true);
+    expect(part("titlebar")?.contains(part("window-controls"))).toBe(true);
+  });
+
   it("has a title bar and renders children in main", () => {
     mount(<p>content</p>);
     expect(document.querySelector(".app-shell__titlebar")).not.toBeNull();

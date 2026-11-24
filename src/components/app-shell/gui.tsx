@@ -1,3 +1,4 @@
+import { ActivityRing } from "@/components/activity-ring";
 import { getCurrentWindow } from "@tauri-apps/api/window";
 import { useEffect, type ReactNode } from "react";
 import { createPortal } from "react-dom";
@@ -5,6 +6,7 @@ import { Sidebar, type SidebarDevice } from "@/components/sidebar";
 import { WindowControls, isMac } from "@/components/window-controls";
 import { createStore } from "@/lib/store";
 import { HealthBanner } from "@/components/health-banner";
+import { SecurityBanner } from "@/components/security-banner";
 import "./styles.scss";
 import { useWindowDrag } from "@/hooks/use-window-drag";
 
@@ -46,15 +48,20 @@ export function AppShell({
   // Any empty part of the bar drags, the toolbar slot's gaps included (Round 15).
   const drag = useWindowDrag();
   return (
-    <div className="app-shell" data-mac={mac}>
+    <div className="app-shell" data-part="shell" data-mac={mac}>
       {sidebar && <Sidebar collapsed={sidebarCollapsed} onToggle={onToggleSidebar} devices={devices} />}
       <div className="app-shell__body">
-        <div className="app-shell__titlebar" data-toolbar={users > 0} {...drag}>
-          <div className="app-shell__toolbar" ref={setSlot} />
+        <div className="app-shell__titlebar" data-part="titlebar" data-toolbar={users > 0} {...drag}>
+          <div className="app-shell__toolbar" data-part="toolbar" ref={setSlot} />
+          {/* Background work, top right on every OS (left of the controls where they show). */}
+          <ActivityRing compact placement="titlebar" />
           <WindowControls />
         </div>
-        <HealthBanner />
-        <main className="app-shell__main">{children}</main>
+        <div className="app-shell__content" data-part="main">
+          <HealthBanner />
+          <SecurityBanner />
+          <main className="app-shell__main">{children}</main>
+        </div>
       </div>
       {!mac &&
         dirs.map((d) => (

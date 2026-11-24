@@ -35,7 +35,9 @@ const PAD = 16;
 const NAV = 120;
 const FIT: ZoomState = { mode: "fit" };
 
-let regionCounter = 0;
+// From the clock, as the preview's counter: Rust keeps the newest request for the life of the
+// process, so a reloaded page counting from 1 again would have every region called stale.
+let regionCounter = Date.now();
 
 /** A rendered part of the photo, in photo pixels, and the settings it was rendered with. */
 type Region = { url: string; x: number; y: number; w: number; h: number; tag: string };
@@ -470,13 +472,13 @@ export function DevelopCanvas({
             <Spinner size="sm" label="Rendering the before" />
           </div>
         )}
-        {bv && !shown && <img className="develop-canvas__img" src={bv.url} width={bv.width || undefined} height={bv.height || undefined} alt="The photo before develop" draggable={false} />}
+        {bv && !shown && <img className="develop-canvas__img" src={bv.url} width={bv.width || undefined} height={bv.height || undefined} alt="" draggable={false} />}
         {bv && shown && (
           <div
             className="develop-canvas__frame"
             style={{ width: photo.w * scale, height: photo.h * scale, transform: `translate(${-pan.x * scale}px, ${-pan.y * scale}px)` }}
           >
-            <img className="develop-canvas__under" src={bv.url} alt="The photo before develop" draggable={false} />
+            <img className="develop-canvas__under" src={bv.url} alt="" draggable={false} />
             {beforeRegion && beforeRegion.tag === beforeTag && (
               <img
                 className="develop-canvas__region"

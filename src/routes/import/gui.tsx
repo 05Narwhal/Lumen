@@ -1,7 +1,7 @@
 import { Button, Menu, Progress, Switch } from "@mantine/core";
 import { importingLabel, useRunningImport } from "@/hooks/use-running-import";
 import { IconAlertTriangle, IconBooks, IconBrandApple, IconChevronDown, IconDeviceMobile, IconDeviceSdCard, IconDownload } from "@tabler/icons-react";
-import { open } from "@tauri-apps/plugin-dialog";
+import { pickFile, pickFiles as pickMediaFiles, pickFolder, revealPath } from "@/lib/dialogs";
 import { appleDeviceIcon } from "@/lib/device-icons";
 import { useState, type ReactNode } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router";
@@ -30,7 +30,6 @@ import {
 } from "@/hooks/use-import";
 import { dismissedImports, importRowItems, SOURCE_FOLDER } from "@/lib/import-row-actions";
 import { invoke, isAppError } from "@/lib/ipc";
-import { revealItemInDir } from "@tauri-apps/plugin-opener";
 import { jobsStore } from "@/lib/jobs-store";
 import { MEDIA_EXTENSIONS } from "@/lib/media-extensions";
 import type { ImportBatchSummary } from "@/types/generated/ImportBatchSummary";
@@ -87,7 +86,7 @@ function Skips({ batch }: { batch: ImportBatchSummary }) {
               Show library copy
             </Button>
           ) : fromFolder ? (
-            <Button variant="subtle" size="compact-xs" onClick={() => void revealItemInDir(`${batch.sourcePath}/${s.path}`).catch(() => {})}>
+            <Button variant="subtle" size="compact-xs" onClick={() => void revealPath(`${batch.sourcePath}/${s.path}`).catch(() => {})}>
               Show in folder
             </Button>
           ) : (
@@ -405,18 +404,17 @@ function ImportBody() {
     }
   };
   const pick = async (asAlbums = false) => {
-    const dir = await open({ directory: true, multiple: false, title: asAlbums ? "Choose a folder to import as albums" : "Choose a folder to import" });
+    const dir = await pickFolder({ title: asAlbums ? "Choose a folder to import as albums" : "Choose a folder to import" });
     if (typeof dir !== "string") return;
     await run(() => startFolderImport({ path: dir, recursive: subfolders, asAlbums }));
   };
   const navigate = useNavigate();
   // A library is a folder, except to macOS's file dialog, which treats it as one file.
   const pickLibrary = async () => {
-    const picked = await open(
-      isMac()
-        ? { multiple: false, title: "Choose an Apple Photos library", filters: [{ name: "Photos library", extensions: ["photoslibrary"] }] }
-        : { directory: true, multiple: false, title: "Choose an Apple Photos library" },
-    );
+    const title = "Choose an Apple Photos library";
+    const picked = isMac()
+      ? await pickFile({ title, filters: [{ name: "Photos library", extensions: ["photoslibrary"] }] })
+      : await pickFolder({ title });
     if (typeof picked !== "string") return;
     if (!/\.photoslibrary[\\/]?$/i.test(picked)) {
       toast({ message: "That folder is not an Apple Photos library." });
@@ -425,13 +423,12 @@ function ImportBody() {
     navigate(`/connected/photos/${encodeURIComponent(picked.replace(/[\\/]$/, ""))}`);
   };
   const pickCatalog = async () => {
-    const picked = await open({ multiple: false, title: "Choose a Lightroom Classic catalog", filters: [{ name: "Lightroom catalog", extensions: ["lrcat"] }] });
+    const picked = await pickFile({ title: "Choose a Lightroom Classic catalog", filters: [{ name: "Lightroom catalog", extensions: ["lrcat"] }] });
     if (typeof picked !== "string") return;
     await run(() => startLightroomImport(picked));
   };
   const pickFiles = async () => {
-    const files = await open({
-      multiple: true,
+    const files = await pickMediaFiles({
       title: "Choose photos and videos to import",
       filters: [{ name: "Photos and videos", extensions: MEDIA_EXTENSIONS }],
     });

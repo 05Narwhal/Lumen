@@ -1,7 +1,7 @@
 import { Button } from "@mantine/core";
 import { IconDeviceSdCard, IconDeviceDesktop, IconFolderOpen } from "@tabler/icons-react";
 import { useQuery } from "@tanstack/react-query";
-import { openPath } from "@tauri-apps/plugin-opener";
+import { revealPath } from "@/lib/dialogs";
 import { invoke } from "@/lib/ipc";
 import { formatStorage } from "@/utils/format";
 import type { StorageDisk } from "@/types/generated/StorageDisk";
@@ -47,7 +47,7 @@ export function StorageSection() {
         <SettingGroup title={`Library · ${formatStorage(libraryTotal)}`}>
           <Parts parts={o.library} total={libraryTotal} />
           <SettingRow label="Folder" hint={<code>{o.libraryPath}</code>}>
-            <Button size="xs" variant="default" leftSection={<IconFolderOpen size={14} />} onClick={() => void openPath(o.libraryPath!).catch(() => {})}>
+            <Button size="xs" variant="default" leftSection={<IconFolderOpen size={14} />} onClick={() => void revealPath(o.libraryPath!).catch(() => {})}>
               Show
             </Button>
           </SettingRow>

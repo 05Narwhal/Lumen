@@ -24,6 +24,7 @@ import { rotatePhotos } from "@/lib/rotate";
 import { moveToHidden } from "@/lib/vault";
 import { selectAllHere, selectNone, undoLast } from "@/lib/select-here";
 import { invoke } from "@/lib/ipc";
+import { placeReviewOpen, requestPlaceReview } from "@/lib/place-review";
 import { allText, copyText, HAS_TEXT_TAG, readTextOn, textOverlayRequest } from "@/lib/photo-text";
 import { writeTags } from "@/lib/search-tags";
 import type { ShownTextLine } from "@/types/generated/ShownTextLine";
@@ -84,6 +85,9 @@ export const appCommands: AppCommand[] = [
   nav("go-duplicates", "Find duplicates", "/duplicates"),
   nav("go-search", "Search photos", "/search"),
   nav("go-settings", "Open Settings", "/settings", "Mod+,"),
+  // Round 24 lane C: no number key is free, so no shortcut.
+  nav("go-plugins", "Open plugin store", "/plugins"),
+  nav("go-plugins-installed", "Open installed plugins", "/plugins?tab=installed"),
   nav("change-date-order", "Change date order", "/settings?section=search"),
   {
     // Round 17: checks, then shows the answer where the person can act on it.
@@ -457,5 +461,26 @@ export const appCommands: AppCommand[] = [
   // Round 15: the page alone, or the whole app (recovered in place when it can be).
   { id: "reload-window", label: "Reload window", group: "View", run: () => reloadWindow() },
   { id: "restart-lumen", label: "Restart Lumen", group: "View", run: () => void restartLumen() },
+  // Round 24 lane W: the Place review screen's actions, offered only while it is open.
+  ...(
+    [
+      ["confirm", "Confirm these places"],
+      ["reject", "Reject these places"],
+      ["move-place", "Type a place for these photos…"],
+      ["move-pin", "Move the pin on the map"],
+      ["split", "Split the moment here"],
+      ["next", "Next moment"],
+      ["previous", "Previous moment"],
+      ["write", "Write the confirmed locations"],
+    ] as const
+  ).map(
+    ([action, label]): AppCommand => ({
+      id: `places-review-${action}`,
+      label,
+      group: "Library",
+      run: () => requestPlaceReview(action),
+      available: () => placeReviewOpen.get(),
+    }),
+  ),
   ...(import.meta.env.DEV ? [nav("dev-transport", "Transport check (dev)", "/dev/transport")] : []),
 ];

@@ -1,8 +1,14 @@
-// Lumen's plugin API 1 (spec Round 23 §2, §3, §10). A plugin imports only the interfaces its
-// permissions grant: `host` is free, `chosen` needs import.read-chosen, `photos` photos.read,
-// `drafts` develop.write-drafts, `storage` storage. Changing this file changes WIT_HASH: run
+// Lumen's plugin API 1.4 (spec Round 23 §2, §3, §10; Round 24 §8; Round 25 P3; Round 26 C3). A plugin imports only the
+// interfaces its permissions grant: `host` is free, `chosen` needs import.read-chosen, `photos`
+// photos.read, `drafts` develop.write-drafts, `storage` storage; 1.1 adds `models` (models),
+// `library` (library.read) and `places` (places.write); 1.2 adds the `ui` export (buttons,
+// stats and lists on a plugin's settings page); 1.3 adds `proposals` (dates.write, tags.write,
+// captions.write, people.write, or places.write for a location); 1.4 adds `library.details` (titles,
+// captions, people, albums, text and the date's source for the assets of a page). 1.0.0 components keep working: the host
+// defines 1.1.0 and wasmtime resolves a 1.0.0 import or export by semver, so 1.1 only ever adds
+// (never change or remove anything a 1.0 plugin names). Changing this file changes WIT_HASH: run
 // `node scripts/plugins/build-fixtures.mjs`.
-package lumen:plugin@1.0.0;
+package lumen:plugin@1.4.0;
 
 interface types {
   record entry { name: string, is-dir: bool, size: u64, modified: option<s64> }
@@ -12,6 +18,107 @@ interface types {
   record photo-meta { id: s64, captured-at: option<string>, camera: option<string>, lens: option<string>,
                       width: u32, height: u32, rating: u8, label: option<string>, flag: option<string>, place: option<string> }
   record tool { name: string, input-schema: string }
+
+  // API 1.1 (Round 24 §8.4–§8.6). New asset ids are u64.
+
+  /// One f32 tensor in or out of a model; `data` is row-major over `shape`.
+  record tensor { name: string, shape: list<u32>, data: list<f32> }
+  /// A vectors model of the manifest, or a vectors file the plugin wrote to its own storage.
+  variant vector-source { model(string), storage(string) }
+  /// One row of a vectors source: its index, the dot-product score and its payload row.
+  record neighbour { row: u32, score: f32, payload: list<f32> }
+
+  enum media-kind { photo, video }
+  /// Where a photo's place came from; a photo with no GPS has no `gps` at all.
+  enum gps-source { camera, estimated }
+  record gps { lat: f64, lon: f64, source: gps-source }
+  record asset {
+    id: u64,
+    /// Wall-clock capture time, `YYYY-MM-DDTHH:MM:SS`, and its UTC offset in minutes if known.
+    captured-at: option<string>,
+    offset-minutes: option<s32>,
+    file-name: string,
+    /// The folder it was imported from (`assets.source_dir`).
+    folder: option<string>,
+    kind: media-kind,
+    gps: option<gps>,
+    place: option<string>,
+    /// Burst or Live pair this asset belongs to.
+    group: option<string>,
+    camera: option<string>,
+  }
+  /// Every set field narrows the page (`since`/`until` are wall-clock times, inclusive);
+  /// `selection` keeps only the person's current selection.
+  record asset-filter {
+    has-gps: option<bool>,
+    since: option<string>,
+    until: option<string>,
+    album: option<s64>,
+    selection: bool,
+  }
+  record asset-page { items: list<asset>, next-cursor: option<string> }
+
+  // API 1.4 (Round 26 C3): what `library.details` adds to an asset. Read-only, from Lumen's own
+  // database; nothing here is a photo's bytes.
+  record asset-details {
+    id: u64,
+    /// Where the capture time came from: original (the shutter's clock), digitized, xmp, gps,
+    /// modified or file-time (the file's own date: no camera clock at all). None for photos
+    /// imported before Lumen recorded it.
+    capture-source: option<string>,
+    /// The title and caption the photo carries (its file, or the app it came from).
+    title: option<string>,
+    caption: option<string>,
+    /// Keywords the photo carries.
+    keywords: list<string>,
+    /// What Lumen's scene look saw (beach, sunset, group of people ...).
+    scene: list<string>,
+    /// Names of the people Lumen recognised and the person named, one per name.
+    people: list<string>,
+    /// Names of the albums the photo is in.
+    albums: list<string>,
+    /// The text Lumen read from the photo, line by line (at most 12 lines of 120 characters).
+    text: list<string>,
+  }
+
+  /// One candidate place; `confidence` is 0–1.
+  record candidate { lat: f64, lon: f64, confidence: f32, label: option<string> }
+  enum place-state { anchor, inferred, guess }
+  enum place-flag { far-from-group, impossible-speed, low-confidence }
+  /// A plugin's place for one asset: up to 5 candidates, best first.
+  record suggestion {
+    asset: u64,
+    candidates: list<candidate>,
+    state: place-state,
+    group: string,
+    group-label: string,
+    flag: option<place-flag>,
+  }
+  /// A place name from Lumen's offline atlas.
+  record place-hit { name: string, lat: f64, lon: f64, country: option<string> }
+  record move-to { assets: list<u64>, lat: f64, lon: f64 }
+  record split-at { group: string, at-asset: u64 }
+  /// What the person did on the Place review screen.
+  variant review-event { confirm(list<u64>), reject(list<u64>), move(move-to), split(split-at) }
+
+  // API 1.3 (Round 25 P4b): proposals for the review screen.
+
+  record lat-lon { lat: f64, lon: f64 }
+  /// A name for a face Lumen detected on that photo (never a new face).
+  record face-name { face: u64, name: string }
+  /// What a plugin proposes for one photo; the case is the kind. A date is wall-clock
+  /// `YYYY-MM-DDTHH:MM:SS`; a label is Red, Yellow, Green, Blue or Purple.
+  variant proposed {
+    location(lat-lon),
+    date(string),
+    tags(list<string>),
+    label(string),
+    person(face-name),
+    title(string),
+    caption(string),
+  }
+  /// `confidence` is 0–1; `reason` (≤ 200 characters) is shown beside the proposal.
+  record proposal { asset: u64, value: proposed, confidence: f32, reason: option<string> }
 }
 
 interface host {
@@ -54,6 +161,57 @@ interface importer {
   sidecars: func(key: string) -> list<item>;
 }
 
+/// Models the manifest declares, run natively by Lumen (needs `models`). Each call is one call
+/// against the 30 s limit; batch at most 32 assets per tool step.
+interface models {
+  use types.{tensor, vector-source, neighbour};
+  run: func(model: string, inputs: list<tensor>) -> result<list<tensor>, string>;
+  /// Lumen decodes the photo upright, resizes and normalises it per the manifest's `inputs`.
+  run-on-asset: func(model: string, asset: u64, input-name: string) -> result<list<tensor>, string>;
+  /// The `k` rows with the highest dot product with `query`, best first.
+  nearest: func(source: vector-source, query: list<f32>, k: u32) -> result<list<neighbour>, string>;
+}
+
+/// The library, read-only, 200 per page (needs `library.read`).
+interface library {
+  use types.{asset-filter, asset-page, asset-details};
+  assets: func(filter: asset-filter, cursor: option<string>) -> result<asset-page, string>;
+  /// API 1.4: details for up to 200 assets (their ids from `assets`). An id that isn't in the
+  /// library, or is in the trash, is left out.
+  details: func(ids: list<u64>) -> result<list<asset-details>, string>;
+}
+
+/// Places for the Place review screen (needs `places.write`). A plugin never writes a place.
+interface places {
+  use types.{suggestion, place-hit};
+  suggest: func(batch: list<suggestion>) -> result<_, string>;
+  lookup: func(name: string) -> list<place-hit>;
+}
+
+/// Proposals for the review screen (API 1.3). Each case needs its permission: location
+/// places.write, date dates.write, tags and label tags.write, title and caption captions.write,
+/// person people.write. At most 200 per call; one bad or ungranted proposal refuses the batch.
+/// One proposal per plugin, photo and kind: submitting again replaces it. Nothing changes
+/// until the person accepts it.
+interface proposals {
+  use types.{proposal};
+  submit: func(batch: list<proposal>) -> result<_, string>;
+}
+
+/// Answers the Place review screen: every person's action, and the suggestions it changed.
+interface review {
+  use types.{review-event, suggestion};
+  on-review: func(event: review-event) -> list<suggestion>;
+}
+
+/// What a plugin's settings page asks of it (API 1.2): a `button` control runs `action(name)`,
+/// a `stat` or `list` control reads `value(key)`. A stat's value is plain text; a list's is a
+/// JSON array of strings or `{"text": ..., "detail": ...}`.
+interface ui {
+  action: func(name: string) -> result<string, string>;
+  value: func(key: string) -> result<string, string>;
+}
+
 interface tools {
   use types.{tool};
   tools: func() -> list<tool>;
@@ -63,3 +221,15 @@ interface tools {
 world importer-plugin { import host; import chosen; import storage; export importer; }
 world tools-plugin    { import host; import photos; import drafts; import storage; export tools; }
 world full-plugin     { import host; import chosen; import photos; import drafts; import storage; export importer; export tools; }
+// API 1.1: a tools plugin that suggests places (Wayfinder).
+world places-plugin   { import host; import storage; import models; import library; import places; export tools; export review; }
+// API 1.2: a tools plugin with buttons, stats and lists on its settings page.
+world ui-plugin       { import host; import storage; export tools; export ui; }
+// API 1.3: a tools plugin that proposes dates, tags, labels, names, titles or captions.
+world proposals-plugin { import host; import storage; import library; import proposals; export tools; }
+// The host's view (photos-plugins binds it): every interface. No plugin targets it.
+world host-all {
+  import host; import chosen; import photos; import drafts; import storage;
+  import models; import library; import places; import proposals;
+  export importer; export tools; export review; export ui;
+}

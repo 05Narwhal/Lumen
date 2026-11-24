@@ -1,15 +1,18 @@
 import { useQueryClient } from "@tanstack/react-query";
 import { useCallback } from "react";
-import { open as openDialog } from "@tauri-apps/plugin-dialog";
+import { useInRouterContext, useNavigate } from "react-router";
+import { pickFolder } from "@/lib/dialogs";
 import { openAlbumPicker } from "@/components/album-picker/store";
 import type { MenuItem } from "@/components/context-menu";
 import { toast } from "@/components/toast";
 import { isMac } from "@/components/window-controls";
 import { invalidateLibraryData } from "@/lib/events";
+import { openDevelop } from "@/lib/develop-source";
 import { requestFaceTagging } from "@/lib/face-tagging";
 import { appsFor, chooseAnotherApp, defaultFor, editIn, useExternalApps, type MediaFacts } from "@/lib/external-apps";
 import { invoke, isAppError } from "@/lib/ipc";
 import { photoMenu } from "@/lib/menus";
+import { useMenuContributions } from "@/lib/plugin-slots";
 import { rotatePhotos } from "@/lib/rotate";
 import { inHiddenFolder, moveToHidden } from "@/lib/vault";
 import { clearSelection } from "./use-selection";
@@ -22,6 +25,10 @@ export function useTileActions() {
   const { setFavorite } = useFavorites();
   const { setRating } = useRatings();
   const { apps, defaults } = useExternalApps();
+  // Every grid renders under the router; a hook test without one simply gets no *Develop*. The
+  // branch never changes for a mounted component, so the hook order stays stable.
+  const navigate = useInRouterContext() ? useNavigate() : null;
+  const contributions = useMenuContributions("library.selection-menu", navigate);
 
   const trash = useCallback(
     async (ids: number[]) => {
@@ -50,7 +57,7 @@ export function useTileActions() {
 
   // Copies the originals into a folder the user picks. Copies, never moves.
   const copyTo = useCallback(async (ids: number[]) => {
-    const dir = await openDialog({ directory: true, multiple: false, title: "Copy files to…" });
+    const dir = await pickFolder({ title: "Copy files to…" });
     if (typeof dir !== "string") return;
     try {
       const n = await invoke<number>("copy_assets_to", { ids, dir });
@@ -70,10 +77,16 @@ export function useTileActions() {
           rating: ctx.rating,
           inHidden: inHiddenFolder(),
           mac: isMac(),
+          contributions,
           openWith: ctx.media && { apps: appsFor(apps, ctx.media), defaultApp: defaultFor(ctx.media, apps, defaults), mac: isMac() },
         },
         {
           open: ctx.onOpen,
+          // Stills only: a video has nothing to develop.
+          develop:
+            navigate && ctx.media?.length === 1 && ctx.media[0].mediaType !== 1
+              ? (id) => openDevelop(navigate, {}, id)
+              : undefined,
           favorite: (ids, on) => void setFavorite(ids, on),
           rate: (ids, stars) => void setRating(ids, stars, ids.length === 1 ? (ctx.rating ?? 0) : undefined),
           addToAlbum: openAlbumPicker,
@@ -97,7 +110,7 @@ export function useTileActions() {
           trash: (ids) => void trash(ids),
         },
       ),
-    [setFavorite, setRating, reveal, trash, copyTo, rotate, qc, apps, defaults],
+    [setFavorite, setRating, reveal, trash, copyTo, rotate, qc, apps, defaults, navigate, contributions],
   );
 
   return { trash, reveal, copyTo, rotate, menuItemsFor, setFavorite };

@@ -41,7 +41,7 @@ export function useSettings() {
     },
     [qc, mutate],
   );
-  return { settings: query.data, isLoading: query.isLoading, update };
+  return { settings: query.data, isLoading: query.isLoading, error: query.error, update };
 }
 
 /**

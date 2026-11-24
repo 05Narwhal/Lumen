@@ -15,7 +15,7 @@ export function MemoryCard({ memory }: { memory: MemorySummary }) {
   const [loaded, setLoaded] = useState(false);
   const { play, onContextMenu } = useMemoryActions(memory);
   return (
-    <div className="memory-card" data-hidden={memory.hidden} onContextMenu={onContextMenu}>
+    <div className="memory-card" data-part="card" data-hidden={memory.hidden} onContextMenu={onContextMenu}>
       <Link to={`/memories/${memory.id}`} className="memory-card__link">
         {memory.coverAssetId != null && (
           <img className="memory-card__img" src={mediaUrl("thumb", memory.coverAssetId, { s: 1024 })} alt="" loading="lazy" data-loaded={loaded} onLoad={() => setLoaded(true)} />

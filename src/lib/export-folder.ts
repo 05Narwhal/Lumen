@@ -1,4 +1,4 @@
-import { open } from "@tauri-apps/plugin-dialog";
+import { pickFolder } from "@/lib/dialogs";
 
 /**
  * Where exports go (Round 6): every export asks with the system's folder dialog, opening on
@@ -16,7 +16,7 @@ export function lastExportFolder(): string | null {
 
 /** The folder picked, remembered for next time; `null` when the dialog was cancelled. */
 export async function askExportFolder(title = "Export to…"): Promise<string | null> {
-  const picked = await open({ directory: true, multiple: false, title, defaultPath: lastExportFolder() ?? undefined });
+  const picked = await pickFolder({ title, defaultPath: lastExportFolder() ?? undefined });
   if (typeof picked !== "string") return null;
   try {
     localStorage.setItem(KEY, picked);

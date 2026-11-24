@@ -5,7 +5,9 @@ import { listen } from "@tauri-apps/api/event";
 import { useEffect, useRef, useState } from "react";
 import { invoke } from "@/lib/ipc";
 import { oklchToRgb } from "@/lib/oklch";
-import { applyPluginThemes, PLUGIN_THEMES_KEY, resolveTheme, usePluginThemes } from "@/lib/plugin-theme";
+import { applyPluginThemes, PLUGIN_THEMES_KEY, resolveTheme, useInstalledThemes } from "@/lib/plugin-theme";
+import { queryKeys } from "@/lib/query-keys";
+import type { Settings } from "@/types/generated/Settings";
 import { useSettings } from "./use-settings";
 
 /**
@@ -25,16 +27,16 @@ import { useSettings } from "./use-settings";
  * an animation in flight. Measured in the real webview: the thumb reported
  * `transitionrun:transform` on frame 0 and `transitioncancel:transform` on frame 2.
  *
- * A plugin theme (Round 23) keeps `data-theme` on its built-in base and adds
- * `data-plugin-theme="<plugin>/<id>"`; the CSS for it is one `<style id="plugin-themes">`, filled
- * at start and whenever `plugins://changed`. One whose plugin is off or gone shows the default
- * theme.
+ * An installed theme (a `.lumentheme`, Round 26) keeps `data-theme` on its built-in base and adds
+ * `data-plugin-theme="<id>/theme"`; the CSS for it is one `<style id="plugin-themes">`, filled
+ * at start and whenever `plugins://changed`. One that is gone shows the default theme. Rust
+ * changes the theme setting itself (`theme_apply`): `app://settings-changed` refreshes it here.
  */
 export function useApplyTheme() {
   const { settings } = useSettings();
   const { setColorScheme } = useMantineColorScheme({ keepTransitions: true });
   const queryClient = useQueryClient();
-  const plugins = usePluginThemes();
+  const plugins = useInstalledThemes();
   // Bumped each time the plugin CSS has been (re)written, so the boot colours are read from it.
   const [cssVersion, setCssVersion] = useState(0);
   const choice = settings?.appearance?.theme;
@@ -52,13 +54,18 @@ export function useApplyTheme() {
     let live = true;
     const refresh = () => void applyPluginThemes().then(() => live && setCssVersion((v) => v + 1));
     refresh();
-    const unlisten = listen("plugins://changed", () => {
+    const changed = listen("plugins://changed", () => {
       void queryClient.invalidateQueries({ queryKey: PLUGIN_THEMES_KEY });
       refresh();
     });
+    const settingsChanged = listen<Settings>("app://settings-changed", (e) => {
+      if (e.payload) queryClient.setQueryData(queryKeys.settings, e.payload);
+      else void queryClient.invalidateQueries({ queryKey: queryKeys.settings });
+    });
     return () => {
       live = false;
-      void unlisten.then((f) => f()).catch(() => {});
+      void changed.then((f) => f()).catch(() => {});
+      void settingsChanged.then((f) => f()).catch(() => {});
     };
   }, [queryClient]);
 
@@ -66,6 +73,12 @@ export function useApplyTheme() {
     if (!base || !scheme) return;
     const root = document.documentElement;
     root.dataset.theme = base;
+    // Read by index.html's inline script on the next launch (Round 24 §6.3).
+    try {
+      localStorage.setItem(THEME_KEY, base);
+    } catch {
+      // Storage may be unavailable; the next launch starts on the default theme until settings load.
+    }
     if (pluginTheme) root.dataset.pluginTheme = pluginTheme;
     else delete root.dataset.pluginTheme;
     root.dataset.reducedMotion = String(reduceMotion ?? false);
@@ -79,6 +92,13 @@ export function useApplyTheme() {
     return () => cancelAnimationFrame(frame);
   }, [base, pluginTheme, scheme, reduceMotion, cssVersion]);
 }
+
+/**
+ * The built-in theme in use, read by index.html before any script runs so the splash (and a
+ * start that sticks before settings load) is already in the person's theme, not the default
+ * (Round 24 §6.3). The key is shared with that script.
+ */
+export const THEME_KEY = "lumen.theme";
 
 /** Read by the inline script in index.html; the key is shared with it. */
 export const BOOT_COLOURS_KEY = "lumen.boot-colours";

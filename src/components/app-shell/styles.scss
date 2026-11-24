@@ -1,16 +1,35 @@
+// The window is a grid of named areas (Round 26, THEMES.md *Parts*): a theme's `theme.css` moves
+// the sidebar by writing `grid-template-areas` on `[data-part="shell"]`. The body is only a
+// wrapper, so the title bar and the page are the grid's own children.
 .app-shell {
-  display: flex;
+  display: grid;
+  // The sidebar's column: none without one (Settings), the rail when it is collapsed. `:where`
+  // keeps the variants at the shell's own specificity, so a theme's `grid-template-columns` wins.
+  grid-template-columns: 0 minmax(0, 1fr);
+  grid-template-rows: var(--titlebar-h) minmax(0, 1fr);
+  grid-template-areas:
+    "sidebar titlebar"
+    "sidebar main";
+  transition: grid-template-columns var(--motion-base) var(--ease);
   height: 100%;
   position: relative;
 
-  &__body {
-    flex: 1;
+  &:where(:has(> .sidebar)) { grid-template-columns: var(--sidebar-w) minmax(0, 1fr); }
+  &:where(:has(> .sidebar[data-collapsed="true"])) { grid-template-columns: var(--rail-w) minmax(0, 1fr); }
+
+  &__body { display: contents; }
+
+  // Banners and the page: the `main` area.
+  &__content {
+    grid-area: main;
     min-width: 0;
+    min-height: 0;
     display: flex;
     flex-direction: column;
   }
 
   &__titlebar {
+    grid-area: titlebar;
     height: var(--titlebar-h);
     display: flex;
     justify-content: flex-end;

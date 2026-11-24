@@ -402,9 +402,9 @@ impl Engine {
 
 // *========== BUILD-TIME APPLICATION ID ==========*
 
-/// The Discord Application ID, embedded at build time from `LUMEN_DISCORD_CLIENT_ID` or a
-/// git-ignored id file (`build.rs`). A public identifier, but per-deployment: nothing is
-/// compiled in by default. `None` means Settings hides the section and no worker starts.
+/// The Discord Application ID, embedded at build time (`build.rs`) from the tracked
+/// `src-tauri/discord_client_id.txt`; `LUMEN_DISCORD_CLIENT_ID` overrides it. A public
+/// identifier. `None` (a build with neither) means Settings hides the section and no worker starts.
 pub fn client_id() -> Option<&'static str> {
     resolve_client_id(option_env!("LUMEN_DISCORD_CLIENT_ID"))
 }
@@ -528,6 +528,13 @@ mod tests {
     use std::io;
     use std::sync::{mpsc, Arc, Mutex};
     use std::time::{Duration, Instant};
+
+    #[test]
+    fn client_id_is_baked_into_a_clean_build() {
+        // The id is a tracked file (src-tauri/discord_client_id.txt), so a build with no
+        // environment still has the Discord status.
+        assert!(client_id().is_some(), "no Discord application id was baked in");
+    }
 
     const ALL: [PresenceScreen; 4] =
         [PresenceScreen::Browsing, PresenceScreen::Viewing, PresenceScreen::Developing, PresenceScreen::Slideshow];

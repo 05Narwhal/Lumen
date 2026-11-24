@@ -4,7 +4,7 @@
 # toolchain. Not part of the src-tauri workspace.
 [workspace]
 resolver = "2"
-members = ["importer_ok", "tools_ok", "socket", "file", "endless", "memory_hog", "undeclared", "trap", "wit_hash"]
+members = ["importer_ok", "tools_ok", "socket", "file", "endless", "memory_hog", "undeclared", "trap", "review_ok", "ui_ok", "proposals_ok", "wit_hash"]
 
 [workspace.dependencies]
 wit-bindgen = "0.63"

@@ -224,7 +224,7 @@ mod tests {
         vec![
             (
                 "plugin.toml",
-                manifest("[[themes]]\nfile = \"themes/a.toml\"").into_bytes(),
+                manifest("[[prompts]]\nname = \"a\"\ndescription = \"d\"\nfile = \"themes/a.toml\"").into_bytes(),
             ),
             ("themes/a.toml", b"x = 1".to_vec()),
         ]

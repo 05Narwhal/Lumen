@@ -14,7 +14,27 @@ Lumen is free GPL software, so the rule is about training data and the weights' 
 
 ## Non-commercial weights (CC-BY-NC-4.0)
 
-None yet.
+### Lumen Wayfinder 1.0 — `wayfinder-image-fp16.onnx`, `wayfinder-location.onnx`, `wayfinder-gallery.bin`
+
+- **What:** GeoCLIP (Vivanco, Nayak, Jha and Shah, *GeoCLIP: Clip-Inspired Alignment between Locations and Images for Effective Worldwide Geo-localization*, NeurIPS 2023), exported to ONNX by `scripts/ml/export_wayfinder.py` (opset 17). Nothing is trained or fine-tuned: the files are GeoCLIP's own weights in another format.
+  - `wayfinder-image-fp16.onnx`: CLIP ViT-L/14 vision tower + visual projection + GeoCLIP's image MLP, L2-normalised 512-d output, weights fp16 with fp32 input and output.
+  - `wayfinder-location.onnx`: GeoCLIP's location encoder (equal-earth projection, three random-Fourier-feature capsules), fp32, unit-length 512-d output.
+  - `wayfinder-gallery.bin`: the location encoder run over GeoCLIP's 100,000-coordinate gallery once (header `LWVG`, version 1, rows, dim, dtype 1 = f16; f16 matrix; f32 lat/lon rows). A `kind = "vectors"` model: the host ranks it (`models.nearest`).
+- **Source:** `geoclip` 1.3.0 on PyPI (https://github.com/VicenteVivan/geo-clip, code and weights MIT) and OpenAI's `openai/clip-vit-large-patch14` (MIT). Checkpoint SHA-256: `image_encoder_mlp_weights.pth` 5342c391eec961796d04d02f2bd670bfa97b34ce32c656d0e0676581103c2c14, `location_encoder_weights.pth` 94b80ae3af89fca78539e129dd2929d321247f5ceeeb0a31bc2c31041a253394, `logit_scale_weights.pth` 9568e2e09dd19083082bf285b2c0c126867e40dbd275a8ee8c621888b861904e, `coordinates_100K.csv` 3a00b1ba58f13443db726533b6399b39609e292df09d4e58792fa5949d1838b1, CLIP `model.safetensors` a2bf730a0c7debf160f7a6b50b3aaf3703e7e88ac73de7a314903141db026dcb.
+- **Licence:** `CC-BY-NC-4.0`. The code and weights of GeoCLIP and CLIP are MIT, but GeoCLIP was trained on MP-16 (Flickr photos under mixed licences, some non-commercial), so Lumen publishes the exported files under the stricter rule above and credits GeoCLIP and its authors in the plugin's README. `models.json` / the plugin manifest `licence` string starts with `CC-BY-NC-4.0`.
+- **Files (2026-11-21 export):**
+
+  | File | Bytes | SHA-256 | BLAKE3 |
+  |---|---|---|---|
+  | `wayfinder-image-fp16.onnx` | 610,526,312 | 28c5503f2871b3f65ed12525f75b53b0e4e13a087da763a56548314da1a717bd | f38c7758a7ebe02bb23c52ac7618d26531e755cc6cc5c23f63b6e2bab274b98f |
+  | `wayfinder-location.onnx` | 37,810,602 | b95c9f8564a8506afc87b8865974b1cf2b2e1919e7d584155d97a18fc80089bb | 33403c52f9b3b3d151867a745bf45879faea46fd77cb8792f281a4eac5aef87c |
+  | `wayfinder-gallery.bin` | 103,200,020 | 7045889ad1845f9b26058df39424c2b42889c6e1cccdd33aa55c7eb3bfe56b36 | 49d33cec1f7d93fa00ea6de8e40903c7e83efaced57b722c218fcc2f3abbab40 |
+
+- **Used for:** the Wayfinder plugin (`jl.wayfinder`, Round 24): a guess of where a photo without GPS was taken, kept as a suggestion until the person confirms it.
+- **Checked:** `photos-ml/tests/wayfinder_model.rs` holds the ONNX image encoder to PyTorch on five CC0 photos (cosine ≥ 0.99 and the same top-1 gallery place, on CPU and DirectML).
+- **Measured (Round 24 W2 Step 3, `scripts/ml/eval_wayfinder.py`):** on 500 camera-GPS photos of a library copy with their location hidden, raw GeoCLIP has a median error of 526 km (63 % within 750 km) and runs at 21.6 photos/s on DirectML including decode (FindMyPhoto's CPU PyTorch path: 0.16 photos/s). PLONK_YFCC, the challenger, was slower (0.59 photos/s) and less accurate, so it is **not adopted**. Numbers in the plan's W2 *As built*.
+- **Why fp16 for the image tower only:** it halves the 1.2 GB fp32 file at a cosine of 0.9998 to PyTorch on random input; the location encoder stays fp32 because its Fourier features at sigma 256 are sensitive to rounding.
+- **Not in the repo:** the weights are uploaded by hand as a release asset (never committed).
 
 ## clip-vit-b32-image-fp16.onnx — `clip-vit-b32-fp16@1`
 
@@ -105,6 +125,10 @@ The rule for permissively licensed weights (ML design §2.8): the licence of the
 
 **Verdict (measured on public data only, `scripts/ml/eval_pets.py`; Julian chose at the gate):** shipped **D-FINE-S, COCO-only** (`dfine-s-coco@1`, `pet-dfine-s-coco.onnx`, 41.8 MB, fp32 because in fp16 it finds nothing) and **DINOv2 ViT-S/14** (`dinov2-vits14-fp16@1`, `pet-dinov2-vits14-fp16.onnx`, 44.3 MB). D-FINE on COCO val2017 at 0.5, one reading per animal: cats 90 %, dogs 87 %, precision 0.90. DINOv2 on DogFaceNet (500 dogs, 2,323 detector crops; CC BY 4.0, evaluation only, not shipped): AUC 0.977 against the CLIP tower's 0.874, so CLIP alone was not enough. The shipped CLIP tower still checks each crop (drawing / toy) and settles cat or dog when ≥ 0.95 sure (`species:*` prototypes). Both files go on the `models-v1` release beside the others. Regression fixtures: three public-domain White House photos of Socks the Cat and Buddy the Dog (US federal works, Wikimedia Commons / DPLA).
 
+**Evaluation data** (used to measure, never shipped, never trained on): Cat Individual Images (518 cats, CC BY 4.0), DogFaceNet (1,393 dogs, CC BY 4.0), Dogs-World (126,550 dogs, CC0), COCO val2017 cats, dogs and other animals (annotations CC BY 4.0), Oxford-IIIT Pet (CC BY-SA 4.0). PetFace is not used (non-commercial, research institutions only).
+
+**Test fixtures in the repo** (never in the app bundle): `photos-ml/tests/fixtures/socks-buddy-*.jpg`, three White House photographs of Socks the Cat and Buddy the Dog: US federal works, public domain (Wikimedia Commons, via DPLA).
+
 ## Excluded
 
 - **Ultralytics YOLO** (v5/v8/v11 and their weights): AGPL-3.0 — fails §2.8.
@@ -112,7 +136,7 @@ The rule for permissively licensed weights (ML design §2.8): the licence of the
 - **`AvitoTech/DINO-v2-small-for-animal-identification`** (and its SigLIP2/CLIP siblings): weights Apache-2.0, but fine-tuned on **PetFace**, whose repository states "Our PetFace dataset, code in this repository, and pretrained models are for non-commercial research purpose only". Excluded for a commercial release.
 - **PetFace** itself: non-commercial research only; not used even for evaluation.
 
-## Open question: training data (see `docs/LICENSING-AUDIT.md`)
+## Open question: training data
 
 - **YuNet** (`yunet-2026may@1`): weights MIT, trained on WIDER FACE, which is **CC BY-NC-ND**. **SFace**: weights Apache-2.0, training data unclear (opencv_zoo#313). Whether a model inherits its training data's non-commercial terms is unsettled; moot for a non-commercial project, but a fork that sells Lumen should look again.
 

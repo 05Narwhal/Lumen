@@ -1,0 +1,67 @@
+{
+  "recipeVersion": 3,
+  "name": "Daylight Slide",
+  "develop": {
+    "basic": {
+      "temperature": -3,
+      "contrast": 0.22,
+      "saturation": 0.18,
+      "clarity": 0.1,
+      "dehaze": 0.1
+    },
+    "hsl": [
+      {
+        "h": 0,
+        "s": 0,
+        "l": 0
+      },
+      {
+        "h": 0,
+        "s": 0,
+        "l": 0
+      },
+      {
+        "h": 0,
+        "s": 0,
+        "l": 0
+      },
+      {
+        "h": 0,
+        "s": 0.08,
+        "l": 0
+      },
+      {
+        "h": 0,
+        "s": 0,
+        "l": 0
+      },
+      {
+        "h": 0,
+        "s": 0.12,
+        "l": 0
+      },
+      {
+        "h": 0,
+        "s": 0,
+        "l": 0
+      },
+      {
+        "h": 0,
+        "s": 0,
+        "l": 0
+      }
+    ]
+  },
+  "panels": [
+    "basic",
+    "hsl"
+  ],
+  "look": {
+    "intent": "Clean daylight reversal film: bright skies, vivid greens, firm contrast",
+    "hues": [],
+    "mono": false,
+    "key": "high",
+    "skinSafe": false,
+    "likesSky": true
+  }
+}

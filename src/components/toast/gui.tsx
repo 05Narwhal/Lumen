@@ -5,7 +5,7 @@ import "./styles.scss";
 export function Toaster() {
   const { toasts } = toastStore.use();
   return (
-    <div className="toaster" aria-live="polite">
+    <div className="toaster" data-part="toast" aria-live="polite">
       <AnimatePresence initial={false}>
         {toasts.map((t) => (
           <motion.div

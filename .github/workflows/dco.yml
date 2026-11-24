@@ -8,8 +8,6 @@ permissions:
 
 jobs:
   signoff:
-    if: github.actor != 'dependabot[bot]'
-    runs-on: ubuntu-latest
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4

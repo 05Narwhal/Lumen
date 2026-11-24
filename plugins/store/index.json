@@ -1,0 +1,325 @@
+{
+  "version": 1,
+  "plugins": [
+    {
+      "id": "jl.disk-atlas",
+      "name": "Disk Atlas",
+      "author": "JL Studios",
+      "jl": true,
+      "summary": "Uses Disk Atlas for Lumen's file and folder dialogs and for Show in folder, when Disk Atlas is installed.",
+      "kinds": [],
+      "permissions": [],
+      "icon": "https://github.com/05Narwhal/lumen-plugins/releases/download/packages-1/disk-atlas-icon.png",
+      "readme": "https://github.com/05Narwhal/lumen-plugins/releases/download/packages-1/disk-atlas-README.md",
+      "screenshots": [
+        "https://github.com/05Narwhal/lumen-plugins/releases/download/packages-1/disk-atlas-settings.png"
+      ],
+      "authorUrl": "https://github.com/05Narwhal",
+      "repository": "https://github.com/05Narwhal/lumen-plugins",
+      "latest": {
+        "version": "1.0.0",
+        "api": "1.2.0",
+        "url": "https://github.com/05Narwhal/lumen-plugins/releases/download/packages-1/disk-atlas.lumenplugin",
+        "blake3": "c2ae5c4535026c5be7c7ff919990dc10ef01d30870fbff429e36a58f5f1ad128",
+        "size": 90169,
+        "released": "2026-11-24"
+      }
+    },
+    {
+      "id": "jl.wayfinder",
+      "name": "Wayfinder",
+      "author": "JL Studios",
+      "jl": true,
+      "summary": "Guesses where photos without a location were taken, from what they show, when they were taken and where you have been. You check the guesses before anything is saved.",
+      "kinds": [
+        "tools"
+      ],
+      "permissions": [
+        "models",
+        "library.read",
+        "places.write",
+        "originals.gps",
+        "storage"
+      ],
+      "icon": "https://github.com/05Narwhal/lumen-plugins/releases/download/packages-1/wayfinder-icon.png",
+      "readme": "https://github.com/05Narwhal/lumen-plugins/releases/download/packages-1/wayfinder-README.md",
+      "screenshots": [
+        "https://github.com/05Narwhal/lumen-plugins/releases/download/packages-1/wayfinder-place-review.png"
+      ],
+      "authorUrl": "https://github.com/05Narwhal",
+      "repository": "https://github.com/05Narwhal/lumen-plugins",
+      "latest": {
+        "version": "1.0.0",
+        "api": "1.2.0",
+        "url": "https://github.com/05Narwhal/lumen-plugins/releases/download/packages-1/wayfinder.lumenplugin",
+        "blake3": "3357153011d2ddc931000cebead4739e34aab0c00bb829352c731c00e04bfccf",
+        "size": 569434,
+        "released": "2026-11-24"
+      }
+    },
+    {
+      "id": "studio.jl.takeout",
+      "name": "Google Takeout",
+      "author": "JL Studios",
+      "jl": true,
+      "summary": "Imports a Google Takeout of Google Photos: dates, places, titles, descriptions, favourites and albums come from the JSON files next to each photo.",
+      "kinds": [
+        "importer"
+      ],
+      "permissions": [
+        "import.read-chosen"
+      ],
+      "icon": "https://github.com/05Narwhal/lumen-plugins/releases/download/packages-1/takeout-icon.png",
+      "readme": "https://github.com/05Narwhal/lumen-plugins/releases/download/packages-1/takeout-README.md",
+      "screenshots": [
+        "https://github.com/05Narwhal/lumen-plugins/releases/download/packages-1/takeout-import.png"
+      ],
+      "authorUrl": "https://github.com/05Narwhal",
+      "repository": "https://github.com/05Narwhal/lumen-plugins",
+      "latest": {
+        "version": "1.1.0",
+        "api": "1.0.0",
+        "url": "https://github.com/05Narwhal/lumen-plugins/releases/download/packages-1/takeout.lumenplugin",
+        "blake3": "8b91ef33e10a0c13752eee72ad4b2066bb1d55860d9d5d32b31adc960efca837",
+        "size": 224356,
+        "released": "2026-11-24"
+      }
+    },
+    {
+      "id": "jl.film-lab",
+      "name": "Film Lab",
+      "author": "JL Studios",
+      "jl": true,
+      "summary": "Thirty film-inspired looks for Develop: warm and cool colour negatives, slides, faded prints, cinema colour, black and white and cross-processing.",
+      "kinds": [
+        "presets"
+      ],
+      "permissions": [],
+      "icon": "https://github.com/05Narwhal/lumen-plugins/releases/download/packages-1/film-lab-icon.png",
+      "readme": "https://github.com/05Narwhal/lumen-plugins/releases/download/packages-1/film-lab-README.md",
+      "screenshots": [
+        "https://github.com/05Narwhal/lumen-plugins/releases/download/packages-1/film-lab-looks.png"
+      ],
+      "authorUrl": "https://github.com/05Narwhal",
+      "repository": "https://github.com/05Narwhal/lumen-plugins",
+      "latest": {
+        "version": "1.0.0",
+        "api": "1.0.0",
+        "url": "https://github.com/05Narwhal/lumen-plugins/releases/download/packages-1/film-lab.lumenplugin",
+        "blake3": "730e90aad0f02dc2efe27cb403534a56b2e1389071be70bfc7927534a28d3b38",
+        "size": 146325,
+        "released": "2026-11-24"
+      }
+    },
+    {
+      "id": "jl.clockwork",
+      "name": "Clockwork",
+      "author": "JL Studios",
+      "jl": true,
+      "summary": "Finds a camera whose clock was off by lining its photos up with your phone's, and proposes corrected dates you review before anything changes.",
+      "kinds": [
+        "tools"
+      ],
+      "permissions": [
+        "library.read",
+        "dates.write"
+      ],
+      "icon": "https://github.com/05Narwhal/lumen-plugins/releases/download/packages-1/clockwork-icon.png",
+      "readme": "https://github.com/05Narwhal/lumen-plugins/releases/download/packages-1/clockwork-README.md",
+      "screenshots": [
+        "https://github.com/05Narwhal/lumen-plugins/releases/download/packages-1/clockwork-how-it-works.png"
+      ],
+      "authorUrl": "https://github.com/05Narwhal",
+      "repository": "https://github.com/05Narwhal/lumen-plugins",
+      "latest": {
+        "version": "1.0.0",
+        "api": "1.4.0",
+        "url": "https://github.com/05Narwhal/lumen-plugins/releases/download/packages-1/clockwork.lumenplugin",
+        "blake3": "aba11af626b4afa6fe5f46239a786160dcc825b35211c7b8e0b05dcb712d189b",
+        "size": 183691,
+        "released": "2026-11-24"
+      }
+    },
+    {
+      "id": "jl.captioner",
+      "name": "Captioner",
+      "author": "JL Studios",
+      "jl": true,
+      "summary": "Suggests titles and captions from the people, places, scenes and text Lumen already knows in each photo. You review every one.",
+      "kinds": [
+        "tools"
+      ],
+      "permissions": [
+        "library.read",
+        "captions.write",
+        "storage"
+      ],
+      "icon": "https://github.com/05Narwhal/lumen-plugins/releases/download/packages-1/captioner-icon.png",
+      "readme": "https://github.com/05Narwhal/lumen-plugins/releases/download/packages-1/captioner-README.md",
+      "screenshots": [
+        "https://github.com/05Narwhal/lumen-plugins/releases/download/packages-1/captioner-what-it-writes.png"
+      ],
+      "authorUrl": "https://github.com/05Narwhal",
+      "repository": "https://github.com/05Narwhal/lumen-plugins",
+      "latest": {
+        "version": "1.0.0",
+        "api": "1.4.0",
+        "url": "https://github.com/05Narwhal/lumen-plugins/releases/download/packages-1/captioner.lumenplugin",
+        "blake3": "f2f48448548f7c3ac7bcfb8cf6dd634e3819511df6c6173e3ee5db94d2e0ed23",
+        "size": 186191,
+        "released": "2026-11-24"
+      }
+    }
+  ],
+  "featured": "jl.wayfinder",
+  "themes": [
+    {
+      "id": "jl.nocturne",
+      "name": "Nocturne",
+      "author": "JL Studios",
+      "jl": true,
+      "summary": "Inky violet, quiet and deep, for editing late.",
+      "icon": "https://github.com/05Narwhal/lumen-plugins/releases/download/packages-1/nocturne-icon.png",
+      "readme": "https://github.com/05Narwhal/lumen-plugins/releases/download/packages-1/nocturne-README.md",
+      "screenshots": [
+        "https://github.com/05Narwhal/lumen-plugins/releases/download/packages-1/nocturne-library-dark.png",
+        "https://github.com/05Narwhal/lumen-plugins/releases/download/packages-1/nocturne-library-light.png"
+      ],
+      "tags": [
+        "dark",
+        "colourful"
+      ],
+      "tokens": {
+        "light": {
+          "bg": "oklch(97% 0.01 300)",
+          "surface": "oklch(100% 0 0)",
+          "sidebar": "oklch(95% 0.015 300)",
+          "fg": "oklch(22% 0.03 300)",
+          "fg2": "oklch(40% 0.03 300)",
+          "accent": "oklch(50% 0.18 300)",
+          "placeholder": "oklch(94% 0.02 300)",
+          "radius": "8px",
+          "gap": "4px"
+        },
+        "dark": {
+          "bg": "oklch(15% 0.03 300)",
+          "surface": "oklch(19% 0.035 300)",
+          "sidebar": "oklch(13% 0.03 300)",
+          "fg": "oklch(94% 0.01 300)",
+          "fg2": "oklch(78% 0.03 300)",
+          "accent": "oklch(72% 0.17 300)",
+          "placeholder": "oklch(12% 0.03 300)",
+          "radius": "8px",
+          "gap": "4px"
+        }
+      },
+      "latest": {
+        "version": "1.0.0",
+        "api": "1.4.0",
+        "url": "https://github.com/05Narwhal/lumen-plugins/releases/download/packages-1/nocturne.lumentheme",
+        "blake3": "0534f73e5ada96d503a659e003eea018774e4ab66ff51a013b8e0e8fe93e3d56",
+        "size": 1234403,
+        "released": "2026-11-24"
+      }
+    },
+    {
+      "id": "jl.coastline",
+      "name": "Coastline",
+      "author": "JL Studios",
+      "jl": true,
+      "summary": "Teal water and warm sand, with rounder corners.",
+      "icon": "https://github.com/05Narwhal/lumen-plugins/releases/download/packages-1/coastline-icon.png",
+      "readme": "https://github.com/05Narwhal/lumen-plugins/releases/download/packages-1/coastline-README.md",
+      "screenshots": [
+        "https://github.com/05Narwhal/lumen-plugins/releases/download/packages-1/coastline-library-dark.png",
+        "https://github.com/05Narwhal/lumen-plugins/releases/download/packages-1/coastline-library-light.png"
+      ],
+      "tags": [
+        "light",
+        "colourful"
+      ],
+      "tokens": {
+        "light": {
+          "bg": "oklch(97% 0.02 90)",
+          "surface": "oklch(99% 0.01 90)",
+          "sidebar": "oklch(94% 0.03 100)",
+          "fg": "oklch(24% 0.03 220)",
+          "fg2": "oklch(40% 0.03 220)",
+          "accent": "oklch(48% 0.1 195)",
+          "placeholder": "oklch(93% 0.035 190)",
+          "radius": "16px",
+          "gap": "8px"
+        },
+        "dark": {
+          "bg": "oklch(20% 0.03 220)",
+          "surface": "oklch(25% 0.035 220)",
+          "sidebar": "oklch(18% 0.03 220)",
+          "fg": "oklch(94% 0.01 90)",
+          "fg2": "oklch(80% 0.03 200)",
+          "accent": "oklch(74% 0.1 190)",
+          "placeholder": "oklch(17% 0.03 220)",
+          "radius": "16px",
+          "gap": "8px"
+        }
+      },
+      "latest": {
+        "version": "1.0.0",
+        "api": "1.4.0",
+        "url": "https://github.com/05Narwhal/lumen-plugins/releases/download/packages-1/coastline.lumentheme",
+        "blake3": "b6ddb96b64afe98f220b145f24957d1312392d35a196e45d2e950d043821fd82",
+        "size": 1230392,
+        "released": "2026-11-24"
+      }
+    },
+    {
+      "id": "jl.paper-mill",
+      "name": "Paper Mill",
+      "author": "JL Studios",
+      "jl": true,
+      "summary": "Warm paper with the navigation along the top.",
+      "icon": "https://github.com/05Narwhal/lumen-plugins/releases/download/packages-1/paper-mill-icon.png",
+      "readme": "https://github.com/05Narwhal/lumen-plugins/releases/download/packages-1/paper-mill-README.md",
+      "screenshots": [
+        "https://github.com/05Narwhal/lumen-plugins/releases/download/packages-1/paper-mill-library-dark.png",
+        "https://github.com/05Narwhal/lumen-plugins/releases/download/packages-1/paper-mill-library-light.png"
+      ],
+      "tags": [
+        "light",
+        "layout"
+      ],
+      "tokens": {
+        "light": {
+          "bg": "oklch(96% 0.02 85)",
+          "surface": "oklch(99% 0.01 85)",
+          "sidebar": "oklch(94% 0.025 82)",
+          "fg": "oklch(26% 0.02 60)",
+          "fg2": "oklch(40% 0.03 60)",
+          "accent": "oklch(50% 0.12 40)",
+          "placeholder": "oklch(92% 0.03 80)",
+          "radius": "4px",
+          "gap": "4px"
+        },
+        "dark": {
+          "bg": "oklch(22% 0.02 60)",
+          "surface": "oklch(26% 0.02 60)",
+          "sidebar": "oklch(24% 0.02 60)",
+          "fg": "oklch(92% 0.02 85)",
+          "fg2": "oklch(78% 0.03 75)",
+          "accent": "oklch(72% 0.12 50)",
+          "placeholder": "oklch(19% 0.02 60)",
+          "radius": "4px",
+          "gap": "4px"
+        }
+      },
+      "latest": {
+        "version": "1.0.0",
+        "api": "1.4.0",
+        "url": "https://github.com/05Narwhal/lumen-plugins/releases/download/packages-1/paper-mill.lumentheme",
+        "blake3": "545e109ef0dce964e6b20e2d988575b8786f20584febe504b4bcc2ba46b1fdd4",
+        "size": 1311977,
+        "released": "2026-11-24"
+      }
+    }
+  ],
+  "featuredTheme": "jl.nocturne"
+}

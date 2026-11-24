@@ -3,16 +3,23 @@
   display: flex;
   flex-direction: column;
   height: 100%;
-  width: var(--sidebar-w);
+  // Its width is the shell's first column (`app-shell/styles.scss`), so a theme that moves it
+  // to the top needs no width of its own.
+  width: auto;
   flex: none;
   background: var(--bg-sidebar);
   border-right: var(--border-width) solid var(--border);
   backdrop-filter: blur(var(--blur));
   padding: 0 var(--space-2) var(--space-2);
-  transition: width var(--motion-base) var(--ease);
   z-index: var(--z-sidebar);
 
-  &[data-collapsed="true"] { width: var(--rail-w); }
+  // The shell's `sidebar` area. A theme may move it to the top and make it a row
+  // (`flex-direction: row`, `width: auto` on `[data-part="sidebar"]`); once it is wide the
+  // list below flows along the row and scrolls sideways instead of down.
+  grid-area: sidebar;
+  container: sidebar / inline-size;
+  min-width: 0;
+  min-height: 0;
 
   &__top {
     height: var(--titlebar-h);
@@ -223,5 +230,35 @@
     overflow: hidden;
     color: transparent;
   }
-  &__footer { padding: var(--space-3) 0 0; }
+}
+
+// A theme that lays the sidebar out as a row (THEMES.md *Parts*): once it is wide, its list
+// flows along the row and scrolls sideways instead of down. Only the main entries and the footer
+// stay: the albums and device trees need a column, and the Albums page lists them.
+@container sidebar (min-width: 560px) {
+  .sidebar__scroll > :not(.sidebar__group:first-child) { display: none; }
+  .sidebar__toggle { display: none; }
+  .sidebar__top { margin-bottom: 0; }
+  .sidebar__scroll {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    overflow-x: auto;
+    overflow-y: hidden;
+    padding-bottom: 0;
+    mask-image: none;
+    -webkit-mask-image: none;
+  }
+  .sidebar__group,
+  .sidebar__list,
+  .sidebar__footer-nav {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    padding-top: 0;
+    flex: none;
+  }
+  .sidebar__item,
+  .sidebar__section { width: auto; flex: none; }
+  .sidebar__list[data-scroll="true"] { max-height: none; overflow: visible; }
 }

@@ -5,7 +5,7 @@ import { Providers } from "@/app";
 import { emitMock, invokeMock, mockCommand } from "@/test/tauri-mock";
 import type { PluginInfo } from "@/types/generated/PluginInfo";
 import type { PluginInspect } from "@/types/generated/PluginInspect";
-import { PluginInstallHost } from "./gui";
+import { neverText, PluginInstallHost } from "./gui";
 import { closePluginInstall, openPluginInstall } from "./store";
 
 const info = (over: Partial<PluginInfo> = {}): PluginInfo => ({
@@ -54,6 +54,16 @@ function setup(result: PluginInspect | ((path: string) => PluginInspect), pendin
 describe("PluginInstallHost", () => {
   beforeEach(() => act(() => closePluginInstall()));
 
+  it("installs_a_second_package_after_the_first", async () => {
+    setup(inspect());
+    act(() => openPluginInstall("C:/a.lumenplugin"));
+    await userEvent.click(await screen.findByRole("button", { name: "Install" }));
+    await waitFor(() => expect(installs()).toBe(1));
+    act(() => openPluginInstall("C:/b.lumenplugin"));
+    await userEvent.click(await screen.findByRole("button", { name: "Install" }));
+    await waitFor(() => expect(installs()).toBe(2));
+  });
+
   it("renders_spec_sheet", async () => {
     setup(inspect());
     act(() => openPluginInstall("C:/a.lumenplugin"));
@@ -68,7 +78,7 @@ describe("PluginInstallHost", () => {
   });
 
   it("data_only_runs_no_code", async () => {
-    setup(inspect({ info: info({ permissions: [], kinds: ["theme"] }) }));
+    setup(inspect({ info: info({ permissions: [], kinds: ["presets"] }) }));
     act(() => openPluginInstall("C:/a.lumenplugin"));
     expect(await screen.findByText("It runs no code.")).toBeInTheDocument();
   });
@@ -154,5 +164,14 @@ describe("PluginInstallHost", () => {
     expect(await screen.findByText("Google Takeout")).toBeInTheDocument();
     const call = invokeMock.mock.calls.find(([c]) => c === "inspect_plugin_package");
     expect(call?.[1]).toEqual({ path: "C:/x.lumenplugin" });
+  });
+});
+
+describe("neverText (Round 24)", () => {
+  it("narrows for originals.gps and providers", () => {
+    expect(neverText([], [])).toBe("Touch your originals or your library, use the internet, or start other programs.");
+    expect(neverText(["originalsGps"], ["Open Disk Atlas for file dialogs"])).toBe(
+      "Change anything else in your originals or your library, use the internet, or start programs other than the ones above.",
+    );
   });
 });

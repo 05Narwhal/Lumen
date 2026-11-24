@@ -10,8 +10,10 @@ use photos_plugins::{PluginError, PluginInfo, PluginInspect};
 use serde_json::Value;
 use tauri::{AppHandle, State};
 
-use crate::error::AppResult;
+use crate::error::{AppError, AppResult};
+use crate::plugins::mcp_tools::{instance, plugin_error};
 use crate::plugins::Plugins;
+use crate::state::AppState;
 
 /// What the plugin commands do, without Tauri: each takes the store's lock for as long as it
 /// needs, so two installs at once run one after the other and `plugins.json` holds both.
@@ -22,11 +24,25 @@ fn icon_url_for(windows: bool, id: &str, version: &str) -> String {
     format!("{base}/plugin-icon/{id}?v={version}")
 }
 
-/// The store marks "has an icon" with a `photos://` URL of its own; the page needs this OS's form.
+fn preview_url_for(windows: bool, hash: &str) -> String {
+    let base = if windows { "http://photos.localhost" } else { "photos://localhost" };
+    format!("{base}/plugin-preview/{hash}")
+}
+
+fn shot_url_for(windows: bool, id: &str, n: usize, version: &str) -> String {
+    let base = if windows { "http://photos.localhost" } else { "photos://localhost" };
+    format!("{base}/plugin-shot/{id}/{n}?v={version}")
+}
+
+/// The store marks "has an icon" and each screenshot with a `photos://` URL of its own; the
+/// page needs this OS's form.
 fn localised(mut info: PluginInfo) -> PluginInfo {
     if info.icon_url.is_some() {
         info.icon_url = Some(icon_url_for(cfg!(windows), &info.id, &info.version));
     }
+    info.screenshots = (0..info.screenshots.len())
+        .map(|n| shot_url_for(cfg!(windows), &info.id, n, &info.version))
+        .collect();
     info
 }
 
@@ -40,7 +56,13 @@ pub(crate) mod logic {
     /// Unpacks into a scratch folder the store deletes again; nothing is installed.
     pub fn inspect(p: &Plugins, file: &Path) -> Result<PluginInspect, PluginError> {
         let ctx = p.ctx();
-        p.read().inspect(file, &ctx)
+        let mut seen = p.read().inspect(file, &ctx)?;
+        // The sheet's icon is a kept copy named by its hash, not an installed plugin's.
+        seen.info.icon_url = seen.info.icon_url.take().map(|u| match u.strip_prefix("photos://plugin-preview/") {
+            Some(hash) => preview_url_for(cfg!(windows), hash),
+            None => u,
+        });
+        Ok(seen)
     }
 
     pub fn install(p: &Plugins, file: &Path) -> Result<PluginInfo, PluginError> {
@@ -91,11 +113,22 @@ pub(crate) mod logic {
     pub fn log(p: &Plugins, id: &str) -> Vec<String> {
         p.log_lines(id)
     }
+
+    /// An installed plugin's `README.md` text, `None` when it has none (text, not bytes, so it
+    /// goes over `invoke`).
+    pub fn readme(p: &Plugins, id: &str) -> Option<String> {
+        p.read().readme(id)
+    }
 }
 
 #[tauri::command(async)]
 pub fn list_plugins(plugins: State<'_, Arc<Plugins>>) -> AppResult<Vec<PluginInfo>> {
     Ok(logic::list(&plugins))
+}
+
+#[tauri::command(async)]
+pub fn plugin_readme(plugins: State<'_, Arc<Plugins>>, id: String) -> AppResult<Option<String>> {
+    Ok(logic::readme(&plugins, &id))
 }
 
 /// Whether Developer mode is on, read from the store (it survives a restart).
@@ -177,6 +210,33 @@ pub fn reload_dev_plugin(app: AppHandle, plugins: State<'_, Arc<Plugins>>, id: S
 #[tauri::command(async)]
 pub fn plugin_log(plugins: State<'_, Arc<Plugins>>, id: String) -> AppResult<Vec<String>> {
     Ok(logic::log(&plugins, &id))
+}
+
+/// The folder of an installed, turned-on plugin, for the calls that run its wasm.
+fn running_dir(plugins: &Plugins, id: &str) -> AppResult<std::path::PathBuf> {
+    let store = plugins.read();
+    let inst = store.get(id).ok_or_else(|| AppError { code: "plugin_missing".into(), message: format!("{id} isn't installed"), detail: None })?;
+    if !inst.info.enabled {
+        return Err(AppError { code: "plugin_off".into(), message: "This plugin is turned off".into(), detail: None });
+    }
+    Ok(inst.dir.clone())
+}
+
+/// A `button` control: runs the plugin's `ui.action(name)` under the usual limits and returns the
+/// line it answers with (shown beside the button).
+#[tauri::command(async)]
+pub fn plugin_ui_action(plugins: State<'_, Arc<Plugins>>, state: State<'_, AppState>, id: String, action: String) -> AppResult<String> {
+    let dir = running_dir(&plugins, &id)?;
+    let inst = instance(plugins.inner(), &state.mcp.shared, &id, &dir)?;
+    inst.ui_action(&action).map_err(plugin_error)
+}
+
+/// A `stat` or `list` control: the plugin's `ui.value(key)` (plain text / a JSON array).
+#[tauri::command(async)]
+pub fn plugin_ui_value(plugins: State<'_, Arc<Plugins>>, state: State<'_, AppState>, id: String, key: String) -> AppResult<String> {
+    let dir = running_dir(&plugins, &id)?;
+    let inst = instance(plugins.inner(), &state.mcp.shared, &id, &dir)?;
+    inst.ui_value(&key).map_err(plugin_error)
 }
 
 /// The `.lumenplugin` this launch was opened with (once): an event sent during boot would fire
@@ -417,7 +477,7 @@ mod tests {
     fn list_and_install_fill_the_icon_url() {
         let t = tempfile::tempdir().unwrap();
         let p = dev_plugins(t.path());
-        let icon = super::fixture::png(64, 64);
+        let icon = super::fixture::png(128, 128);
         let file = super::fixture::package_with(t.path(), "com.test.a", "", &[("icon.png", &icon)]);
         let installed = logic::install(&p, &file).unwrap();
         let want = super::icon_url_for(cfg!(windows), "com.test.a", "1.0.0");
@@ -425,5 +485,47 @@ mod tests {
         assert_eq!(logic::list(&p)[0].icon_url.as_deref(), Some(want.as_str()));
         logic::install(&p, &package(t.path(), "com.test.b", "")).unwrap();
         assert!(logic::list(&p).iter().any(|i| i.id == "com.test.b" && i.icon_url.is_none()));
+    }
+
+    #[test]
+    fn inspect_gives_the_sheet_an_icon_url_in_the_os_form() {
+        let t = tempfile::tempdir().unwrap();
+        let p = dev_plugins(t.path());
+        let icon = super::fixture::png(128, 128);
+        let file = super::fixture::package_with(t.path(), "com.test.a", "", &[("icon.png", &icon)]);
+        let url = logic::inspect(&p, &file).unwrap().info.icon_url.unwrap();
+        let hash = blake3::hash(&icon).to_hex().to_string();
+        assert_eq!(url, super::preview_url_for(cfg!(windows), &hash));
+        assert!(url.ends_with(&format!("/plugin-preview/{hash}")));
+        assert!(logic::list(&p).is_empty(), "looking installs nothing");
+    }
+
+    #[test]
+    fn shot_url_is_the_os_form() {
+        assert_eq!(super::shot_url_for(true, "com.test.a", 2, "1.2.0"), "http://photos.localhost/plugin-shot/com.test.a/2?v=1.2.0");
+        assert_eq!(super::shot_url_for(false, "com.test.a", 0, "1.2.0"), "photos://localhost/plugin-shot/com.test.a/0?v=1.2.0");
+    }
+
+    #[test]
+    fn list_fills_screenshot_urls_and_readme_comes_by_id() {
+        let t = tempfile::tempdir().unwrap();
+        let p = dev_plugins(t.path());
+        let shot = super::fixture::png(640, 360);
+        let extra = "\n[listing]\nscreenshots = [\"screenshots/a.png\", \"screenshots/b.png\"]\n";
+        let file = super::fixture::package_with(
+            t.path(),
+            "com.test.a",
+            extra,
+            &[("screenshots/a.png", &shot), ("screenshots/b.png", &shot), ("README.md", "# Hi\n\nA – é".as_bytes())],
+        );
+        let installed = logic::install(&p, &file).unwrap();
+        let want: Vec<String> = (0..2).map(|n| super::shot_url_for(cfg!(windows), "com.test.a", n, "1.0.0")).collect();
+        assert_eq!(installed.screenshots, want);
+        assert_eq!(logic::list(&p)[0].screenshots, want);
+        assert_eq!(logic::readme(&p, "com.test.a").as_deref(), Some("# Hi\n\nA – é"));
+        // No README, or no such plugin: nothing to show, not an error.
+        logic::install(&p, &package(t.path(), "com.test.b", "")).unwrap();
+        assert_eq!(logic::readme(&p, "com.test.b"), None);
+        assert_eq!(logic::readme(&p, "com.none"), None);
     }
 }

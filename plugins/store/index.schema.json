@@ -1,0 +1,320 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Lumen plugin and theme store index, version 1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "version",
+    "plugins"
+  ],
+  "properties": {
+    "version": {
+      "const": 1
+    },
+    "featured": {
+      "type": "string",
+      "minLength": 1
+    },
+    "plugins": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/plugin"
+      }
+    },
+    "featuredTheme": {
+      "type": "string",
+      "minLength": 1
+    },
+    "themes": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/theme"
+      }
+    }
+  },
+  "$defs": {
+    "https": {
+      "type": "string",
+      "pattern": "^https://[^\\s]+$"
+    },
+    "plugin": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "name",
+        "author",
+        "summary",
+        "latest"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^[a-z0-9][a-z0-9._-]*$"
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1
+        },
+        "author": {
+          "type": "string",
+          "minLength": 1
+        },
+        "jl": {
+          "type": "boolean"
+        },
+        "summary": {
+          "type": "string",
+          "minLength": 1
+        },
+        "kinds": {
+          "type": "array",
+          "items": {
+            "enum": [
+              "theme",
+              "presets",
+              "apps",
+              "prompts",
+              "importer",
+              "tools"
+            ]
+          }
+        },
+        "permissions": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "icon": {
+          "$ref": "#/$defs/https"
+        },
+        "homepage": {
+          "$ref": "#/$defs/https"
+        },
+        "readme": {
+          "$ref": "#/$defs/https"
+        },
+        "screenshots": {
+          "type": "array",
+          "maxItems": 6,
+          "items": {
+            "$ref": "#/$defs/https"
+          }
+        },
+        "authorUrl": {
+          "$ref": "#/$defs/https"
+        },
+        "repository": {
+          "$ref": "#/$defs/https"
+        },
+        "latest": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "version",
+            "api",
+            "url",
+            "blake3",
+            "size",
+            "released"
+          ],
+          "properties": {
+            "version": {
+              "type": "string",
+              "pattern": "^\\d+\\.\\d+\\.\\d+(-[0-9A-Za-z.-]+)?$"
+            },
+            "api": {
+              "enum": [
+                "1.0.0",
+                "1.1.0",
+                "1.2.0",
+                "1.3.0",
+                "1.4.0"
+              ]
+            },
+            "url": {
+              "$ref": "#/$defs/https"
+            },
+            "blake3": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{64}$"
+            },
+            "size": {
+              "type": "integer",
+              "minimum": 1
+            },
+            "released": {
+              "type": "string",
+              "pattern": "^\\d{4}-\\d{2}-\\d{2}$"
+            }
+          }
+        }
+      }
+    },
+    "swatch": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "bg",
+        "surface",
+        "sidebar",
+        "fg",
+        "fg2",
+        "accent",
+        "placeholder",
+        "radius",
+        "gap"
+      ],
+      "properties": {
+        "bg": {
+          "type": "string"
+        },
+        "surface": {
+          "type": "string"
+        },
+        "sidebar": {
+          "type": "string"
+        },
+        "fg": {
+          "type": "string"
+        },
+        "fg2": {
+          "type": "string"
+        },
+        "accent": {
+          "type": "string"
+        },
+        "placeholder": {
+          "type": "string"
+        },
+        "radius": {
+          "type": "string"
+        },
+        "gap": {
+          "type": "string"
+        }
+      }
+    },
+    "theme": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "name",
+        "author",
+        "summary",
+        "tokens",
+        "latest"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^[a-z0-9][a-z0-9._-]*$"
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1
+        },
+        "author": {
+          "type": "string",
+          "minLength": 1
+        },
+        "jl": {
+          "type": "boolean"
+        },
+        "summary": {
+          "type": "string",
+          "minLength": 1
+        },
+        "icon": {
+          "$ref": "#/$defs/https"
+        },
+        "homepage": {
+          "$ref": "#/$defs/https"
+        },
+        "readme": {
+          "$ref": "#/$defs/https"
+        },
+        "screenshots": {
+          "type": "array",
+          "maxItems": 6,
+          "items": {
+            "$ref": "#/$defs/https"
+          }
+        },
+        "authorUrl": {
+          "$ref": "#/$defs/https"
+        },
+        "repository": {
+          "$ref": "#/$defs/https"
+        },
+        "latest": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "version",
+            "api",
+            "url",
+            "blake3",
+            "size",
+            "released"
+          ],
+          "properties": {
+            "version": {
+              "type": "string",
+              "pattern": "^\\d+\\.\\d+\\.\\d+(-[0-9A-Za-z.-]+)?$"
+            },
+            "api": {
+              "type": "string",
+              "pattern": "^\\d+\\.\\d+\\.\\d+$"
+            },
+            "url": {
+              "$ref": "#/$defs/https"
+            },
+            "blake3": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{64}$"
+            },
+            "size": {
+              "type": "integer",
+              "minimum": 1
+            },
+            "released": {
+              "type": "string",
+              "pattern": "^\\d{4}-\\d{2}-\\d{2}$"
+            }
+          }
+        },
+        "tags": {
+          "type": "array",
+          "items": {
+            "enum": [
+              "dark",
+              "light",
+              "layout",
+              "colourful"
+            ]
+          }
+        },
+        "tokens": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "light",
+            "dark"
+          ],
+          "properties": {
+            "light": {
+              "$ref": "#/$defs/swatch"
+            },
+            "dark": {
+              "$ref": "#/$defs/swatch"
+            }
+          }
+        }
+      }
+    }
+  }
+}

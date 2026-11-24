@@ -4,9 +4,9 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Reorder } from "framer-motion";
 import { Fragment, useEffect, useRef, useState } from "react";
 import { AiButton } from "@/components/ai-button";
-import { promptName } from "@/components/confirm-dialog";
 import { Items, type MenuItem, useContextMenu } from "@/components/context-menu";
 import { DevelopSlider } from "@/components/develop-slider";
+import { InlineName } from "@/components/inline-name";
 import { toast } from "@/components/toast";
 import { useAiTask } from "@/hooks/use-ai-task";
 import type { DevelopSession } from "@/hooks/use-develop-session";
@@ -41,6 +41,9 @@ import { aiMaskRequests } from "./requests";
 import "./styles.scss";
 
 const KINDS: ShapeKind[] = ["brush", "linear", "radial"];
+
+/** Pointer travel (px) after which a press on a row is a drag, not a click. */
+const DRAG_THRESHOLD = 4;
 
 /** A small picture of a mask's weights over the photo's shape. */
 function Thumb({ mask, aspect, rasters }: { mask: Mask; aspect: number; rasters: AiRasters }) {
@@ -193,9 +196,12 @@ export function DevelopMasks({ session, aspect }: { session: DevelopSession; asp
     toast({ message: `Deleted ${m.name}`, undo: () => session.undo() });
   };
 
-  const rename = async (m: Mask) => {
-    const name = await promptName({ title: "Rename mask", initial: m.name });
-    if (name?.trim()) applyMasks((all) => updateMask(all, m.id, { name: name.trim() }), "Rename mask");
+  // Round 24 §2: the name turns into a field in place (row or pinned bar); one undo step on commit.
+  const [editingId, setEditingId] = useState<number | null>(null);
+  const rename = (m: Mask) => setEditingId(m.id);
+  const commitName = (m: Mask, name: string) => {
+    setEditingId(null);
+    if (name !== m.name) applyMasks((all) => updateMask(all, m.id, { name }), "Rename mask");
   };
 
   /** The list reads like layers (Round 21 §3): the mask applied last is the top row. */
@@ -208,7 +214,7 @@ export function DevelopMasks({ session, aspect }: { session: DevelopSession; asp
   };
 
   const actionsFor = (m: Mask): MaskActions => ({
-    rename: () => void rename(m),
+    rename: () => rename(m),
     duplicate: () => applyMasks((all) => duplicateMask(all, m.id), "Duplicate mask"),
     invert: () => applyMasks((all) => updateMask(all, m.id, { invert: !m.invert }), "Invert mask"),
     toggleVisible: () => applyMasks((all) => updateMask(all, m.id, { visible: !m.visible }), m.visible ? "Hide mask" : "Show mask"),
@@ -219,8 +225,49 @@ export function DevelopMasks({ session, aspect }: { session: DevelopSession; asp
   const menuOf = (m: Mask) => maskMenu(m, masks.findIndex((x) => x.id === m.id), masks.length, actionsFor(m));
   const { open: openMenu } = useContextMenu();
 
+  // F2 renames the selected mask (rebindable: `develop.mask.rename`).
+  const selectedRef = useRef(selected);
+  selectedRef.current = selected;
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      const m = selectedRef.current;
+      if (!m || e.defaultPrevented || !matches(e, "develop.mask.rename")) return;
+      if (e.target instanceof HTMLElement && e.target.closest("input, textarea, [contenteditable]")) return;
+      e.preventDefault();
+      setEditingId(m.id);
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, []);
+
   // The order while a row is being dragged; one history step on drop, none without a move.
   const [dragging, setDragging] = useState<Mask[] | null>(null);
+
+  // Round 24 §1: the click the browser fires when a drag ends on a row must not select it.
+  // Set when a drag starts or the pointer travels past the threshold, cleared a tick after release.
+  const draggedRef = useRef(false);
+  const pressRef = useRef<{ x: number; y: number } | null>(null);
+  useEffect(() => {
+    const move = (e: PointerEvent) => {
+      const p = pressRef.current;
+      if (p && Math.hypot(e.clientX - p.x, e.clientY - p.y) > DRAG_THRESHOLD) draggedRef.current = true;
+    };
+    const up = () => {
+      pressRef.current = null;
+      setTimeout(() => {
+        draggedRef.current = false;
+      }, 0);
+    };
+    window.addEventListener("pointermove", move);
+    window.addEventListener("pointerup", up);
+    window.addEventListener("pointercancel", up);
+    return () => {
+      window.removeEventListener("pointermove", move);
+      window.removeEventListener("pointerup", up);
+      window.removeEventListener("pointercancel", up);
+    };
+  }, []);
+
   const drop = () => {
     if (!dragging) return;
     const ids = [...dragging].reverse().map((m) => m.id);
@@ -236,8 +283,8 @@ export function DevelopMasks({ session, aspect }: { session: DevelopSession; asp
         <div className="develop-masks__bar">
           <div className="develop-masks__bar-row">
             <span className="develop-masks__tag">Mask</span>
-            <span className="develop-masks__bar-name" title="Double-click to rename" onDoubleClick={() => void rename(selected)}>
-              {selected.name}
+            <span className="develop-masks__bar-name" title="Double-click to rename" onDoubleClick={() => rename(selected)}>
+              <InlineName value={selected.name} editing={editingId === selected.id} onCommit={(n) => commitName(selected, n)} onCancel={() => setEditingId(null)} />
             </span>
             <Menu position="bottom-end" withinPortal>
               <Menu.Target>
@@ -245,7 +292,7 @@ export function DevelopMasks({ session, aspect }: { session: DevelopSession; asp
                   <IconDots size={14} />
                 </ActionIcon>
               </Menu.Target>
-              <Menu.Dropdown>
+              <Menu.Dropdown data-dense>
                 <Items items={menuOf(selected)} subPosition="left-start" />
               </Menu.Dropdown>
             </Menu>
@@ -399,11 +446,26 @@ export function DevelopMasks({ session, aspect }: { session: DevelopSession; asp
               aria-selected={m.id === ui.selected}
               tabIndex={0}
               className="develop-masks__row"
+              dragListener={editingId !== m.id}
+              onPointerDown={(e) => {
+                pressRef.current = { x: e.clientX, y: e.clientY };
+                draggedRef.current = false;
+              }}
+              onDragStart={() => {
+                draggedRef.current = true;
+              }}
               onDragEnd={drop}
-              onClick={() => select(m.id)}
+              onClick={() => {
+                if (draggedRef.current || editingId === m.id) return;
+                select(m.id);
+              }}
               onContextMenu={(e) => openMenu(e, menuOf(m))}
               onKeyDown={(e) => {
-                if (e.key === "Enter" || e.key === " ") {
+                if (editingId === m.id) return;
+                if (matches(e.nativeEvent, "develop.mask.rename")) {
+                  e.preventDefault();
+                  rename(m);
+                } else if (e.key === "Enter" || e.key === " ") {
                   e.preventDefault();
                   select(m.id);
                 } else if (matches(e.nativeEvent, "develop.mask-forward") || matches(e.nativeEvent, "develop.mask-backward")) {
@@ -414,7 +476,9 @@ export function DevelopMasks({ session, aspect }: { session: DevelopSession; asp
               }}
             >
               <Thumb mask={m} aspect={aspect} rasters={rasters} />
-              <span className="develop-masks__name">{m.name}</span>
+              <span className="develop-masks__name" onDoubleClick={() => rename(m)}>
+                <InlineName value={m.name} editing={editingId === m.id} onCommit={(n) => commitName(m, n)} onCancel={() => setEditingId(null)} />
+              </span>
               <ActionIcon
                 variant="subtle"
                 size="sm"

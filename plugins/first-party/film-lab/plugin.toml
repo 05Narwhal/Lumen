@@ -1,0 +1,16 @@
+id = "jl.film-lab"
+name = "Film Lab"
+version = "1.0.0"
+author = "JL Studios"
+description = "Thirty film-inspired looks for Develop: warm and cool colour negatives, slides, faded prints, cinema colour, black and white and cross-processing."
+license = "MIT"
+lumen = ">=26.2.0"
+api = 1
+author_url = "https://github.com/05Narwhal"
+repository = "https://github.com/05Narwhal/lumen-plugins"
+
+[presets]
+dir = "presets"
+
+[listing]
+screenshots = ["screenshots/looks.png"]

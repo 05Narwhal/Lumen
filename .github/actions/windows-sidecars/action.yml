@@ -1,0 +1,26 @@
+name: Windows sidecars
+description: >
+  FFmpeg, ffprobe and ExifTool for the Windows build and the preflight. FFmpeg must be the build
+  whose source the release carries: taken from the FFmpeg source release (env FFMPEG_SOURCES_TAG)
+  when its assets include it, else fetched, and in both cases checked against the hash recorded in
+  scripts/release/sources.json.
+
+runs:
+  using: composite
+  steps:
+    - name: Fetch and verify the sidecars
+      shell: pwsh
+      env:
+        GH_TOKEN: ${{ github.token }}
+      run: |
+        gh release download $env:FFMPEG_SOURCES_TAG --pattern '*-x86_64-pc-windows-msvc.exe' --dir src-tauri/binaries
+        if (-not (Test-Path src-tauri/binaries/ffmpeg-x86_64-pc-windows-msvc.exe)) {
+          Write-Host "The source release has no FFmpeg binary; fetching one."
+          pwsh scripts/fetch-ffmpeg.ps1
+        }
+        pwsh scripts/fetch-exiftool.ps1
+        $want = (Get-Content scripts/release/sources.json -Raw | ConvertFrom-Json).ffmpeg.sidecarSha256
+        $have = (Get-FileHash src-tauri/binaries/ffmpeg-x86_64-pc-windows-msvc.exe -Algorithm SHA256).Hash.ToLower()
+        if ($want -and $have -ne $want.ToLower()) {
+          throw "ffmpeg-x86_64-pc-windows-msvc.exe is not the build the source release describes ($have, expected $want). Upload that exact binary to the release $env:FFMPEG_SOURCES_TAG."
+        }

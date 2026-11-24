@@ -1,0 +1,81 @@
+id = "jl.captioner"
+name = "Captioner"
+version = "1.0.0"
+author = "JL Studios"
+description = "Suggests titles and captions from who is in a photo, where and when it was taken, what Lumen saw in it and the text it can read. You review every one before anything is saved."
+license = "MIT"
+lumen = ">=26.2.0"
+api = "1.4.0"
+author_url = "https://github.com/05Narwhal"
+repository = "https://github.com/05Narwhal/lumen-plugins"
+permissions = ["library.read", "captions.write", "storage"]
+
+[[tools]]
+name = "suggest_captions"
+description = "Proposes a title and a caption for photos from their people, place, date, scene and text. Photos that already have a title or caption keep it. Arguments: scope (selection, album or library; default library), album (an album id, for scope album), restart (true to begin again from the first photo). The work can take several calls: call again while status is working, until it says done. Nothing is saved until the person accepts on the review page."
+
+[[ui.section]]
+title = "What to suggest"
+
+[[ui.section.control]]
+type = "toggle"
+key = "titles"
+label = "Titles"
+help = "A few words, like “Anna and Ben in Idrija”."
+default = true
+
+[[ui.section.control]]
+type = "toggle"
+key = "captions"
+label = "Captions"
+help = "A sentence with the place, the day and what Lumen saw."
+default = true
+
+[[ui.section]]
+title = "What to use"
+
+[[ui.section.control]]
+type = "toggle"
+key = "include_text"
+label = "Quote text that reads like a sign"
+help = "Adds Reads “OPEN 24h”. to a caption. Numbers, prices and pages of print are never quoted."
+default = true
+
+[[ui.section.control]]
+type = "toggle"
+key = "include_album"
+label = "Name the album"
+help = "Adds From the album “…”. to a caption."
+default = false
+
+[[ui.section.control]]
+type = "slider"
+key = "min_confidence"
+label = "Suggest only above"
+help = "A title built from a person, a place and a scene scores higher than one built from a place alone."
+min = 0.4
+max = 0.9
+step = 0.05
+default = 0.5
+
+# Captioner works on the whole library from the palette, or on the photos you picked from their menu.
+[[ui.contribute]]
+slot = "palette"
+label = "Suggest titles and captions"
+icon = "sparkles"
+action = "tool:suggest_captions"
+
+[[ui.contribute]]
+slot = "library.selection-menu"
+label = "Suggest titles and captions"
+icon = "sparkles"
+action = "tool:suggest_captions"
+
+[[ui.contribute]]
+slot = "palette"
+label = "Review suggested titles"
+icon = "list-check"
+action = "open-review:title"
+
+[listing]
+screenshots = ["screenshots/what-it-writes.png"]

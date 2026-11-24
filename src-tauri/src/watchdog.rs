@@ -173,6 +173,25 @@ pub fn ui_frozen(last_beat: Instant, last_hidden: bool, now: Instant) -> bool {
     !last_hidden && now.saturating_duration_since(last_beat) > UI_FROZEN
 }
 
+/// How long the page may be silent before a Close stops asking it anything (Round 24 §6.3).
+const PAGE_DEAD_AFTER: Duration = Duration::from_secs(10);
+
+/// Whether a page that beat at `last` (`None`: never) can still answer a question. A hidden page's
+/// timers are throttled, so its silence says nothing; a page that never beat cannot answer.
+pub fn page_answers(last: Option<(Instant, bool)>, now: Instant) -> bool {
+    match last {
+        None => false,
+        Some((_, true)) => true,
+        Some((at, false)) => now.saturating_duration_since(at) <= PAGE_DEAD_AFTER,
+    }
+}
+
+/// Close asks the page (unsaved Develop edits, a running import) only while this holds: a stuck
+/// page must never keep the window open (Round 24 §6.3).
+pub fn page_is_answering() -> bool {
+    page_answers(*UI_BEAT.lock().unwrap_or_else(|e| e.into_inner()), Instant::now())
+}
+
 fn may_reload(last_reload: Option<Instant>, now: Instant) -> bool {
     !matches!(last_reload, Some(t) if now.saturating_duration_since(t) < RELOAD_EVERY)
 }
@@ -358,5 +377,15 @@ mod tests {
         assert!(may_reload(None, t));
         assert!(!may_reload(Some(t), t + Duration::from_secs(59)));
         assert!(may_reload(Some(t), t + Duration::from_secs(61)));
+    }
+
+    #[test]
+    fn close_stops_asking_a_silent_page() {
+        let t = Instant::now();
+        let later = |s| t + Duration::from_secs(s);
+        assert!(!page_answers(None, t), "a page that never beat cannot answer");
+        assert!(page_answers(Some((t, false)), later(5)));
+        assert!(!page_answers(Some((t, false)), later(11)), "silent for over 10 s: closing does not wait for it");
+        assert!(page_answers(Some((t, true)), later(600)), "a hidden page's timers are throttled");
     }
 }

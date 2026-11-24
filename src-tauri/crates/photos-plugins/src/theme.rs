@@ -5,8 +5,6 @@ use std::collections::BTreeMap;
 
 use photos_core::ThemeId;
 
-use crate::package::{KindCheck, Report, Unpacked};
-use crate::PluginKind;
 
 /// What a token's value may be.
 #[derive(Debug, Clone, Copy, PartialEq)]
@@ -736,6 +734,13 @@ pub fn parse_theme(text: &str) -> Result<ThemeFile, String> {
     let t: toml::Table = text
         .parse()
         .map_err(|e: toml::de::Error| e.message().to_string())?;
+    parse_theme_table(&t, &[])
+}
+
+/// A theme's tokens and header from a parsed table; `extra` names keys the caller reads itself
+/// (a `.lumentheme`'s package fields), every other unknown key is refused.
+pub fn parse_theme_table(t: &toml::Table, extra: &[&str]) -> Result<ThemeFile, String> {
+    let t = t.clone();
     const KEYS: [&str; 8] = [
         "id",
         "name",
@@ -746,11 +751,14 @@ pub fn parse_theme(text: &str) -> Result<ThemeFile, String> {
         "dark",
         "font",
     ];
-    if let Some(k) = t.keys().find(|k| !KEYS.contains(&k.as_str())) {
+    if let Some(k) = t
+        .keys()
+        .find(|k| !KEYS.contains(&k.as_str()) && !extra.contains(&k.as_str()))
+    {
         return Err(format!("unknown key {k}"));
     }
     let id = string_field(&t, "id")?.ok_or("a theme needs an id")?;
-    if !valid_theme_id(&id) {
+    if extra.is_empty() && !valid_theme_id(&id) {
         return Err(format!(
             "theme id \"{id}\" must be 1–40 letters a–z, digits or -"
         ));
@@ -919,7 +927,7 @@ pub fn css(themes: &[(String, String, ThemeFile)], asset_base: &str) -> String {
         {
             let family = font_family(plugin, &file.id);
             out.push_str(&format!(
-                "@font-face {{\n  font-family: \"{family}\";\n  src: url(\"{asset_base}/plugin-asset/{plugin}/{}?v={version}\") format(\"woff2\");\n  font-weight: {};\n  font-style: {};\n}}\n",
+                "@font-face {{\n  font-family: \"{family}\";\n  src: url(\"{asset_base}/theme-asset/{plugin}/{}?v={version}\") format(\"woff2\");\n  font-weight: {};\n  font-style: {};\n}}\n",
                 font.file, font.weight, font.style
             ));
             let base_font = base_values(file.base, false)["font-heading"].css();
@@ -950,37 +958,6 @@ pub fn css(themes: &[(String, String, ThemeFile)], asset_base: &str) -> String {
     out
 }
 
-/// The themes a plugin's manifest lists, read from its folder.
-pub fn themes_of(
-    dir: &std::path::Path,
-    m: &crate::manifest::Manifest,
-) -> Result<Vec<(PluginThemeMeta, ThemeFile)>, String> {
-    let mut out: Vec<(PluginThemeMeta, ThemeFile)> = Vec::new();
-    for f in &m.themes {
-        if !safe_rel_path(&f.file) {
-            return Err(format!("{}: not a path inside the package", f.file));
-        }
-        let text =
-            std::fs::read_to_string(dir.join(&f.file)).map_err(|e| format!("{}: {e}", f.file))?;
-        let file = parse_theme(&text).map_err(|e| format!("{}: {e}", f.file))?;
-        if out.iter().any(|(meta, _)| meta.id == file.id) {
-            return Err(format!(
-                "{}: another theme in this plugin is already called \"{}\"",
-                f.file, file.id
-            ));
-        }
-        let meta = PluginThemeMeta {
-            plugin: m.id.clone(),
-            id: file.id.clone(),
-            name: file.name.clone(),
-            tagline: file.tagline.clone(),
-            base: file.base,
-            default_scheme: file.default_scheme.clone(),
-        };
-        out.push((meta, file));
-    }
-    Ok(out)
-}
 
 // ---------------------------------------------------------------------------------------------
 // Contrast
@@ -1135,79 +1112,6 @@ pub fn contrast_failures(file: &ThemeFile) -> Vec<String> {
         }
     }
     out
-}
-
-const MAX_FONT_BYTES: usize = 2 * 1024 * 1024;
-
-/// The theme checker: parses every `[[themes]]` file, checks its font and its contrast.
-pub struct ThemeCheck;
-
-impl KindCheck for ThemeCheck {
-    fn kinds(&self) -> &'static [PluginKind] {
-        &[PluginKind::Theme]
-    }
-
-    fn check(&self, pkg: &Unpacked, dev: bool, report: &mut Report) {
-        let mut seen: Vec<String> = Vec::new();
-        for f in &pkg.manifest.themes {
-            let text = match pkg.read(&f.file).map(String::from_utf8) {
-                Ok(Ok(t)) => t,
-                Ok(Err(_)) => {
-                    report.problems.push(format!("{}: not text", f.file));
-                    continue;
-                }
-                Err(e) => {
-                    report.problems.push(format!("{}: {}", f.file, e.message));
-                    continue;
-                }
-            };
-            let file = match parse_theme(&text) {
-                Ok(t) => t,
-                Err(e) => {
-                    report.problems.push(format!("{}: {e}", f.file));
-                    continue;
-                }
-            };
-            if seen.contains(&file.id) {
-                report.problems.push(format!(
-                    "{}: another theme in this plugin is already called \"{}\"",
-                    f.file, file.id
-                ));
-                continue;
-            }
-            seen.push(file.id.clone());
-            let label = format!("Theme \"{}\"", file.name);
-            if let Some(font) = &file.font {
-                if let Some(p) = font_problem(pkg, &font.file) {
-                    report.problems.push(format!("{label}: {p}"));
-                }
-            }
-            for failure in contrast_failures(&file) {
-                let line = format!("{label}: {failure}");
-                if dev {
-                    report.notes.push(line);
-                } else {
-                    report.problems.push(line);
-                }
-            }
-            report.adds.push(format!("A theme: \"{}\"", file.name));
-        }
-    }
-}
-
-/// Why a theme's font can't be used, if it can't.
-fn font_problem(pkg: &Unpacked, path: &str) -> Option<String> {
-    if !pkg.manifest.assets.iter().any(|a| a.path == path) {
-        return Some(format!(
-            "the font {path} must be listed under [[assets]] with its licence"
-        ));
-    }
-    match pkg.read(path) {
-        Err(e) => Some(format!("{path}: {}", e.message)),
-        Ok(b) if b.len() > MAX_FONT_BYTES => Some(format!("the font {path} is over 2 MB")),
-        Ok(b) if !b.starts_with(b"wOF2") => Some(format!("{path} isn't a woff2 font")),
-        Ok(_) => None,
-    }
 }
 
 #[cfg(test)]
@@ -1603,7 +1507,7 @@ bg-base = "oklch(24% 0.02 240)"
         );
         assert!(css.contains("@font-face {"), "{css}");
         assert!(
-            css.contains("src: url(\"http://photos.localhost/plugin-asset/studio.jl.nord/assets/fonts/Lora.woff2?v=1.2.0\") format(\"woff2\");"),
+            css.contains("src: url(\"http://photos.localhost/theme-asset/studio.jl.nord/assets/fonts/Lora.woff2?v=1.2.0\") format(\"woff2\");"),
             "{css}"
         );
         assert!(
@@ -1772,175 +1676,4 @@ bg-base = "oklch(24% 0.02 240)"
         );
     }
 
-    /// A theme folder opened as a package: `plugin.toml`, the theme, and an optional font.
-    fn open_theme_pkg(
-        theme: &str,
-        font: Option<(&str, &[u8])>,
-        listed: bool,
-    ) -> (tempfile::TempDir, Unpacked) {
-        let dir = tempfile::tempdir().unwrap();
-        std::fs::create_dir_all(dir.path().join("themes")).unwrap();
-        std::fs::write(dir.path().join("themes/nord.toml"), theme).unwrap();
-        let mut extra = String::from("[[themes]]\nfile = \"themes/nord.toml\"\n");
-        if let Some((path, bytes)) = font {
-            std::fs::create_dir_all(dir.path().join(path).parent().unwrap()).unwrap();
-            std::fs::write(dir.path().join(path), bytes).unwrap();
-            if listed {
-                extra.push_str(&format!(
-                    "[[assets]]\npath = \"{path}\"\nlicense = \"OFL-1.1\"\n"
-                ));
-            }
-        }
-        std::fs::write(
-            dir.path().join("plugin.toml"),
-            crate::package::fixture::manifest(&extra),
-        )
-        .unwrap();
-        let pkg = crate::package::open_folder(dir.path()).unwrap();
-        (dir, pkg)
-    }
-
-    fn run_check(pkg: &Unpacked, dev: bool) -> Report {
-        let mut report = Report::default();
-        ThemeCheck.check(pkg, dev, &mut report);
-        report
-    }
-
-    const FONT_THEME: &str = "id = \"nord\"\nname = \"Nord\"\nbase = \"gallery\"\n[font]\nfile = \"assets/fonts/Lora.woff2\"\n";
-
-    /// A theme that reads: the base's palette with a dimmer dark page.
-    const GOOD: &str = "id = \"nord\"\nname = \"Nord\"\nbase = \"darkroom\"\n[light]\nradius-md = \"10px\"\n[dark]\nbg-base = \"oklch(16% 0.004 60)\"\n";
-
-    #[test]
-    fn theme_check_claims_themes_and_reports_them() {
-        assert_eq!(ThemeCheck.kinds(), &[PluginKind::Theme]);
-        let (_d, pkg) = open_theme_pkg(GOOD, None, true);
-        let report = run_check(&pkg, false);
-        assert_eq!(report.adds, vec!["A theme: \"Nord\"".to_string()]);
-        assert!(
-            report.problems.is_empty() && report.notes.is_empty(),
-            "{report:?}"
-        );
-        let (_d, bad) = open_theme_pkg("id = 3", None, true);
-        let report = run_check(&bad, false);
-        assert!(
-            report
-                .problems
-                .iter()
-                .any(|p| p.contains("themes/nord.toml")),
-            "{report:?}"
-        );
-    }
-
-    #[test]
-    fn dev_mode_notes() {
-        let low = GOOD.replace("[dark]\n", "[dark]\nfg-primary = \"#333333\"\n");
-        let (_d, pkg) = open_theme_pkg(&low, None, true);
-        let strict = run_check(&pkg, false);
-        assert!(
-            strict
-                .problems
-                .iter()
-                .any(|p| p.contains("fg-primary on bg-base (dark)")),
-            "{strict:?}"
-        );
-        assert!(strict.notes.is_empty());
-        let dev = run_check(&pkg, true);
-        assert!(dev.problems.is_empty(), "{dev:?}");
-        assert!(
-            dev.notes
-                .iter()
-                .any(|p| p.contains("fg-primary on bg-base (dark)")),
-            "{dev:?}"
-        );
-        assert_eq!(
-            dev.adds,
-            vec!["A theme: \"Nord\"".to_string()],
-            "still loads, still listed"
-        );
-    }
-
-    #[test]
-    fn font_asset_checked() {
-        let mut woff2 = b"wOF2".to_vec();
-        woff2.extend_from_slice(&[0; 64]);
-        let font = Some(("assets/fonts/Lora.woff2", woff2.as_slice()));
-        let (_d, ok) = open_theme_pkg(FONT_THEME, font, true);
-        assert!(run_check(&ok, false).problems.is_empty());
-        let (_d, unlisted) = open_theme_pkg(FONT_THEME, font, false);
-        let r = run_check(&unlisted, false);
-        assert!(r.problems.iter().any(|p| p.contains("[[assets]]")), "{r:?}");
-        let not_woff = Some(("assets/fonts/Lora.woff2", &b"OTTO0000"[..]));
-        let (_d, bad) = open_theme_pkg(FONT_THEME, not_woff, true);
-        let r = run_check(&bad, false);
-        assert!(r.problems.iter().any(|p| p.contains("woff2")), "{r:?}");
-        let mut big = b"wOF2".to_vec();
-        big.resize(2 * 1024 * 1024 + 1, 0);
-        let (_d, huge) = open_theme_pkg(
-            FONT_THEME,
-            Some(("assets/fonts/Lora.woff2", big.as_slice())),
-            true,
-        );
-        let r = run_check(&huge, false);
-        assert!(r.problems.iter().any(|p| p.contains("2 MB")), "{r:?}");
-        // Font problems are never softened by Developer mode.
-        let r = run_check(&huge, true);
-        assert!(r.problems.iter().any(|p| p.contains("2 MB")), "{r:?}");
-    }
-
-    fn manifest(themes: &[&str]) -> crate::manifest::Manifest {
-        let files: String = themes
-            .iter()
-            .map(|f| format!("[[themes]]\nfile = \"{f}\"\n"))
-            .collect();
-        crate::manifest::parse(&format!(
-            "id = \"studio.jl.nord\"\nname = \"Nord\"\nversion = \"1.0.0\"\nauthor = \"JL\"\ndescription = \"d\"\nlicense = \"MIT\"\nlumen = \">=26.2.0\"\napi = 1\n{files}"
-        ))
-        .unwrap()
-    }
-
-    #[test]
-    fn themes_of_reads_each_listed_file() {
-        let dir = tempfile::tempdir().unwrap();
-        std::fs::create_dir(dir.path().join("themes")).unwrap();
-        std::fs::write(dir.path().join("themes/nord.toml"), NORD).unwrap();
-        std::fs::write(
-            dir.path().join("themes/two.toml"),
-            NORD.replace("\"nord\"", "\"two\""),
-        )
-        .unwrap();
-        let got = themes_of(
-            dir.path(),
-            &manifest(&["themes/nord.toml", "themes/two.toml"]),
-        )
-        .unwrap();
-        assert_eq!(got.len(), 2);
-        assert_eq!(got[0].0.plugin, "studio.jl.nord");
-        assert_eq!(
-            (
-                got[0].0.id.as_str(),
-                got[0].0.base,
-                got[0].0.default_scheme.as_str()
-            ),
-            ("nord", ThemeId::Darkroom, "dark")
-        );
-        assert_eq!(got[1].0.id, "two");
-        // The same id twice, a missing file and a file that isn't a theme all say which file.
-        std::fs::write(dir.path().join("themes/two.toml"), NORD).unwrap();
-        let dup = themes_of(
-            dir.path(),
-            &manifest(&["themes/nord.toml", "themes/two.toml"]),
-        )
-        .unwrap_err();
-        assert!(
-            dup.contains("themes/two.toml") && dup.contains("nord"),
-            "{dup}"
-        );
-        let missing = themes_of(dir.path(), &manifest(&["themes/none.toml"])).unwrap_err();
-        assert!(missing.contains("themes/none.toml"), "{missing}");
-        std::fs::write(dir.path().join("themes/two.toml"), "id = 3").unwrap();
-        assert!(themes_of(dir.path(), &manifest(&["themes/two.toml"]))
-            .unwrap_err()
-            .contains("themes/two.toml"));
-    }
 }

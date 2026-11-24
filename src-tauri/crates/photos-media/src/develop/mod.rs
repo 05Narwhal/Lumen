@@ -47,6 +47,33 @@ pub struct Ctx<'a> {
     /// The AI rasters the recipe's masks name (`photos_core::ai_masks::rasters_for`). A shape
     /// whose raster isn't here weighs nothing, so every render of a photo must pass them.
     pub ai_rasters: Option<&'a photos_core::ai_masks::AiRasters>,
+    /// Whether the render is no longer wanted (Round 24 §6.1: a newer slider position overtook
+    /// it). Asked between stages, per mask and in the area tools' blurs; a cancelled render
+    /// returns early and its pixels are thrown away.
+    pub cancel: Cancel<'a>,
+}
+
+/// [`Ctx::cancel`]: a question asked often, so it must be cheap (an atomic load).
+#[derive(Clone, Copy, Default)]
+pub struct Cancel<'a>(pub Option<&'a (dyn Fn() -> bool + Sync)>);
+
+impl Cancel<'_> {
+    pub fn is_set(&self) -> bool {
+        self.0.is_some_and(|f| f())
+    }
+}
+
+impl std::fmt::Debug for Cancel<'_> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_str(if self.0.is_some() { "Cancel(Some)" } else { "Cancel(None)" })
+    }
+}
+
+/// A cancel check never makes two contexts render differently.
+impl PartialEq for Cancel<'_> {
+    fn eq(&self, _: &Self) -> bool {
+        true
+    }
 }
 
 /// A part of a frame: its top-left corner and the frame's size, in the part's pixels.
@@ -60,11 +87,16 @@ pub struct Region {
 
 impl Default for Ctx<'_> {
     fn default() -> Self {
-        Self { scale: 1.0, seed: 0, region: None, airlight: None, frame_map: None, ai_rasters: None }
+        Self { scale: 1.0, seed: 0, region: None, airlight: None, frame_map: None, ai_rasters: None, cancel: Cancel::default() }
     }
 }
 
 impl Ctx<'_> {
+    /// [`Ctx::cancel`] asked.
+    pub fn cancelled(&self) -> bool {
+        self.cancel.is_set()
+    }
+
     pub fn new(scale: f32, seed: u64) -> Self {
         Self { scale, seed, ..Default::default() }
     }
@@ -261,29 +293,51 @@ pub fn process(base: &Linear, recipe: &Recipe, ctx: &Ctx) -> Linear {
 
 /// Every stage after geometry, in order, on an image already in its frame (or, with
 /// `Ctx::region`, a part of one).
+///
+/// A cancelled render ([`Ctx::cancel`]) stops at its next check and leaves `img` part-done.
 pub fn develop_stages(img: &mut Linear, d: &Develop, ctx: &Ctx) {
     // Before global Basic, so moving a slider never moves an AI mask's edge.
     let guide = masks::guide_for(img, &d.masks, ctx);
+    if ctx.cancelled() {
+        return;
+    }
     basic::apply_gains(img, &d.basic);
     local::texture_clarity(img, d.basic.texture, d.basic.clarity, ctx);
+    if ctx.cancelled() {
+        return;
+    }
     local::dehaze(img, d.basic.dehaze, ctx);
     basic::apply_tones(img, &d.basic);
+    if ctx.cancelled() {
+        return;
+    }
     let masked = masks::apply(img, &d.masks, ctx, guide.as_ref());
+    if ctx.cancelled() {
+        return;
+    }
     curve::apply(img, &d.curve);
     color::apply(img, &d.hsl, &d.grading);
     // Each area stage: the photo's, then each mask's own on the part it covers.
     use local_tools::Tool;
-    detail::sharpen_with(img, &d.detail.sharpen, ctx, masked.sharpness.as_deref());
-    masked.run(img, ctx, Tool::sharpen);
-    effects::motion_blur(img, &d.effects.motion_blur, ctx);
-    masked.run(img, ctx, Tool::motion_blur);
-    effects::glow(img, &d.effects.glow, ctx);
-    masked.run(img, ctx, Tool::glow);
-    effects::halation(img, &d.effects.halation, ctx);
-    masked.run(img, ctx, Tool::halation);
-    effects::vignette(img, &d.effects.vignette, ctx);
-    effects::grain(img, &d.effects.grain, ctx);
-    masked.run(img, ctx, Tool::grain);
+    let stages: [&dyn Fn(&mut Linear); 11] = [
+        &|img| detail::sharpen_with(img, &d.detail.sharpen, ctx, masked.sharpness.as_deref()),
+        &|img| masked.run(img, ctx, Tool::sharpen),
+        &|img| effects::motion_blur(img, &d.effects.motion_blur, ctx),
+        &|img| masked.run(img, ctx, Tool::motion_blur),
+        &|img| effects::glow(img, &d.effects.glow, ctx),
+        &|img| masked.run(img, ctx, Tool::glow),
+        &|img| effects::halation(img, &d.effects.halation, ctx),
+        &|img| masked.run(img, ctx, Tool::halation),
+        &|img| effects::vignette(img, &d.effects.vignette, ctx),
+        &|img| effects::grain(img, &d.effects.grain, ctx),
+        &|img| masked.run(img, ctx, Tool::grain),
+    ];
+    for stage in stages {
+        if ctx.cancelled() {
+            return;
+        }
+        stage(img);
+    }
 }
 
 /// Dehaze's airlight for a frame about to be rendered in parts: the frame's gains and local
@@ -615,6 +669,38 @@ mod tests {
         let mut want = clarity.clone();
         curve::apply(&mut want, &curve);
         assert_close(&both, &want, "clarity, then the curve");
+    }
+
+    /// Round 24 §6.1: a render whose request was overtaken stops at its next check, and one
+    /// that is asked but never cancelled renders exactly as one that is never asked.
+    #[test]
+    fn a_cancelled_render_stops_and_an_uncancelled_one_is_unchanged() {
+        use photos_core::edits::{Halation, LocalAdjust, Mask, MaskShape};
+        use std::sync::atomic::{AtomicUsize, Ordering};
+        let img = scene(160, 100);
+        let shape = MaskShape::Radial { add: true, center: [0.5, 0.5], radius: [0.3, 0.35], angle: 0.0, feather: 0.5, inside: true };
+        let adjust = LocalAdjust { exposure: 0.5, halation: Halation { amount: 1.0, size: 0.8 }, ..Default::default() };
+        let mask = Mask { id: 1, name: "Ellipse".into(), shapes: vec![shape], invert: false, opacity: 1.0, adjust, visible: true };
+        let d = Develop { basic: Basic { exposure: 1.5, ..Default::default() }, masks: vec![mask], ..Default::default() };
+        let ctx = Ctx { frame_map: Some(masks::FrameMap::new(160, 100, &Recipe::identity())), ..Ctx::new(1.0, 7) };
+        let mut plain = img.clone();
+        develop_stages(&mut plain, &d, &ctx);
+        assert_ne!(plain, img, "the recipe changes the photo");
+
+        let never = || false;
+        let mut asked = img.clone();
+        develop_stages(&mut asked, &d, &Ctx { cancel: Cancel(Some(&never)), ..ctx });
+        assert_eq!(asked, plain, "asking costs nothing");
+
+        let checks = AtomicUsize::new(0);
+        let at_once = || {
+            checks.fetch_add(1, Ordering::Relaxed);
+            true
+        };
+        let mut stopped = img.clone();
+        develop_stages(&mut stopped, &d, &Ctx { cancel: Cancel(Some(&at_once)), ..ctx });
+        assert_eq!(stopped, img, "nothing past the first check runs");
+        assert_eq!(checks.load(Ordering::Relaxed), 1);
     }
 
     #[test]

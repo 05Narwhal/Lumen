@@ -7,6 +7,7 @@ import type { PluginInspect } from "@/types/generated/PluginInspect";
 import type { PluginPermission } from "@/types/generated/PluginPermission";
 import type { PluginTrust } from "@/types/generated/PluginTrust";
 import { closePluginInstall, openPluginInstall, pluginInstallStore } from "./store";
+import { ThemeInstallHost } from "./theme-sheet";
 import "./styles.scss";
 
 /** Spec §3's wording of each permission. */
@@ -15,7 +16,26 @@ export const PERMISSION_LABELS: Record<PluginPermission, string> = {
   photosRead: "See the photos in Develop's filmstrip: previews up to 1024 px, and their date, camera, lens, size, rating, label, flag and place",
   developWriteDrafts: "Change Develop drafts of those photos (every change can be undone)",
   storage: "Keep its own files (up to 50 MB)",
+  // API 1.1 (Round 24 §8.4–§8.7)
+  models: "Use AI models it downloads",
+  libraryRead: "Read dates, places and file names of your photos",
+  placesWrite: "Suggest places for photos",
+  originalsGps: "Add GPS to original files that have none",
+  // API 1.3 (Round 25 P4b): proposals, shown for review; nothing changes until accepted.
+  datesWrite: "Suggest dates for photos",
+  tagsWrite: "Suggest tags and labels for photos",
+  captionsWrite: "Suggest titles and captions for photos",
+  peopleWrite: "Suggest names for faces Lumen found",
 };
+
+/** The *It can never* line; `originals.gps` and providers narrow it (Round 24 §8.1, §8.7). */
+export function neverText(permissions: PluginPermission[], adds: string[]): string {
+  const originals = permissions.includes("originalsGps")
+    ? "Change anything else in your originals or your library"
+    : "Touch your originals or your library";
+  const programs = adds.some((a) => a.startsWith("Open ")) ? "start programs other than the ones above" : "start other programs";
+  return `${originals}, use the internet, or ${programs}.`;
+}
 
 export function trustLine(t: PluginTrust): string {
   if (t.type === "jlStudios") return "✓ From JL Studios";
@@ -44,6 +64,9 @@ export function PluginInstallHost() {
   }, []);
 
   useEffect(() => {
+    // A new package starts a new install: the host stays mounted, so the last success must not
+    // leave `installing` set (it once blocked every install after the first).
+    installing.current = false;
     setBusy(false);
     setError(null);
     setData(null);
@@ -81,9 +104,12 @@ export function PluginInstallHost() {
 
   const shown = path && data?.path === path ? data.inspect : null;
   return (
+    <>
+    <ThemeInstallHost />
     <Modal
       opened={shown !== null}
       onClose={() => !busy && closePluginInstall()}
+      data-part="install-sheet"
       closeOnEscape={!busy}
       closeOnClickOutside={!busy}
       title={shown?.update ? `Update ${shown.update.from} → ${shown.info.version}` : undefined}
@@ -94,6 +120,7 @@ export function PluginInstallHost() {
     >
       {shown && <PluginInstallSheet p={shown} busy={busy} error={error} onInstall={install} />}
     </Modal>
+    </>
   );
 }
 
@@ -142,7 +169,7 @@ export function PluginInstallSheet({ p, busy, error, onInstall }: { p: PluginIns
       </div>
       <div className="plugin-install__section">
         <div className="plugin-install__label">It can never</div>
-        <p className="plugin-install__text">Touch your originals or your library, use the internet, or start other programs.</p>
+        <p className="plugin-install__text">{neverText(info.permissions, p.adds)}</p>
       </div>
       {p.notes.length > 0 && (
         <ul className="plugin-install__list">

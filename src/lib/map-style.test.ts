@@ -1,6 +1,6 @@
 import type { Polygon } from "geojson";
 import { describe, expect, it } from "vitest";
-import { clusterZoom, offlineGeoJson, SATELLITE_LINE_OPACITY, satelliteOverlay, toBounds } from "./map-style";
+import { clusterZoom, offlineGeoJson, SATELLITE_LINE_OPACITY, SATELLITE_MAX_ZOOM, SATELLITE_SOURCE_MAX_ZOOM, satelliteOverlay, satelliteSource, toBounds } from "./map-style";
 
 describe("clusterZoom", () => {
   it("converts MapLibre's 512px-tile zoom to the 256px-tile zoom the clustering uses", () => {
@@ -50,6 +50,44 @@ describe("satelliteOverlay", () => {
     expect(road.paint["line-color"]).toBe("#fff");
     expect(SATELLITE_LINE_OPACITY).toBeLessThan(0.6);
     expect(label.paint["text-color"]).toBe("#000");
+  });
+});
+
+describe("satelliteSource", () => {
+  const SECRET = "AAPK-own-key 123";
+
+  it("is EOX Sentinel-2 cloudless without a key", () => {
+    const s = satelliteSource();
+    expect(s.tiles).toEqual(["https://tiles.maps.eox.at/wmts/1.0.0/s2cloudless-2025_3857/default/GoogleMapsCompatible/{z}/{y}/{x}.jpg"]);
+    expect(s.attribution).toContain("EOxCloudless");
+    expect(s.attribution).toContain("EOX IT Services GmbH");
+    expect(s.attribution).toContain("Contains modified Copernicus Sentinel data 2025");
+    expect(s.maxzoom).toBe(14);
+    expect(s.mapMaxZoom).toBeGreaterThanOrEqual(14);
+    expect(s.mapMaxZoom).toBeLessThanOrEqual(15);
+    expect(JSON.stringify(s)).not.toContain("arcgis");
+  });
+
+  it("treats empty, null, undefined and whitespace-only keys as none", () => {
+    const eox = satelliteSource();
+    for (const key of [undefined, null, "", "   ", " \t\n "]) expect(satelliteSource(key)).toEqual(eox);
+  });
+
+  it("uses Esri's keyed World Imagery with the key as token, at the old zoom limits", () => {
+    const s = satelliteSource(`  ${SECRET} `);
+    expect(s.tiles).toEqual([
+      `https://ibasemaps-api.arcgis.com/arcgis/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}?token=${encodeURIComponent(SECRET)}`,
+    ]);
+    expect(s.maxzoom).toBe(SATELLITE_SOURCE_MAX_ZOOM);
+    expect(s.mapMaxZoom).toBe(SATELLITE_MAX_ZOOM);
+    expect(s.attribution).toContain("Powered by Esri");
+    expect(s.attribution).toContain("Esri, Maxar, Earthstar Geographics");
+    expect(JSON.stringify(s)).not.toContain("eox");
+  });
+
+  it("never puts the key in the attribution", () => {
+    expect(satelliteSource(SECRET).attribution).not.toContain("AAPK");
+    expect(satelliteSource(SECRET).attribution).not.toContain(SECRET);
   });
 });
 

@@ -199,7 +199,7 @@ export function InfoPanel({
     .filter(Boolean)
     .join(" · ");
   return (
-    <aside className="info-panel" aria-label="Info">
+    <aside className="info-panel" data-part="panel" aria-label="Info">
       <h3 className="info-panel__title">{asset.filename}</h3>
       <div className="info-panel__rating">
         <StarRating value={asset.rating} readOnly />
@@ -272,13 +272,14 @@ export function InfoPanel({
             value={
               <>
                 {asset.locality ?? asset.placeName ?? `${asset.gpsLat.toFixed(5)}, ${asset.gpsLon.toFixed(5)}`}
+                {asset.placeSource === 3 && <span className="info-panel__estimated" title="Estimated by a plugin and confirmed by you">Estimated</span>}
                 {asset.placeSource === 1 && (asset.locality ?? asset.placeName) && (
                   <span className="info-panel__credit">© OpenStreetMap contributors</span>
                 )}
               </>
             }
           />
-          <Link className="info-panel__reveal" to="/map">
+          <Link className="info-panel__reveal" to={`/map?locate=${asset.id}`}>
             <IconMap size={16} /> Open in Map
           </Link>
         </div>

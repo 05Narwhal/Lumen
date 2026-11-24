@@ -13,11 +13,13 @@ use image::DynamicImage;
 // few renders that follow it until the webview has fetched it.
 const KEEP_RENDERS: usize = 8;
 const KEEP_BASES: usize = 2;
+const KEEP_PINNED: usize = 2;
 
 #[derive(Default)]
 pub struct PreviewCache {
     next: AtomicU64,
     renders: Mutex<VecDeque<(u64, Arc<Vec<u8>>)>>,
+    pinned: Mutex<VecDeque<(u64, Arc<Vec<u8>>)>>,
     bases: Mutex<VecDeque<(i64, Arc<DynamicImage>)>>,
 }
 
@@ -32,8 +34,21 @@ impl PreviewCache {
         token
     }
 
+    /// A render the view keeps showing while sliders move (the before of split / side by side):
+    /// it sits outside the ring, so later renders never evict it. Only the latest few are kept.
+    pub fn put_pinned(&self, jpeg: Vec<u8>) -> u64 {
+        let token = self.next.fetch_add(1, Ordering::Relaxed) + 1;
+        let mut p = self.pinned.lock().expect("edit previews pinned lock");
+        p.push_back((token, Arc::new(jpeg)));
+        while p.len() > KEEP_PINNED {
+            p.pop_front();
+        }
+        token
+    }
+
     pub fn get(&self, token: u64) -> Option<Arc<Vec<u8>>> {
-        self.renders.lock().expect("edit previews lock").iter().find(|(t, _)| *t == token).map(|(_, b)| b.clone())
+        let find = |q: &VecDeque<(u64, Arc<Vec<u8>>)>| q.iter().find(|(t, _)| *t == token).map(|(_, b)| b.clone());
+        find(&self.renders.lock().expect("edit previews lock")).or_else(|| find(&self.pinned.lock().expect("edit previews pinned lock")))
     }
 
     /// The 1024 px unedited image for `asset_id`, loaded once while it is being edited.
@@ -61,6 +76,20 @@ mod tests {
         let tokens: Vec<u64> = (0..10).map(|i| cache.put(vec![i as u8])).collect();
         assert!(cache.get(tokens[0]).is_none(), "only the most recent few are kept");
         assert_eq!(cache.get(tokens[9]).as_deref().map(|v| v.as_slice()), Some(&[9u8][..]));
+    }
+
+    #[test]
+    fn a_pinned_before_outlives_the_renders_that_follow() {
+        let cache = PreviewCache::default();
+        let before = cache.put_pinned(vec![42]);
+        for i in 0..(KEEP_RENDERS * 3) {
+            cache.put(vec![i as u8]);
+        }
+        assert_eq!(cache.get(before).as_deref().map(|v| v.as_slice()), Some(&[42u8][..]));
+        // Only the latest few pinned ones are kept.
+        let later: Vec<u64> = (0..KEEP_PINNED + 1).map(|i| cache.put_pinned(vec![i as u8])).collect();
+        assert!(cache.get(before).is_none());
+        assert!(cache.get(*later.last().unwrap()).is_some());
     }
 
     #[test]

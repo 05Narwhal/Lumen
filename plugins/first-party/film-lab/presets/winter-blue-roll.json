@@ -1,0 +1,86 @@
+{
+  "recipeVersion": 3,
+  "name": "Winter Blue Roll",
+  "develop": {
+    "basic": {
+      "temperature": -18,
+      "tint": 2,
+      "contrast": 0.12,
+      "clarity": 0.05,
+      "saturation": -0.05
+    },
+    "hsl": [
+      {
+        "h": 0,
+        "s": 0,
+        "l": 0
+      },
+      {
+        "h": 0,
+        "s": 0,
+        "l": 0
+      },
+      {
+        "h": 0,
+        "s": 0,
+        "l": 0
+      },
+      {
+        "h": 0,
+        "s": 0,
+        "l": 0
+      },
+      {
+        "h": 0,
+        "s": 0,
+        "l": 0
+      },
+      {
+        "h": 0,
+        "s": 0.1,
+        "l": -0.08
+      },
+      {
+        "h": 0,
+        "s": 0,
+        "l": 0
+      },
+      {
+        "h": 0,
+        "s": 0,
+        "l": 0
+      }
+    ],
+    "grading": {
+      "shadows": {
+        "hue": 220,
+        "sat": 0.14,
+        "lum": 0
+      }
+    },
+    "effects": {
+      "vignette": {
+        "amount": -0.15,
+        "midpoint": 0.5,
+        "feather": 0.6
+      }
+    }
+  },
+  "panels": [
+    "basic",
+    "hsl",
+    "grading",
+    "effects"
+  ],
+  "look": {
+    "intent": "Snow, shade and cold light: blue shadows, crisp contrast, slightly dark corners",
+    "hues": [
+      210,
+      230
+    ],
+    "mono": false,
+    "key": "high",
+    "skinSafe": false,
+    "likesSky": true
+  }
+}

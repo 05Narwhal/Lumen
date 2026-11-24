@@ -12,11 +12,14 @@ export type MenuItem =
   /** Five stars in one row: click or drag across them; clicking the current rating clears it. */
   | { label: string; rating: number; onRate: (stars: number) => void };
 
+/** A menu factory's output. `dense` (Round 24 §3) asks the renderer for tighter rows, for that menu only. */
+export type MenuItems = MenuItem[] & { dense?: boolean };
+
 interface MenuState {
   open: boolean;
   x: number;
   y: number;
-  items: MenuItem[];
+  items: MenuItems;
   /** Opened from the keyboard: focus goes back here when the menu closes. */
   returnTo: HTMLElement | null;
 }
@@ -26,7 +29,7 @@ const menuStore = createStore<MenuState>({ open: false, x: 0, y: 0, items: [], r
 /** Set while a keyboard-made `contextmenu` event is being dispatched (see `openMenuFor`). */
 let keyboardTarget: HTMLElement | null = null;
 
-export function openContextMenu(x: number, y: number, items: MenuItem[]) {
+export function openContextMenu(x: number, y: number, items: MenuItems) {
   menuStore.set({ open: true, x, y, items, returnTo: keyboardTarget });
 }
 
@@ -63,7 +66,7 @@ const isMenuKey = (e: KeyboardEvent) => e.key === "ContextMenu" || (e.key === "F
 
 /** `onContextMenu={(e) => open(e, items)}` on anything. One host renders the menu. */
 export function useContextMenu() {
-  const open = useCallback((e: MouseEvent, items: MenuItem[]) => {
+  const open = useCallback((e: MouseEvent, items: MenuItems) => {
     e.preventDefault();
     e.stopPropagation();
     openContextMenu(e.clientX, e.clientY, items);
@@ -80,7 +83,7 @@ const leftOf = (it: { icon?: ReactNode; iconUrl?: string }) =>
  * Masks panel's): dividers, disabled and danger entries, and submenus. `subPosition` is where
  * a submenu opens (`left-start` for a menu at the window's right edge).
  */
-export function Items({ items, subPosition }: { items: MenuItem[]; subPosition?: FloatingPosition }) {
+export function Items({ items, subPosition, dense = items.dense }: { items: MenuItems; subPosition?: FloatingPosition; dense?: boolean }) {
   return (
     <>
       {items.map((it, i) => {
@@ -92,8 +95,8 @@ export function Items({ items, subPosition }: { items: MenuItem[]; subPosition?:
               <Menu.Sub.Target>
                 <Menu.Sub.Item leftSection={leftOf(it)}>{it.label}</Menu.Sub.Item>
               </Menu.Sub.Target>
-              <Menu.Sub.Dropdown className="context-menu__dropdown">
-                <Items items={it.children} subPosition={subPosition} />
+              <Menu.Sub.Dropdown className="context-menu__dropdown" data-dense={dense || undefined}>
+                <Items items={it.children} subPosition={subPosition} dense={dense} />
               </Menu.Sub.Dropdown>
             </Menu.Sub>
           );
@@ -213,7 +216,8 @@ export function ContextMenuHost() {
       position="bottom-start"
       offset={2}
       shadow="lg"
-      width={240}
+      // Grows with its longest label (*Edit in PhotoCraft*) between the bounds in styles.scss.
+      width="max-content"
       transitionProps={{ transition: "pop-top-left", duration: 120 }}
       classNames={{ dropdown: "context-menu__dropdown" }}
       withinPortal
@@ -221,7 +225,7 @@ export function ContextMenuHost() {
       <Menu.Target>
         <span className="context-menu__anchor" style={{ left: s.x, top: s.y }} aria-hidden />
       </Menu.Target>
-      <Menu.Dropdown role="menu" data-nested={s.items.some((it) => "children" in it) || undefined}>
+      <Menu.Dropdown role="menu" data-nested={s.items.some((it) => "children" in it) || undefined} data-dense={s.items.dense || undefined}>
         <Items items={s.items} />
       </Menu.Dropdown>
     </Menu>

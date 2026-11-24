@@ -21,6 +21,7 @@ import { Spinner } from "@/components/spinner";
 import { AnimatePresence, motion } from "motion/react";
 import { playStarBurst } from "@/components/star-burst";
 import { useCallback, useEffect, useRef, useState } from "react";
+import { useMenuContributions } from "@/lib/plugin-slots";
 import { useNavigate, useSearchParams } from "react-router";
 import { openDevelop } from "@/lib/develop-source";
 import { toast } from "@/components/toast";
@@ -543,6 +544,7 @@ export function Viewer() {
   const a: AssetDetail | undefined = asset.data;
   // Round 22 lane C: *Edit in* and *Open with ▸* in the photo's menu.
   const openWith = useOpenWith(a ? { mediaType: a.mediaType, raw: a.raw } : null);
+  const contributions = useMenuContributions("viewer.menu", navigate);
 
   // Right-click on the photo (Round 4G): the tile's actions for it, and the viewer's own.
   const photoMenuFor = (p: AssetDetail) => {
@@ -551,7 +553,7 @@ export function Viewer() {
     const people = new Map<number, { personId: number; name: string; faceId: number }>();
     for (const f of faces.data ?? []) if (f.personId != null && f.name && !people.has(f.personId)) people.set(f.personId, { personId: f.personId, name: f.name, faceId: f.id });
     return viewerMenu(
-      { favorite, rating, mac: isMac(), inHidden: inHiddenFolder(), inAlbum: albumId !== null, people: [...people.values()], openWith: openWith.context },
+      { favorite, rating, mac: isMac(), inHidden: inHiddenFolder(), inAlbum: albumId !== null, people: [...people.values()], openWith: openWith.context, contributions: contributions.map((c) => ({ ...c, run: () => c.run([p.id]) })) },
       {
         favorite: toggleFavorite,
         rate,
@@ -616,6 +618,7 @@ export function Viewer() {
       {open && (
         <motion.div
           className="viewer"
+          data-part="viewer"
           role="dialog"
           aria-modal="true"
           aria-label={a?.filename ?? "Photo"}
@@ -722,7 +725,7 @@ export function Viewer() {
                 )}
               </div>
 
-              <div className="viewer__top" {...drag}>
+              <div className="viewer__top" data-part="toolbar" {...drag}>
                 <button type="button" className="viewer__icon" aria-label="Close" onClick={close}>
                   <IconX size={18} />
                 </button>

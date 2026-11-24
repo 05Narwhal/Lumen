@@ -8,7 +8,6 @@ use ts_rs::TS;
 #[serde(rename_all = "camelCase")]
 #[ts(export)]
 pub enum PluginKind {
-    Theme,
     Presets,
     Apps,
     Prompts,
@@ -20,7 +19,6 @@ impl PluginKind {
     /// The plural name used in *<kind> isn't supported by this Lumen*.
     pub fn plural(&self) -> &'static str {
         match self {
-            PluginKind::Theme => "Themes",
             PluginKind::Presets => "Presets",
             PluginKind::Apps => "Apps",
             PluginKind::Prompts => "Prompts",
@@ -39,9 +37,43 @@ pub enum PluginPermission {
     PhotosRead,
     DevelopWriteDrafts,
     Storage,
+    // API 1.1 (Round 24 §8.4–§8.7).
+    Models,
+    LibraryRead,
+    PlacesWrite,
+    OriginalsGps,
+    // API 1.3 (Round 25 P4b): proposals for the review screen.
+    DatesWrite,
+    TagsWrite,
+    CaptionsWrite,
+    PeopleWrite,
 }
 
 impl PluginPermission {
+    pub const ALL: [PluginPermission; 12] = [
+        PluginPermission::ImportReadChosen,
+        PluginPermission::PhotosRead,
+        PluginPermission::DevelopWriteDrafts,
+        PluginPermission::Storage,
+        PluginPermission::Models,
+        PluginPermission::LibraryRead,
+        PluginPermission::PlacesWrite,
+        PluginPermission::OriginalsGps,
+        PluginPermission::DatesWrite,
+        PluginPermission::TagsWrite,
+        PluginPermission::CaptionsWrite,
+        PluginPermission::PeopleWrite,
+    ];
+
+    /// The permissions that let a plugin submit proposals (API 1.3), one per kind it may propose.
+    pub const PROPOSING: [PluginPermission; 5] = [
+        PluginPermission::PlacesWrite,
+        PluginPermission::DatesWrite,
+        PluginPermission::TagsWrite,
+        PluginPermission::CaptionsWrite,
+        PluginPermission::PeopleWrite,
+    ];
+
     /// The manifest's id for this permission.
     pub fn id(&self) -> &'static str {
         match self {
@@ -49,16 +81,34 @@ impl PluginPermission {
             PluginPermission::PhotosRead => "photos.read",
             PluginPermission::DevelopWriteDrafts => "develop.write-drafts",
             PluginPermission::Storage => "storage",
+            PluginPermission::Models => "models",
+            PluginPermission::LibraryRead => "library.read",
+            PluginPermission::PlacesWrite => "places.write",
+            PluginPermission::OriginalsGps => "originals.gps",
+            PluginPermission::DatesWrite => "dates.write",
+            PluginPermission::TagsWrite => "tags.write",
+            PluginPermission::CaptionsWrite => "captions.write",
+            PluginPermission::PeopleWrite => "people.write",
+        }
+    }
+
+    /// The API minor version that introduced it: a manifest asking for it needs `api >= 1.<n>`.
+    pub fn since_minor(&self) -> u32 {
+        match self {
+            PluginPermission::Models
+            | PluginPermission::LibraryRead
+            | PluginPermission::PlacesWrite
+            | PluginPermission::OriginalsGps => 1,
+            PluginPermission::DatesWrite
+            | PluginPermission::TagsWrite
+            | PluginPermission::CaptionsWrite
+            | PluginPermission::PeopleWrite => 3,
+            _ => 0,
         }
     }
 
     pub fn from_id(id: &str) -> Option<Self> {
-        [
-            PluginPermission::ImportReadChosen,
-            PluginPermission::PhotosRead,
-            PluginPermission::DevelopWriteDrafts,
-            PluginPermission::Storage,
-        ]
+        PluginPermission::ALL
         .into_iter()
         .find(|p| p.id() == id)
     }
@@ -76,8 +126,27 @@ impl PluginPermission {
                 "Change Develop drafts of those photos (every change can be undone)"
             }
             PluginPermission::Storage => "Keep its own files (up to 50 MB)",
+            PluginPermission::Models => "Use AI models it downloads",
+            PluginPermission::LibraryRead => "Read dates, places and file names of your photos",
+            PluginPermission::PlacesWrite => "Suggest places for photos",
+            PluginPermission::OriginalsGps => "Add GPS to original files that have none",
+            PluginPermission::DatesWrite => "Suggest dates for photos",
+            PluginPermission::TagsWrite => "Suggest tags and labels for photos",
+            PluginPermission::CaptionsWrite => "Suggest titles and captions for photos",
+            PluginPermission::PeopleWrite => "Suggest names for faces Lumen found",
         }
     }
+}
+
+/// Lumen's file dialog kinds (Round 24 §8.1); a provider's `modes` maps each to the app's word.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord, Serialize, Deserialize, TS)]
+#[serde(rename_all = "kebab-case")]
+#[ts(export)]
+pub enum PickKind {
+    OpenFile,
+    OpenMultiple,
+    OpenFolder,
+    Save,
 }
 
 /// Who made a plugin, as far as its signature proves (spec §8).
@@ -130,6 +199,123 @@ pub struct PluginSetting {
     #[ts(type = "unknown")]
     pub value: serde_json::Value,
     pub choices: Vec<String>,
+    /// A heading on the plugin's page (§8.3).
+    pub group: Option<String>,
+    /// A `[[detect]]` id: disabled while that app isn't found.
+    pub requires: Option<String>,
+}
+
+/// Where a plugin may add an entry (API 1.2 `[[ui.contribute]]`). Lumen decides how each slot
+/// is drawn; a contribution only names the slot, a label, an icon and an action.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, TS)]
+#[ts(export)]
+pub enum ContributionSlot {
+    /// The map page's toolbar.
+    #[serde(rename = "map.toolbar")]
+    #[ts(rename = "map.toolbar")]
+    MapToolbar,
+    /// The menu of a photo or a selection in the grid.
+    #[serde(rename = "library.selection-menu")]
+    #[ts(rename = "library.selection-menu")]
+    LibrarySelectionMenu,
+    /// The menu of the photo open in the viewer.
+    #[serde(rename = "viewer.menu")]
+    #[ts(rename = "viewer.menu")]
+    ViewerMenu,
+    /// The command palette only (every contribution gets a palette entry anyway).
+    #[serde(rename = "palette")]
+    #[ts(rename = "palette")]
+    Palette,
+}
+
+/// The Tabler icons a contribution may name (`IconMapPin` is `map-pin`). The page keeps the
+/// same list in `src/lib/plugin-slots.ts`.
+pub const CONTRIBUTION_ICONS: &[&str] = &[
+    "map-pin", "map-search", "search", "sparkles", "wand", "photo", "calendar", "tag", "user", "world",
+    "download", "refresh", "settings", "list-check", "check", "folder", "scan", "bolt",
+];
+
+/// One entry a plugin adds to a slot.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, TS)]
+#[serde(rename_all = "camelCase")]
+#[ts(export)]
+pub struct PluginContribution {
+    pub slot: ContributionSlot,
+    pub label: String,
+    /// A name from [`CONTRIBUTION_ICONS`].
+    pub icon: Option<String>,
+    /// `open-review:<id>` opens that review page; anything else is passed to the plugin's `ui.action`.
+    pub action: String,
+}
+
+/// The kinds of control a plugin's settings page may declare (API 1.2). Lumen draws every one
+/// with its own components; the plugin only describes them.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, TS)]
+#[serde(rename_all = "kebab-case")]
+#[ts(export)]
+pub enum PluginControlKind {
+    Toggle,
+    Select,
+    Segmented,
+    Slider,
+    Number,
+    Text,
+    /// Runs the plugin's `ui.action(action)` when pressed.
+    Button,
+    /// Static text under the control's `label`, from `body` (Markdown, no HTML).
+    Markdown,
+    /// A read-only line whose text comes from the plugin's `ui.value(key)`.
+    Stat,
+    /// A read-only list whose rows come from the plugin's `ui.value(key)` (a JSON array).
+    List,
+}
+
+impl PluginControlKind {
+    /// A control that holds a value the person sets (stored in `plugins.json`).
+    pub fn is_value(self) -> bool {
+        matches!(self, Self::Toggle | Self::Select | Self::Segmented | Self::Slider | Self::Number | Self::Text)
+    }
+
+    /// A control that needs the plugin's wasm (`ui.action` / `ui.value`).
+    pub fn needs_code(self) -> bool {
+        matches!(self, Self::Button | Self::Stat | Self::List)
+    }
+}
+
+/// One control on a plugin's settings page (API 1.2), with its current value.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, TS)]
+#[serde(rename_all = "camelCase")]
+#[ts(export)]
+pub struct PluginControl {
+    pub kind: PluginControlKind,
+    pub key: Option<String>,
+    pub label: String,
+    pub help: Option<String>,
+    /// The stored value, else the default; `None` for button, markdown, stat and list.
+    #[ts(type = "unknown")]
+    pub value: Option<serde_json::Value>,
+    pub choices: Vec<String>,
+    pub min: Option<f64>,
+    pub max: Option<f64>,
+    pub step: Option<f64>,
+    /// Another value control's key: shown only while that one is on / non-empty.
+    pub requires: Option<String>,
+    /// A `[[detect]]` id: disabled while that app isn't found.
+    pub app: Option<String>,
+    /// `button`: what `plugin_ui_action` is called with.
+    pub action: Option<String>,
+    /// `markdown`: the text.
+    pub body: Option<String>,
+}
+
+/// A titled run of controls on a plugin's page.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, TS)]
+#[serde(rename_all = "camelCase")]
+#[ts(export)]
+pub struct PluginSection {
+    pub title: Option<String>,
+    pub description: Option<String>,
+    pub controls: Vec<PluginControl>,
 }
 
 /// One `[[assets]]` entry, for Settings → Licences.
@@ -159,6 +345,22 @@ pub struct PluginInfo {
     pub state: PluginState,
     pub icon_url: Option<String>,
     pub settings: Vec<PluginSetting>,
+    /// The settings page: flat `[[settings]]` first, then `[[ui.section]]`, with current values.
+    pub sections: Vec<PluginSection>,
+    /// What it adds to the map toolbar, menus and palette (API 1.2). The page shows these only
+    /// while the plugin is on and ready.
+    pub contributions: Vec<PluginContribution>,
+    /// The plugin's `homepage`, shown on its page.
+    pub homepage: Option<String>,
+    /// The author's link and the source's link (https only), shown on its page.
+    pub author_url: Option<String>,
+    pub repository: Option<String>,
+    /// `photos://plugin-shot/<id>/<n>` for each `[listing]` screenshot, in the manifest's order.
+    pub screenshots: Vec<String>,
+    /// The package ships a `README.md` (its text comes from `plugin_readme`, not a URL).
+    pub has_readme: bool,
+    /// The ids of its `[[detect]]` entries: a plugin with any (or with settings) has its own page.
+    pub detect_ids: Vec<String>,
     pub assets: Vec<PluginAsset>,
 }
 

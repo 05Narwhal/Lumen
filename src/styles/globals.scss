@@ -424,3 +424,9 @@ a { color: var(--accent); text-decoration: none; }
   --health-missing: oklch(74% 0.15 75);
   --health-recovered: oklch(68% 0.12 235);
 }
+
+// Round 24 lane A: the dense menu (§3), one step below a menu's normal rows.
+:root {
+  --menu-item-pad-dense: 4px var(--space-2);
+  --menu-icon-dense: 14px;
+}

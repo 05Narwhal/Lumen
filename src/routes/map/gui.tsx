@@ -1,4 +1,4 @@
-import { Button, TextInput } from "@mantine/core";
+import { Button, CloseButton, TextInput } from "@mantine/core";
 import { useQuery } from "@tanstack/react-query";
 import {
   IconBuildingCommunity,
@@ -20,7 +20,7 @@ import {
   type Icon,
 } from "@tabler/icons-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { useSearchParams } from "react-router";
+import { useNavigate, useSearchParams } from "react-router";
 import { EmptyState } from "@/components/empty-state";
 import { MapView, type MapViewHandle } from "@/components/map-view";
 import { PageHeader } from "@/components/page-header";
@@ -34,6 +34,8 @@ import { setViewerSequence } from "@/lib/viewer-sequence";
 import { openAlbumPicker } from "@/components/album-picker/store";
 import { useContextMenu } from "@/components/context-menu";
 import { mapMenu } from "@/lib/menus";
+import { runContribution, useContributions } from "@/lib/plugin-slots";
+import type { AssetDetail } from "@/types/generated/AssetDetail";
 import type { MapStyle } from "@/types/generated/MapStyle";
 import type { Bounds } from "@/types/generated/Bounds";
 import type { Cluster } from "@/types/generated/Cluster";
@@ -64,8 +66,13 @@ const START = { lat: 20, lon: 0, zoom: 1 };
 /** Room around a framed area, with the photo strip's height kept clear at the bottom. */
 const FRAME = { top: 72, left: 72, right: 72, bottom: 72 + 112 };
 
+/** How close *Open in Map* flies to a photo: a street, with its neighbours around it. */
+const LOCATE_ZOOM = 15;
+
 export function MapRoute() {
-  const [, setParams] = useSearchParams();
+  const [params, setParams] = useSearchParams();
+  const navigate = useNavigate();
+  const toolbarEntries = useContributions("map.toolbar");
   const map = useRef<MapViewHandle>(null);
   const [query, setQuery] = useState<{ bounds: Bounds; zoom: number } | null>(null);
   const [place, setPlace] = useState("");
@@ -113,13 +120,40 @@ export function MapRoute() {
     setPlace("");
   };
 
-  // Frame the library the first time we learn where it is.
+  // Frame the library the first time we learn where it is, unless a photo is being located.
+  const locateId = Number(params.get("locate")) || null;
   const framed = useRef(false);
   useEffect(() => {
-    if (framed.current || !extent.data || !map.current) return;
+    if (framed.current || locateId != null || !extent.data || !map.current) return;
     map.current.fitBounds(extent.data, FRAME);
     framed.current = true;
-  }, [extent.data, query]);
+  }, [extent.data, query, locateId]);
+
+  // *Open in Map* (Round 26 B3) arrives as `?locate=<id>` (`?asset=` would open the viewer
+  // over the map): fly to the photo, pin it, show its card, then drop the param in place so
+  // Back returns to the viewer it came from.
+  const located = useQuery({
+    queryKey: queryKeys.asset(locateId ?? 0),
+    queryFn: () => invoke<AssetDetail>("get_asset", { id: locateId }),
+    enabled: locateId != null,
+  });
+  const [focus, setFocus] = useState<AssetDetail | null>(null);
+  useEffect(() => {
+    if (locateId == null || !map.current) return;
+    const a = located.data;
+    if (a?.id === locateId && a.gpsLat != null && a.gpsLon != null) {
+      framed.current = true;
+      map.current.flyTo(a.gpsLat, a.gpsLon, LOCATE_ZOOM);
+      setFocus(a);
+    } else if (!located.isError && a?.id !== locateId) return;
+    setParams(
+      (p) => {
+        p.delete("locate");
+        return p;
+      },
+      { replace: true },
+    );
+  }, [locateId, located.data, located.isError, extent.data, setParams]);
 
   const onBoundsChange = useCallback((bounds: Bounds, zoom: number) => setQuery({ bounds, zoom }), []);
   const show = useCallback(
@@ -245,6 +279,14 @@ export function MapRoute() {
               >
                 Fit library
               </Button>
+              {toolbarEntries.map((c) => {
+                const I = c.icon;
+                return (
+                  <Button key={c.id} size="xs" variant="default" leftSection={I ? <I size={14} /> : undefined} onClick={() => void runContribution(c, { navigate })}>
+                    {c.label}
+                  </Button>
+                );
+              })}
             </>
           )
         }
@@ -270,13 +312,27 @@ export function MapRoute() {
             clusters={clusters.data ?? []}
             online={online}
             style={mapStyle}
+            esriKey={settings?.map.esriKey}
             initial={START}
             onBoundsChange={onBoundsChange}
             onOpenAsset={openAsset}
             onZoomToCluster={(c) => void openGroup(c)}
             onClusterMenu={clusterMenu}
             onOfflineChange={setOffline}
+            focus={focus && focus.gpsLat != null && focus.gpsLon != null ? { lat: focus.gpsLat, lon: focus.gpsLon } : null}
           />
+          {focus && (
+            <div className="map-route__card" role="group" aria-label={`${focus.filename} on the map`}>
+              <button type="button" className="map-route__card-open" aria-label={`Open ${focus.filename}`} onClick={() => openAsset(focus.id)}>
+                <img src={mediaUrl("thumb", focus.id, { s: 256 })} alt="" decoding="async" />
+                <span className="map-route__card-text">
+                  <span className="map-route__card-name">{focus.filename}</span>
+                  <span className="map-route__card-sub">{focus.placeName ?? `${focus.gpsLat?.toFixed(4)}, ${focus.gpsLon?.toFixed(4)}`}</span>
+                </span>
+              </button>
+              <CloseButton size="sm" aria-label="Close" onClick={() => setFocus(null)} />
+            </div>
+          )}
           {offline && (
             <div className="map-route__offline" role="status">
               <IconWifiOff size={14} />

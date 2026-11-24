@@ -1,0 +1,26 @@
+/* Paper Mill: the navigation runs along the top, under the title bar, as a row of labels. */
+[data-part="shell"] {
+  grid-template-areas: "titlebar" "sidebar" "main";
+  grid-template-columns: 1fr;
+  grid-template-rows: auto auto 1fr;
+}
+
+[data-part="sidebar"] {
+  flex-direction: row;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 12px;
+  overflow-x: auto;
+  border-bottom: 1px solid var(--border);
+}
+
+[data-part="sidebar-item"] {
+  flex-shrink: 0;
+  padding: 4px 12px;
+  border-radius: var(--radius-pill);
+  letter-spacing: 0.01em;
+}
+
+[data-part="sidebar-item"]:hover {
+  background: var(--accent-soft);
+}

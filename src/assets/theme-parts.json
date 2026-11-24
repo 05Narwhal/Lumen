@@ -1,0 +1,28 @@
+{
+  "parts": [
+    "shell",
+    "titlebar",
+    "sidebar",
+    "sidebar-item",
+    "main",
+    "toolbar",
+    "header",
+    "grid",
+    "tile",
+    "viewer",
+    "panel",
+    "card",
+    "button",
+    "input",
+    "statusbar"
+  ],
+  "protected": [
+    "window-controls",
+    "dialog",
+    "confirm",
+    "toast",
+    "menu",
+    "install-sheet",
+    "palette"
+  ]
+}

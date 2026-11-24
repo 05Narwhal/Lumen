@@ -1,7 +1,7 @@
 //! Starting an app with files (Round 22 lane C, spec §8 *Launch*): the program itself on Windows,
 //! `open -a` for a Mac bundle, the `.desktop` `Exec` line on Linux. No shell anywhere, so a path
 //! with spaces or accents reaches the app as one argument. A Windows Store app has no file to run,
-//! so each file goes through the shell with that app's own ProgID (`launch_store`).
+//! so each file goes to it through the activation manager (`launch_store`).
 
 use std::ffi::OsString;
 use std::path::PathBuf;
@@ -60,49 +60,51 @@ impl Launcher for SystemLauncher {
     }
 }
 
-/// One `ShellExecuteExW` per file, told to use the Store app's ProgID so the file opens in *that*
-/// app and not the default one. An extension the app registers nothing for is an error (a toast),
-/// checked for every file first so nothing opens half way.
+/// One `IApplicationActivationManager::ActivateForFile` per file, the way Windows starts a packaged
+/// app with a file (`ShellExecuteExW` with the app's ProgID answered "Windows cannot find" for
+/// Media Player). An extension the app registers nothing for is an error (a toast), checked for
+/// every file first so nothing opens half way.
 #[cfg(windows)]
 fn launch_store(app: &InstalledApp, files: &[PathBuf]) -> Result<(), String> {
-    use std::os::windows::ffi::OsStrExt;
-    use windows_sys::Win32::System::Com::{CoInitializeEx, CoUninitialize, COINIT_APARTMENTTHREADED};
-    use windows_sys::Win32::UI::Shell::{ShellExecuteExW, SEE_MASK_CLASSNAME, SEE_MASK_NOASYNC, SHELLEXECUTEINFOW};
-    use windows_sys::Win32::UI::WindowsAndMessaging::SW_SHOWNORMAL;
+    use windows::core::HSTRING;
+    use windows::Win32::System::Com::{CoCreateInstance, CoInitializeEx, CoUninitialize, CLSCTX_LOCAL_SERVER, COINIT_APARTMENTTHREADED};
+    use windows::Win32::UI::Shell::{
+        ApplicationActivationManager, IApplicationActivationManager, IShellItem, IShellItemArray, SHCreateItemFromParsingName,
+        SHCreateShellItemArrayFromShellItem,
+    };
 
-    let wide = |s: &std::ffi::OsStr| -> Vec<u16> { s.encode_wide().chain(Some(0)).collect() };
-    let mut jobs = Vec::new();
+    let aumid = super::system::store_aumid(&app.target).ok_or_else(|| format!("{} could not be started", app.name))?;
     for file in files {
         let ext = file.extension().map(|e| e.to_string_lossy().into_owned()).unwrap_or_default();
-        let progid = super::system::store_progid(&app.target, &ext).ok_or_else(|| format!("{} can't open .{ext} files", app.name))?;
-        jobs.push((wide(file.as_os_str()), wide(std::ffi::OsStr::new(&progid))));
-    }
-    let verb = wide(std::ffi::OsStr::new("open"));
-    // SAFETY: COM is balanced below; a failed or already-initialised thread is fine for the shell.
-    let com = unsafe { CoInitializeEx(std::ptr::null(), COINIT_APARTMENTTHREADED as u32) } >= 0;
-    let mut result = Ok(());
-    for (file, class) in &jobs {
-        // SAFETY: every pointer is NUL-terminated and outlives the call; the struct is plain data.
-        let ok = unsafe {
-            let mut info: SHELLEXECUTEINFOW = std::mem::zeroed();
-            info.cbSize = std::mem::size_of::<SHELLEXECUTEINFOW>() as u32;
-            info.fMask = SEE_MASK_CLASSNAME | SEE_MASK_NOASYNC;
-            info.lpVerb = verb.as_ptr();
-            info.lpFile = file.as_ptr();
-            info.lpClass = class.as_ptr();
-            info.nShow = SW_SHOWNORMAL;
-            ShellExecuteExW(&mut info) != 0
-        };
-        if !ok {
-            result = Err(format!("{} could not open the file", app.name));
-            break;
+        if super::system::store_progid(&app.target, &ext).is_none() {
+            return Err(format!("{} can't open .{ext} files", app.name));
         }
     }
+    // SAFETY: COM is balanced below; a thread already in another apartment (an error here) still
+    // creates the out-of-process manager.
+    let com = unsafe { CoInitializeEx(None, COINIT_APARTMENTTHREADED) }.is_ok();
+    let result = (|| -> windows::core::Result<()> {
+        // SAFETY: plain COM calls; every string lives for the call.
+        unsafe {
+            let manager: IApplicationActivationManager = CoCreateInstance(&ApplicationActivationManager, None, CLSCTX_LOCAL_SERVER)?;
+            for file in files {
+                // The shell parses backslashed paths only; the library path may mix in `/`.
+                let path: PathBuf = file.components().collect();
+                let item: IShellItem = SHCreateItemFromParsingName(&HSTRING::from(path.as_os_str()), None)?;
+                let items: IShellItemArray = SHCreateShellItemArrayFromShellItem(&item)?;
+                manager.ActivateForFile(&HSTRING::from(aumid.as_str()), &items, &HSTRING::from("open"))?;
+            }
+            Ok(())
+        }
+    })();
     if com {
         // SAFETY: pairs the successful `CoInitializeEx` above.
         unsafe { CoUninitialize() };
     }
-    result
+    result.map_err(|e| {
+        tracing::warn!("could not start {} ({aumid}) with a file: {e}", app.name);
+        format!("{} could not open the file", app.name)
+    })
 }
 
 #[cfg(test)]

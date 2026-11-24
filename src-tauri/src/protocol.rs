@@ -52,6 +52,15 @@ pub enum Route {
     /// A file a plugin's manifest declares under `[[assets]]`, percent-encoded as the page wrote
     /// it: `Store::asset_path` decides, anything else is 404.
     PluginAsset { id: String, path: String },
+    /// Round 26 B1: a `.lumentheme`'s font or image, installed or being tried.
+    ThemeAsset { id: String, path: String },
+    /// The `n`th `[listing]` screenshot of a plugin (Round 25 P1): `Store::screenshot_path` decides.
+    PluginShot { id: String, n: usize },
+    /// The icon of a package being inspected (Round 25 P1), by blake3 hash; kept until the next start.
+    PluginPreview(String),
+    /// An icon or screenshot of the plugin store's index that Rust downloaded (Round 25 P1), by the
+    /// blake3 hash of its URL; the file is in `plugins/store-cache/`.
+    StoreImage(String),
     Bad,
 }
 
@@ -76,9 +85,35 @@ pub fn resolve_route(path: &str) -> Route {
         let id = rest.split('?').next().unwrap_or("");
         return if id.is_empty() || id.contains('/') { Route::Bad } else { Route::PluginIcon(id.to_string()) };
     }
+    if kind == "theme-asset" {
+        return match rest.split_once('/') {
+            Some((id, path)) if !id.is_empty() && !path.is_empty() => Route::ThemeAsset { id: id.to_string(), path: path.split('?').next().unwrap_or("").to_string() },
+            _ => Route::Bad,
+        };
+    }
     if kind == "plugin-asset" {
         return match rest.split_once('/') {
             Some((id, path)) if !id.is_empty() && !path.is_empty() => Route::PluginAsset { id: id.to_string(), path: path.to_string() },
+            _ => Route::Bad,
+        };
+    }
+    if kind == "plugin-preview" {
+        let hash = rest.split('?').next().unwrap_or("");
+        return if hash.len() == 64 && hash.bytes().all(|b| b.is_ascii_hexdigit()) { Route::PluginPreview(hash.to_string()) } else { Route::Bad };
+    }
+    if kind == "store-image" {
+        let hash = rest.split('?').next().unwrap_or("");
+        return if hash.len() == 64 && hash.bytes().all(|b| b.is_ascii_hexdigit()) { Route::StoreImage(hash.to_string()) } else { Route::Bad };
+    }
+    if kind == "plugin-shot" {
+        let rest = rest.split('?').next().unwrap_or("");
+        return match rest.split_once('/') {
+            Some((id, n)) if !id.is_empty() && n.bytes().all(|b| b.is_ascii_digit()) => {
+                match n.parse::<usize>() {
+                    Ok(n) => Route::PluginShot { id: id.to_string(), n },
+                    Err(_) => Route::Bad,
+                }
+            }
             _ => Route::Bad,
         };
     }
@@ -229,6 +264,10 @@ pub fn handle(ctx: UriSchemeContext<'_, Wry>, req: Request<Vec<u8>>, responder: 
             Route::AppIcon(n) => app_icon_response(&app, n),
             Route::PluginIcon(id) => plugin_file_response(app.state::<std::sync::Arc<crate::plugins::Plugins>>().serve_icon(&id), None),
             // Fonts are fetched across origins by the page's CSS, so its origin is let in.
+            Route::PluginPreview(hash) => plugin_file_response(app.state::<std::sync::Arc<crate::plugins::Plugins>>().serve_preview(&hash), None),
+            Route::PluginShot { id, n } => plugin_file_response(app.state::<std::sync::Arc<crate::plugins::Plugins>>().serve_screenshot(&id, n), None),
+            Route::StoreImage(hash) => plugin_file_response(app.state::<std::sync::Arc<crate::plugins::Plugins>>().serve_store_image(&hash), None),
+            Route::ThemeAsset { id, path } => plugin_file_response(app.state::<std::sync::Arc<crate::plugins::themes::Themes>>().serve_asset(&id, &path), origin.as_deref()),
             Route::PluginAsset { id, path } => plugin_file_response(app.state::<std::sync::Arc<crate::plugins::Plugins>>().serve_asset(&id, &path), origin.as_deref()),
             route => match (matches!(route, Route::Face(_) | Route::Pet(_)), resolve_file(&app, route)) {
                 // A face's URL is its id, but its crop turns with the photo: asked again each
@@ -338,7 +377,7 @@ fn resolve_file(app: &AppHandle, route: Route) -> Result<PathBuf, NotServed> {
             "not_renderable" => NotServed::NotRenderable,
             _ => NotServed::Failed(e.detail.unwrap_or(e.message)),
         }),
-        Route::DeviceThumb { .. } | Route::EditPreview(_) | Route::MusicPreview(_) | Route::AiMask { .. } | Route::Recovered(_) | Route::AppIcon(_) | Route::PluginIcon(_) | Route::PluginAsset { .. } | Route::Bad => Err(NotServed::NotFound),
+        Route::DeviceThumb { .. } | Route::EditPreview(_) | Route::MusicPreview(_) | Route::AiMask { .. } | Route::Recovered(_) | Route::AppIcon(_) | Route::PluginIcon(_) | Route::PluginAsset { .. } | Route::ThemeAsset { .. } | Route::PluginShot { .. } | Route::PluginPreview(_) | Route::StoreImage(_) | Route::Bad => Err(NotServed::NotFound),
     }
 }
 
@@ -658,13 +697,19 @@ mod tests {
         let t = tempfile::tempdir().unwrap();
         let p = std::sync::Arc::new(crate::plugins::Plugins::load(t.path()));
         logic::set_developer_mode(&p, true).unwrap();
-        let assets = "\n[[assets]]\npath = \"assets/fonts/Lora.woff2\"\nlicense = \"OFL-1.1\"\n";
-        let icon = fixture::png(64, 64);
+        let assets = "\n[[assets]]\npath = \"assets/fonts/Lora.woff2\"\nlicense = \"OFL-1.1\"\n\n[listing]\nscreenshots = [\"screenshots/one.png\"]\n";
+        let icon = fixture::png(128, 128);
         let file = fixture::package_with(
             t.path(),
             "com.test.a",
             assets,
-            &[("assets/fonts/Lora.woff2", b"wOF2"), ("icon.png", &icon), ("secret.txt", b"nope")],
+            &[
+                ("assets/fonts/Lora.woff2", b"wOF2"),
+                ("icon.png", &icon),
+                ("screenshots/one.png", &icon),
+                ("screenshots/unlisted.png", &icon),
+                ("secret.txt", b"nope"),
+            ],
         );
         logic::install(&p, &file).unwrap();
         (t, p)
@@ -680,6 +725,56 @@ mod tests {
         assert!(matches!(resolve_route("plugin-asset/com.test.a"), Route::Bad));
         assert!(matches!(resolve_route("plugin-asset/com.test.a/"), Route::Bad));
         assert!(matches!(resolve_route("plugin-icon/"), Route::Bad));
+        assert!(matches!(
+            resolve_route("plugin-shot/com.test.a/2?v=1"),
+            Route::PluginShot { id, n: 2 } if id == "com.test.a"
+        ));
+        let hash = "ab".repeat(32);
+        assert!(matches!(resolve_route(&format!("plugin-preview/{hash}?v=1")), Route::PluginPreview(h) if h == hash));
+        for bad in ["plugin-preview/", "plugin-preview/abc", "plugin-preview/../x", &format!("plugin-preview/{}", "g".repeat(64))] {
+            assert!(matches!(resolve_route(bad), Route::Bad), "{bad}");
+        }
+        for bad in ["plugin-shot/com.test.a", "plugin-shot/com.test.a/", "plugin-shot/com.test.a/x", "plugin-shot/com.test.a/-1", "plugin-shot//0", "plugin-shot/a/b/0"] {
+            assert!(matches!(resolve_route(bad), Route::Bad), "{bad}");
+        }
+    }
+
+    #[test]
+    fn store_image_route_takes_only_a_hash() {
+        let hash = "cd".repeat(32);
+        assert!(matches!(resolve_route(&format!("store-image/{hash}?v=1")), Route::StoreImage(h) if h == hash));
+        for bad in ["store-image/", "store-image/abc", "store-image/../x", &format!("store-image/{}/x", hash), &format!("store-image/{}", "z".repeat(64))] {
+            assert!(matches!(resolve_route(bad), Route::Bad), "{bad}");
+        }
+    }
+
+    #[test]
+    fn store_image_served_from_the_cache() {
+        let (t, p) = plugin_store();
+        let dir = crate::plugins::store::store_cache_dir(&t.path().join("plugins"));
+        std::fs::create_dir_all(&dir).unwrap();
+        let hash = crate::plugins::store::image_hash("https://example.com/a.png");
+        std::fs::write(dir.join(format!("{hash}.png")), b"PNG pretend image").unwrap();
+        let r = plugin_file_response(p.serve_store_image(&hash), None);
+        assert_eq!(r.status(), 200);
+        assert_eq!(r.headers()[header::CONTENT_TYPE], "image/png");
+        // A hash nobody cached, and something that isn't a hash, are 404.
+        assert_eq!(plugin_file_response(p.serve_store_image(&"0".repeat(64)), None).status(), 404);
+        assert_eq!(plugin_file_response(p.serve_store_image("../icon"), None).status(), 404);
+    }
+
+    #[test]
+    fn screenshot_served_by_position_only() {
+        let (_t, p) = plugin_store();
+        let r = plugin_file_response(p.serve_screenshot("com.test.a", 0), None);
+        assert_eq!(r.status(), 200);
+        assert_eq!(r.headers()[header::CONTENT_TYPE], "image/png");
+        // Past the list, an unlisted file in the package and another plugin: all 404.
+        assert_eq!(plugin_file_response(p.serve_screenshot("com.test.a", 1), None).status(), 404);
+        assert_eq!(plugin_file_response(p.serve_screenshot("com.none", 0), None).status(), 404);
+        // The Settings and plugin pages show an off plugin's screenshots too.
+        crate::commands::plugins::logic::set_enabled(&p, "com.test.a", false).unwrap();
+        assert_eq!(plugin_file_response(p.serve_screenshot("com.test.a", 0), None).status(), 200);
     }
 
     #[test]

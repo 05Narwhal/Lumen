@@ -74,3 +74,41 @@ export function writeSetupVersionFields({ packageJson, tauriConf, cargoToml }, v
     cargoToml: once(cargoToml, /(\[package\][^[]*?\r?\nversion = ")[^"]*(")/, `$1${version}$2`, "installer/src-tauri/Cargo.toml"),
   };
 }
+
+/** This version's notes: its section of docs/CHANGELOG.md. */
+export function notesFor(changelog, version) {
+  const at = changelog.indexOf(`## ${version}`);
+  if (at < 0) return "";
+  const rest = changelog.slice(at).split(/\r?\n/).slice(1);
+  const end = rest.findIndex((l) => l.startsWith("## "));
+  return (end < 0 ? rest : rest.slice(0, end)).join("\n").trim();
+}
+
+/**
+ * The published build `next` has to follow (`null` before the first release). Order is checked
+ * within a line (`26.X`): a stable hotfix `26.3.5` follows the newest `26.3.*` even when
+ * `26.4.2-alpha` is out. A line with no build yet follows the newest build of the lines before it,
+ * and one behind a newer line gets that newer build back, so `isNextVersion` refuses it.
+ */
+export function previousInLine(published, next) {
+  const { x } = parseVersion(next);
+  const all = published.filter((v) => {
+    try {
+      return parseVersion(v) && true;
+    } catch {
+      return false; // `channels`, `ffmpeg-sources-…` and the like are not versions
+    }
+  });
+  const newest = (list) => list.sort(compareVersions).pop() ?? null;
+  const inLine = newest(all.filter((v) => parseVersion(v).x === x));
+  return inLine ?? newest(all.filter((v) => parseVersion(v).x < x)) ?? newest(all);
+}
+
+/**
+ * Whether `version`'s changelog heading is marked `## 26.3.5-stable · security` (spec, *Security
+ * track*). Only the heading counts, not a mention in the notes.
+ */
+export function isSecurityRelease(changelog, version) {
+  const escaped = version.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  return new RegExp(`^## ${escaped}\\s+·\\s+security\\s*$`, "m").test(changelog);
+}

@@ -19,6 +19,8 @@ describe("useApplyTheme", () => {
       </Providers>,
     );
     await waitFor(() => expect(document.documentElement.dataset.theme).toBe("paper"));
+    // Remembered for index.html's inline script, so the next splash is already in this theme.
+    expect(localStorage.getItem("lumen.theme")).toBe("paper");
     expect(document.documentElement.dataset.reducedMotion).toBe("true");
     expect(document.documentElement.getAttribute("data-mantine-color-scheme")).toBe("dark");
   });
@@ -46,7 +48,7 @@ describe("useApplyTheme", () => {
 });
 
 describe("useApplyTheme with a plugin theme", () => {
-  const NORD = { plugin: "a.b", id: "nord", name: "Nord", tagline: "Arctic.", base: "darkroom", defaultScheme: "dark" };
+  const NORD = { id: "a.b", name: "Nord", base: "darkroom", defaultScheme: "dark" };
   const settings = (theme: unknown) => ({
     version: 1,
     appearance: { theme, scheme: "dark", tileSize: "m", reduceMotion: false, sidebarCollapsed: false },
@@ -64,20 +66,20 @@ describe("useApplyTheme with a plugin theme", () => {
 
   it("sets_plugin_attribute", async () => {
     delete document.documentElement.dataset.pluginTheme;
-    mockCommand("get_settings", () => settings({ plugin: "a.b", theme: "nord" }));
-    mockCommand("list_plugin_themes", () => [NORD]);
+    mockCommand("get_settings", () => settings({ plugin: "a.b", theme: "theme" }));
+    mockCommand("themes_list", () => [NORD]);
     mockCommand("plugin_theme_css", () => "[data-plugin-theme] { --accent: red; }");
     mount();
     await waitFor(() => expect(document.documentElement.dataset.theme).toBe("darkroom"));
-    expect(document.documentElement.dataset.pluginTheme).toBe("a.b/nord");
+    expect(document.documentElement.dataset.pluginTheme).toBe("a.b/theme");
     await waitFor(() => expect(document.getElementById("plugin-themes")?.textContent).toBe("[data-plugin-theme] { --accent: red; }"));
   });
 
   it("missing_plugin_theme_falls_back", async () => {
     document.documentElement.dataset.theme = "darkroom";
     document.documentElement.dataset.pluginTheme = "a.b/nord";
-    mockCommand("get_settings", () => settings({ plugin: "a.b", theme: "nord" }));
-    mockCommand("list_plugin_themes", () => []);
+    mockCommand("get_settings", () => settings({ plugin: "a.b", theme: "theme" }));
+    mockCommand("themes_list", () => []);
     mockCommand("plugin_theme_css", () => "");
     mount();
     await waitFor(() => expect(document.documentElement.dataset.theme).toBe("gallery"));
@@ -87,7 +89,7 @@ describe("useApplyTheme with a plugin theme", () => {
   it("a built-in choice carries no plugin attribute", async () => {
     document.documentElement.dataset.pluginTheme = "a.b/nord";
     mockCommand("get_settings", () => settings("paper"));
-    mockCommand("list_plugin_themes", () => [NORD]);
+    mockCommand("themes_list", () => [NORD]);
     mockCommand("plugin_theme_css", () => "");
     mount();
     await waitFor(() => expect(document.documentElement.dataset.theme).toBe("paper"));

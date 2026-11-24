@@ -1,0 +1,41 @@
+{
+  "recipeVersion": 3,
+  "name": "Warm Tone Print",
+  "develop": {
+    "basic": {
+      "saturation": -1,
+      "contrast": 0.1
+    },
+    "grading": {
+      "shadows": {
+        "hue": 30,
+        "sat": 0.12,
+        "lum": 0
+      },
+      "highlights": {
+        "hue": 45,
+        "sat": 0.18,
+        "lum": 0
+      }
+    },
+    "effects": {
+      "grain": {
+        "amount": 0.2,
+        "size": 0.3
+      }
+    }
+  },
+  "panels": [
+    "basic",
+    "grading",
+    "effects"
+  ],
+  "look": {
+    "intent": "Black and white toned like a warm-toned darkroom print: brown shadows, cream highlights",
+    "hues": [],
+    "mono": true,
+    "key": "mid",
+    "skinSafe": true,
+    "likesSky": false
+  }
+}

@@ -45,12 +45,15 @@ pub mod video_prep;
 pub mod ocr;
 pub mod pets;
 pub mod places_online;
+// Round 24 lane W
+pub mod originals_gps;
 mod protocol;
 pub mod slideshows;
 mod state;
 mod iphones;
 mod volumes;
 mod restart;
+mod crash_marker; // Round 24 lane B
 mod space;
 mod updater;
 mod vault;
@@ -135,6 +138,12 @@ pub fn run() {
                 app.handle().exit(0);
                 return Ok(());
             }
+            // Round 24 lane B: after the single-instance check, before anything that can crash.
+            if let Ok(paths) = photos_core::paths::AppPaths::resolve() {
+                crash_marker::start(&paths.app_data);
+            }
+            // Security track: a staged security fix installs now, before the library is opened.
+            updater::install_at_launch(app.handle());
             tauri::Manager::manage(app, AppState::bootstrap().expect("failed to bootstrap Lumen app state"));
             // Round 23: plugins.json and the plugin folders' manifests only; never fails boot.
             let plugins_app_dir = photos_core::paths::AppPaths::resolve()
@@ -148,7 +157,13 @@ pub fn run() {
             if let Some(path) = plugins::state::package_arg(&std::env::args().collect::<Vec<_>>()) {
                 loaded.set_pending(path);
             }
+            // Round 24 lane C: the plugin store's index, downloads and background updates.
+            let store = std::sync::Arc::new(plugins::store::StoreService::new(&plugins_app_dir));
+            plugins::store::spawn_background(app.handle().clone(), store.clone(), loaded.clone());
+            tauri::Manager::manage(app, store);
             tauri::Manager::manage(app, loaded);
+            // Round 26 B1: installed .lumentheme themes, apart from plugins.
+            tauri::Manager::manage(app, std::sync::Arc::new(plugins::themes::Themes::load(&plugins_app_dir)));
             // Round 23 B2: detection reads the plugins' apps.toml.
             external_apps::use_plugins(tauri::Manager::state::<std::sync::Arc<plugins::Plugins>>(app).inner().clone());
             // Round 22 lane A: an oversized image's decode budget, read by Develop's base too.
@@ -180,7 +195,8 @@ pub fn run() {
         commands::app::confirm_close,
         commands::app::hold_close,
         commands::app::restart_lumen,
-        commands::app::take_resume,
+        commands::app::resume_info, // Round 24 lane B
+        commands::app::note_route,
         commands::updates::update_status,
         commands::updates::check_for_updates,
         commands::updates::download_update,
@@ -500,8 +516,25 @@ pub fn run() {
         commands::external_apps::set_default_app,
         commands::external_apps::set_app_send_mode,
         commands::external_apps::open_in_app,
-        commands::plugin_themes::list_plugin_themes, // Round 23 lane B1
         commands::plugin_themes::plugin_theme_css,
+        commands::plugin_themes::themes_list, // Round 26 B1
+        commands::plugin_themes::theme_tried,
+        commands::plugin_themes::theme_inspect,
+        commands::plugin_themes::theme_install,
+        commands::plugin_themes::theme_remove,
+        commands::plugin_themes::theme_try,
+        commands::plugin_themes::theme_try_end,
+        commands::plugin_themes::theme_keep,
+        commands::plugin_themes::theme_apply,
+        // Round 24 lane C
+        commands::store::store_index,
+        commands::store::store_install,
+        commands::store::store_update,
+        commands::store::store_readme,
+        commands::store::store_status,
+        commands::store::store_set_auto_update,
+        commands::store::store_local_folder,
+        commands::store::store_set_local_folder,
         commands::plugin_import::list_plugin_importers, // Round 23 lane A3
         commands::plugin_import::start_plugin_import,
         // Round 23 C1: plugins
@@ -515,10 +548,35 @@ pub fn run() {
         commands::plugins::set_plugin_setting,
         commands::plugins::set_plugin_developer_mode,
         commands::plugins::get_plugin_developer_mode,
+        commands::plugins::plugin_readme,
         commands::plugins::load_dev_plugin,
         commands::plugins::reload_dev_plugin,
         commands::plugins::plugin_log,
+        commands::plugins::plugin_ui_action,
+        commands::plugins::plugin_ui_value,
         commands::plugins::take_pending_plugin_package,
+        // Round 24 lane D
+        commands::dialogs::dialog_pick,
+        commands::dialogs::reveal_path,
+        commands::dialogs::plugin_provider_choices,
+        commands::dialogs::set_provider_choice,
+        commands::dialogs::plugin_detect,
+        commands::dialogs::plugin_locate,
+        // Round 24 lane W
+        commands::places::places_review,
+        commands::places::places_review_event,
+        commands::places::places_write,
+        commands::places::places_write_cancel,
+        commands::proposals::proposals_list,
+        commands::proposals::proposals_counts,
+        commands::proposals::proposals_reject,
+        commands::proposals::proposals_restore,
+        commands::proposals::proposals_accept,
+        commands::proposals::proposals_undo_accept,
+        commands::places::places_undo,
+        commands::places::plugin_models_status,
+        commands::places::plugin_models_download,
+        commands::places::plugin_tool_run,
         #[cfg(debug_assertions)]
         commands::dev::register_probe,
     ]);
@@ -529,6 +587,7 @@ pub fn run() {
         // Round 17: once the window has gone, a staged update installs (`updater::install_on_exit`).
         .run(|app, event| {
             if let tauri::RunEvent::Exit = event {
+                crash_marker::clean_exit(); // Round 24 lane B
                 updater::install_on_exit(app);
                 window::on_exit();
             }

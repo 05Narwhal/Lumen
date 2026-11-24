@@ -16,4 +16,9 @@ assetId: number | null,
 /**
  * The cell, so a click can zoom to exactly what it contains.
  */
-bounds: Bounds, };
+bounds: Bounds, 
+/**
+ * How many of `count` have an estimated place (Round 24: a plugin's guess the person
+ * confirmed). The map draws a pin hollow when all of them do.
+ */
+estimated: number, };

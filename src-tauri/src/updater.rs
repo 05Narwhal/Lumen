@@ -146,6 +146,8 @@ pub enum UpdateState {
 pub struct UpdateReceipt {
     pub version: String,
     pub notes: String,
+    /// What was installed was a security fix: the toast says so.
+    pub security: bool,
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, TS)]
@@ -156,6 +158,8 @@ pub struct UpdateStatus {
     pub state: UpdateState,
     /// Set for the session after an update, for Settings to keep showing the notes.
     pub whats_new: Option<UpdateReceipt>,
+    /// What is staged is a security fix: the banner *A security fix is ready* with *Install now*.
+    pub security: bool,
 }
 
 /// None when updates may run; otherwise the state that says why not.
@@ -181,6 +185,10 @@ pub struct Staged {
     /// Downloaded by itself, not because the person asked: turning *Automatic* off discards it.
     pub automatic: bool,
     pub attempts: u32,
+    /// The manifest's `minSafe` marked this build a security fix for the build that fetched it
+    /// (security track). Absent in files written before the track.
+    #[serde(default)]
+    pub security: bool,
 }
 
 const PENDING: &str = "pending.json";
@@ -242,9 +250,11 @@ pub fn clear_stage(dir: &Path, keep: Option<&str>) {
 /// very first run, on the same version, and after a downgrade.
 pub fn receipt_for(last_seen: Option<&str>, current: &str, staged: Option<&Staged>) -> Option<UpdateReceipt> {
     let (last, now) = (Version::parse(last_seen?.trim()).ok()?, Version::parse(current).ok()?);
+    let ours = staged.filter(|s| s.version == current);
     (now > last).then(|| UpdateReceipt {
         version: current.into(),
-        notes: staged.filter(|s| s.version == current).map(|s| s.notes.clone()).unwrap_or_default(),
+        notes: ours.map(|s| s.notes.clone()).unwrap_or_default(),
+        security: ours.is_some_and(|s| s.security),
     })
 }
 
@@ -297,7 +307,85 @@ pub fn install_allowed(unsaved: bool, imports: usize, other_lumen: bool, since_c
 /// take goes, and so does one downloaded by itself when *Automatic* is turned off.
 pub fn keeps_staged(staged: &Staged, new: &UpdateSettings) -> bool {
     let Some(c) = Version::parse(&staged.version).ok().as_ref().and_then(channel_of) else { return false };
-    accepts(new.channel, c) && (new.automatic || !staged.automatic)
+    accepts(new.channel, c) && (new.automatic || !staged.automatic || (new.security && staged.security))
+}
+
+/// Whether the schedule asks the manifest at all: either switch on. Both off, no request is made.
+pub fn should_check(automatic: bool, security: bool) -> bool {
+    automatic || security
+}
+
+/// Whether a build the check found is downloaded by itself: *Automatic*, or a security fix with
+/// *Install security fixes automatically* on. Otherwise it is only offered.
+pub fn takes_download(settings: &UpdateSettings, security_flagged: bool) -> bool {
+    settings.automatic || (settings.security && security_flagged)
+}
+
+/// The manifest's `minSafe` (security track): the lowest build on the channel with no known
+/// vulnerability. A missing, non-string or unparseable value is `None`, so a manifest without it
+/// (every one published before the track) behaves exactly as before.
+pub fn min_safe(raw: &serde_json::Value) -> Option<Version> {
+    Version::parse(raw.get("minSafe")?.as_str()?.trim()).ok()
+}
+
+/// Whether the newest build is a security update for someone running `current`.
+pub fn is_security_update(current: &Version, min_safe: Option<&Version>) -> bool {
+    min_safe.is_some_and(|m| current < m)
+}
+
+/// What the launch-time install weighs (security track). Built in `setup`, before the library
+/// opens, so it holds plain facts and never an `AppState`.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct LaunchCtx {
+    pub args_mcp: bool,
+    pub args_check_library: bool,
+    /// Another window of this same program is open (the installer force-closes it).
+    pub second_instance: bool,
+    /// The staged installer was read back and its signature verified.
+    pub staged_verified: bool,
+    /// The staged build is newer than this one and the manifest's `minSafe` marks it a fix for us.
+    pub min_safe_flagged: bool,
+}
+
+/// Whether this launch may hand a staged security fix to its installer. Only a plain launch of
+/// the one running Lumen with a verified, flagged fix: a `--mcp` bridge or `--check-library` run
+/// is a tool a client started, and a second Lumen has a window the installer would kill.
+pub fn launch_install_allowed(ctx: &LaunchCtx) -> bool {
+    !ctx.args_mcp && !ctx.args_check_library && !ctx.second_instance && ctx.staged_verified && ctx.min_safe_flagged
+}
+
+/// `(--mcp, --check-library)` from a full command line (the first item is the program).
+pub fn launch_args(args: &[String]) -> (bool, bool) {
+    let has = |flag: &str| args.iter().skip(1).any(|a| a == flag);
+    (has("--mcp"), has("--check-library"))
+}
+
+const LAUNCH_ATTEMPT: &str = "launch-attempt";
+
+/// Notes that a launch install of `version` was started. Written **before** the installer runs, so
+/// a crash or a failure never makes every launch try again: one attempt per version.
+pub fn record_launch_attempt(dir: &Path, version: &str) {
+    if std::fs::create_dir_all(dir).and_then(|_| std::fs::write(dir.join(LAUNCH_ATTEMPT), version)).is_err() {
+        tracing::warn!("updates: could not record the launch install");
+    }
+}
+
+pub fn launch_attempted(dir: &Path, version: &str) -> bool {
+    std::fs::read_to_string(dir.join(LAUNCH_ATTEMPT)).is_ok_and(|v| v.trim() == version)
+}
+
+/// [`launch_install_allowed`], and not tried before for this version.
+pub fn should_install_at_launch(ctx: &LaunchCtx, dir: &Path, version: &str) -> bool {
+    launch_install_allowed(ctx) && !launch_attempted(dir, version)
+}
+
+/// Whether Settings and the banner say *A security fix is ready*: what is staged is a fix and is
+/// the version the state names. It stays until it installs (at Close, or by *Install now*).
+pub fn security_banner(state: &UpdateState, staged: Option<&Staged>) -> bool {
+    match (state, staged) {
+        (UpdateState::Ready { version, .. }, Some(s)) => s.security && s.version == *version,
+        _ => false,
+    }
 }
 
 /// What a failed check means.
@@ -607,7 +695,8 @@ fn settings_now(app: &AppHandle) -> UpdateSettings {
 pub fn status(app: &AppHandle) -> UpdateStatus {
     let u = app.state::<Updates>();
     let (state, whats_new) = (lock(&u.state).clone(), lock(&u.whats_new).clone());
-    UpdateStatus { version: env!("CARGO_PKG_VERSION").into(), state, whats_new }
+    let security = matches!(state, UpdateState::Ready { .. }) && security_banner(&state, Staged::load(&dir_of(app)).as_ref());
+    UpdateStatus { version: env!("CARGO_PKG_VERSION").into(), state, whats_new, security }
 }
 
 fn set_state(app: &AppHandle, s: UpdateState) {
@@ -681,7 +770,8 @@ pub fn start(app: AppHandle) {
             if shutting_down() {
                 return;
             }
-            if settings_now(&app).automatic {
+            let s = settings_now(&app);
+            if should_check(s.automatic, s.security) {
                 tauri::async_runtime::block_on(check(&app, false));
             }
             std::thread::sleep(EVERY);
@@ -716,7 +806,7 @@ pub async fn check(app: &AppHandle, by_person: bool) {
                 set_state(app, ready_state(s));
             } else if lock(&u.rejected).contains(&version) {
                 failed(app, FailWhy::BadSignature);
-            } else if settings.automatic {
+            } else if takes_download(&settings, flagged_security(&update)) {
                 *lock(&u.offered) = Some(update.clone());
                 download(app, update, !by_person).await;
             } else {
@@ -737,6 +827,11 @@ pub async fn check(app: &AppHandle, by_person: bool) {
             }
         },
     }
+}
+
+/// Whether the build a check found is a security fix for this one (manifest `minSafe`).
+fn flagged_security(update: &tauri_plugin_updater::Update) -> bool {
+    Version::parse(env!("CARGO_PKG_VERSION")).is_ok_and(|me| is_security_update(&me, min_safe(&update.raw_json).as_ref()))
 }
 
 /// *Download*: the build the last check offered, in the background.
@@ -820,7 +915,7 @@ async fn download(app: &AppHandle, update: tauri_plugin_updater::Update, automat
         return;
     }
     let staged_file = stage_path(&dir, &version);
-    let s = Staged { version: version.clone(), notes: update.body.clone().unwrap_or_default(), raw_json: update.raw_json.clone(), automatic, attempts: 0 };
+    let s = Staged { version: version.clone(), notes: update.body.clone().unwrap_or_default(), raw_json: update.raw_json.clone(), automatic, attempts: 0, security: flagged_security(&update) };
     if std::fs::rename(&part, &staged_file).and_then(|_| s.save(&dir)).is_err() {
         let _ = std::fs::remove_file(&staged_file);
         failed(app, FailWhy::Other);
@@ -833,7 +928,7 @@ async fn download(app: &AppHandle, update: tauri_plugin_updater::Update, automat
 
 /// Settings changed: what is staged and offered must still be wanted, and a new channel is asked.
 pub fn settings_changed(app: &AppHandle, old: &UpdateSettings, new: &UpdateSettings) {
-    if old.channel == new.channel && old.automatic == new.automatic {
+    if old.channel == new.channel && old.automatic == new.automatic && old.security == new.security {
         return;
     }
     let dir = dir_of(app);
@@ -852,9 +947,57 @@ pub fn settings_changed(app: &AppHandle, old: &UpdateSettings, new: &UpdateSetti
             set_state(app, UpdateState::Idle);
         }
     }
-    if gate_for(app).is_none() && (old.channel != new.channel || (!old.automatic && new.automatic)) {
+    if gate_for(app).is_none() && (old.channel != new.channel || (!old.automatic && new.automatic) || (!old.security && new.security)) {
         let app = app.clone();
         tauri::async_runtime::spawn(async move { check(&app, false).await });
+    }
+}
+
+/// At launch, in `setup` **before the library opens**: a staged security fix goes to its installer
+/// now instead of waiting for Close (a person who never quits would stay unpatched). Reads the
+/// settings and the staged file itself, since `AppState` is not built yet. Any "no" leaves the
+/// fix staged for Close and the banner. One attempt per version, recorded before the installer
+/// runs. Nothing here restarts a Lumen that is already open: it only runs at the very start.
+pub fn install_at_launch(app: &AppHandle) {
+    if gate_for(app).is_some() {
+        return;
+    }
+    let Ok(paths) = photos_core::paths::AppPaths::resolve() else { return };
+    let Ok(settings) = photos_core::settings::Settings::load(&paths.settings_file()) else { return };
+    let dir = paths.updates_dir();
+    let Some(staged) = Staged::load(&dir) else { return };
+    let Ok(current) = Version::parse(env!("CARGO_PKG_VERSION")) else { return };
+    let newer = Version::parse(&staged.version).is_ok_and(|v| v > current);
+    let flagged = staged.security && newer && is_security_update(&current, min_safe(&staged.raw_json).as_ref());
+    if !settings.updates.security || !keeps_staged(&staged, &settings.updates) || !flagged || launch_attempted(&dir, &staged.version) {
+        return;
+    }
+    let args: Vec<String> = std::env::args().collect();
+    let (args_mcp, args_check_library) = launch_args(&args);
+    let second_instance = std::env::current_exe().map(|exe| other_lumen_open(std::process::id(), &exe.to_string_lossy(), &processes())).unwrap_or(true);
+    let Ok(Some(update)) = build(app, settings.updates.channel, true).and_then(|up| up.restore_update(staged.raw_json.clone())) else { return };
+    let Ok(bytes) = std::fs::read(stage_path(&dir, &staged.version)) else { return };
+    let staged_verified = update.verify(&bytes).is_ok();
+    let ctx = LaunchCtx { args_mcp, args_check_library, second_instance, staged_verified, min_safe_flagged: flagged };
+    if !should_install_at_launch(&ctx, &dir, &staged.version) {
+        return;
+    }
+    record_launch_attempt(&dir, &staged.version);
+    let mut counted = staged.clone();
+    counted.attempts += 1;
+    let _ = counted.save(&dir);
+    tracing::info!(version = %staged.version, "installing a security fix at launch");
+    match update.install(bytes) {
+        Ok(()) => {
+            #[cfg(not(windows))]
+            tauri::process::restart(&app.env());
+        }
+        Err(e) if is_bad_signature(&e) => {
+            tracing::error!(version = %staged.version, "the staged security fix failed its signature; deleted: {e}");
+            clear_stage(&dir, None);
+        }
+        // Still staged: Close installs it, and the banner offers *Install now*.
+        Err(e) => tracing::warn!(version = %staged.version, "the security fix did not install at launch: {e}"),
     }
 }
 
@@ -981,7 +1124,15 @@ mod tests {
     }
 
     fn staged(version: &str, automatic: bool) -> Staged {
-        Staged { version: version.into(), notes: "Notes".into(), raw_json: serde_json::json!({"version": version}), automatic, attempts: 0 }
+        Staged { version: version.into(), notes: "Notes".into(), raw_json: serde_json::json!({"version": version}), automatic, attempts: 0, security: false }
+    }
+
+    fn security_staged(version: &str) -> Staged {
+        Staged { security: true, ..staged(version, true) }
+    }
+
+    fn with_security(automatic: bool, security: bool) -> UpdateSettings {
+        UpdateSettings { automatic, security, ..Default::default() }
     }
 
     fn settings(channel: UpdateChannel, automatic: bool) -> UpdateSettings {
@@ -1121,13 +1272,13 @@ mod tests {
         assert_eq!(receipt_for(Some("26.1.1-alpha"), "26.1.1-alpha", None), None, "same");
         assert_eq!(receipt_for(Some("26.1.2-alpha"), "26.1.1-alpha", None), None, "downgrade");
         let r = receipt_for(Some("26.1.0-alpha"), "26.1.1-alpha", Some(&staged("26.1.1-alpha", true))).unwrap();
-        assert_eq!(r, UpdateReceipt { version: "26.1.1-alpha".into(), notes: "Notes".into() });
+        assert_eq!(r, UpdateReceipt { version: "26.1.1-alpha".into(), notes: "Notes".into(), security: false });
     }
 
     #[test]
     fn a_receipt_without_staged_notes_still_says_the_version() {
         let r = receipt_for(Some("26.1.0-alpha"), "26.1.1-alpha", None).unwrap();
-        assert_eq!(r, UpdateReceipt { version: "26.1.1-alpha".into(), notes: String::new() });
+        assert_eq!(r, UpdateReceipt { version: "26.1.1-alpha".into(), notes: String::new(), security: false });
         // Notes staged for another version are not this one's.
         let r = receipt_for(Some("26.1.0-alpha"), "26.1.1-alpha", Some(&staged("26.1.5-alpha", true))).unwrap();
         assert_eq!(r.notes, "");
@@ -1147,7 +1298,8 @@ mod tests {
         assert!(!other_lumen_open(me, exe, &[p(10, exe, &[])]));
         // A second window of the same program.
         assert!(other_lumen_open(me, exe, &[p(10, exe, &[]), p(11, exe, &[])]));
-        // The same path, however Windows cases it this time.
+        // The same path, however Windows cases it this time (only Windows folds case).
+        #[cfg(windows)]
         assert!(other_lumen_open(me, exe, &[p(11, r"c:\apps\LUMEN\Lumen.EXE", &[])]));
         // A stdio bridge is safe to end: its client starts it again.
         assert!(!other_lumen_open(me, exe, &[p(10, exe, &[]), p(12, exe, &["--mcp"])]));
@@ -1280,6 +1432,107 @@ mod tests {
         // Automatic off: what it fetched by itself goes, what the person asked for stays.
         assert!(!keeps_staged(&staged("26.1.1-alpha", true), &settings(Alpha, false)));
         assert!(keeps_staged(&staged("26.1.1-alpha", false), &settings(Alpha, false)));
+    }
+
+    #[test]
+    fn should_check_is_false_only_when_both_are_off() {
+        assert!(should_check(true, true));
+        assert!(should_check(true, false));
+        assert!(should_check(false, true), "security alone keeps the schedule");
+        assert!(!should_check(false, false), "both off: no request at all");
+    }
+
+    #[test]
+    fn a_security_update_is_taken_even_with_automatic_off() {
+        assert!(takes_download(&with_security(true, true), false));
+        assert!(takes_download(&with_security(true, false), false));
+        assert!(takes_download(&with_security(false, true), true), "flagged and security on");
+        assert!(!takes_download(&with_security(false, true), false), "not flagged: offered, not fetched");
+        assert!(!takes_download(&with_security(false, false), true), "security off: offered only");
+    }
+
+    #[test]
+    fn a_staged_security_fix_outlives_automatic_off_while_security_is_on() {
+        use UpdateChannel::*;
+        let fix = security_staged("26.1.1-stable");
+        assert!(keeps_staged(&fix, &with_security(false, true)));
+        assert!(!keeps_staged(&fix, &with_security(false, false)), "both off: what it fetched by itself goes");
+        assert!(keeps_staged(&fix, &with_security(true, false)));
+        // An ordinary automatic download is not protected by the security switch.
+        assert!(!keeps_staged(&staged("26.1.1-stable", true), &with_security(false, true)));
+        // The channel still decides.
+        assert!(!keeps_staged(&security_staged("26.1.1-alpha"), &settings(Stable, true)));
+    }
+
+    #[test]
+    fn staged_files_from_before_the_security_track_load_as_not_security() {
+        let old = r#"{"version":"26.1.1-stable","notes":"n","raw_json":{},"automatic":true,"attempts":0}"#;
+        let s: Staged = serde_json::from_str(old).unwrap();
+        assert!(!s.security);
+    }
+
+    fn ctx() -> LaunchCtx {
+        LaunchCtx { args_mcp: false, args_check_library: false, second_instance: false, staged_verified: true, min_safe_flagged: true }
+    }
+
+    #[test]
+    fn launch_install_allowed_only_for_a_plain_first_launch_with_a_verified_fix() {
+        assert!(launch_install_allowed(&ctx()));
+        assert!(!launch_install_allowed(&LaunchCtx { args_mcp: true, ..ctx() }), "--mcp bridge");
+        assert!(!launch_install_allowed(&LaunchCtx { args_check_library: true, ..ctx() }), "--check-library");
+        assert!(!launch_install_allowed(&LaunchCtx { second_instance: true, ..ctx() }), "another Lumen is open");
+        assert!(!launch_install_allowed(&LaunchCtx { staged_verified: false, ..ctx() }), "unverified signature");
+        assert!(!launch_install_allowed(&LaunchCtx { min_safe_flagged: false, ..ctx() }), "not a security fix");
+    }
+
+    #[test]
+    fn launch_flags_are_read_from_the_command_line() {
+        let a = |v: &[&str]| v.iter().map(|s| s.to_string()).collect::<Vec<_>>();
+        assert_eq!(launch_args(&a(&["Lumen.exe"])), (false, false));
+        assert_eq!(launch_args(&a(&["Lumen.exe", "--mcp"])), (true, false));
+        assert_eq!(launch_args(&a(&["Lumen.exe", "--check-library", "D:/lib"])), (false, true));
+        assert_eq!(launch_args(&a(&["Lumen.exe", "--minimized"])), (false, false));
+    }
+
+    #[test]
+    fn launch_attempt_is_recorded_once_per_version() {
+        let t = tempfile::tempdir().unwrap();
+        assert!(!launch_attempted(t.path(), "26.3.5-stable"));
+        record_launch_attempt(t.path(), "26.3.5-stable");
+        assert!(launch_attempted(t.path(), "26.3.5-stable"));
+        assert!(!launch_attempted(t.path(), "26.3.6-stable"), "the next fix gets its own attempt");
+        // A failed attempt (the process came back) never loops on the next launch.
+        assert!(should_install_at_launch(&ctx(), t.path(), "26.3.6-stable"));
+        record_launch_attempt(t.path(), "26.3.6-stable");
+        assert!(!should_install_at_launch(&ctx(), t.path(), "26.3.6-stable"));
+        // The new attempt replaced the old record: one line, the last version tried.
+        assert!(!launch_attempted(t.path(), "26.3.5-stable"));
+    }
+
+    #[test]
+    fn a_failed_launch_install_falls_back_to_close_and_the_banner() {
+        let fix = security_staged("26.3.5-stable");
+        // Still staged and still wanted, so Close installs it, with Automatic off too.
+        assert!(install_expected_at_close(true, Some(&fix), &with_security(false, true)));
+        // And the page is told: a persistent banner for a staged fix.
+        let ready = ready_state(&fix);
+        assert!(security_banner(&ready, Some(&fix)));
+        assert!(!security_banner(&ready, Some(&staged("26.3.5-stable", true))), "an ordinary update has no banner");
+        assert!(!security_banner(&UpdateState::Idle, Some(&fix)));
+        assert!(!security_banner(&ready, None));
+        let other = UpdateState::Ready { version: "26.3.9-stable".into(), notes: String::new(), attempts: 0 };
+        assert!(!security_banner(&other, Some(&fix)), "the banner is for the version that is staged");
+    }
+
+    #[test]
+    fn the_receipt_says_a_security_fix_was_installed() {
+        let fix = security_staged("26.3.5-stable");
+        let r = receipt_for(Some("26.3.4-stable"), "26.3.5-stable", Some(&fix)).unwrap();
+        assert!(r.security);
+        // A fix staged for a different version than the one now running says nothing about it.
+        let r = receipt_for(Some("26.3.4-stable"), "26.3.5-stable", Some(&security_staged("26.3.9-stable"))).unwrap();
+        assert!(!r.security);
+        assert!(!receipt_for(Some("26.3.4-stable"), "26.3.5-stable", None).unwrap().security);
     }
 
     #[test]
@@ -1504,5 +1757,38 @@ mod tests {
         for name in headers.keys() {
             assert!(["host", "user-agent", "accept", "range"].contains(&name.as_str()), "unexpected header {name}");
         }
+    }
+
+    #[test]
+    fn min_safe_reads_the_extra_field() {
+        let raw = serde_json::json!({"version": "26.3.6-stable", "minSafe": "26.3.5-stable"});
+        assert_eq!(min_safe(&raw), Some(v("26.3.5-stable")));
+    }
+
+    #[test]
+    fn min_safe_absent_is_none() {
+        assert_eq!(min_safe(&serde_json::json!({"version": "26.3.6-stable"})), None);
+        assert_eq!(min_safe(&serde_json::Value::Null), None);
+    }
+
+    #[test]
+    fn an_unparseable_min_safe_is_ignored_not_an_error() {
+        for bad in [serde_json::json!("soon"), serde_json::json!(5), serde_json::json!(null), serde_json::json!("")] {
+            assert_eq!(min_safe(&serde_json::json!({ "minSafe": bad })), None);
+        }
+    }
+
+    #[test]
+    fn is_security_update_when_running_below_min_safe() {
+        assert!(is_security_update(&v("26.3.4-stable"), Some(&v("26.3.5-stable"))));
+        assert!(is_security_update(&v("26.3.9-alpha"), Some(&v("26.3.9-stable"))));
+    }
+
+    #[test]
+    fn not_a_security_update_at_or_above() {
+        let m = v("26.3.5-stable");
+        assert!(!is_security_update(&v("26.3.5-stable"), Some(&m)));
+        assert!(!is_security_update(&v("26.4.0-alpha"), Some(&m)));
+        assert!(!is_security_update(&v("26.3.4-stable"), None));
     }
 }

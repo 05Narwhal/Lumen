@@ -39,7 +39,7 @@ Out of scope, revisited only after the roadmap in §17 completes:
 | 7 | Slideshow | **In-app editor with live preview, plus MP4 export.** |
 | 8 | Memories | **Rule-based clustering in v1**; on-device ML (faces, scenes) as a later phase. |
 | 9 | Device sections | **Derived from EXIF camera identity** (make / model / body serial), with an import-batch id stamped on every asset. |
-| 10 | Editing | **Basic non-destructive adjustments.** Originals are never modified. |
+| 10 | Editing | **Basic non-destructive adjustments.** Originals are kept intact (exceptions: confirmed metadata additions and lossless edits, §12). |
 | 11 | Deletion | **In-app trash with 30-day recovery.** |
 | 12 | First milestone | **Catalog + grid + viewer.** |
 | 13 | Apple sources | **Read-only and in-process.** Mac-formatted disks (HFS+, APFS) are read with pure-Rust libraries (`hfsplus`, `apfs`) from the partition device, which Windows lets an unelevated process read; no driver, no helper, no admin. Apple Photos libraries are read from a temporary copy of `Photos.sqlite`. Encrypted and transparently compressed files are out of scope. |
@@ -701,7 +701,9 @@ The structured count was 198 ms before migration 0005, which adds an index carry
 
 ## 12. Non-destructive edits
 
-Originals are never written to. An edit is a JSON **recipe** stored against the asset:
+Originals are kept intact. An edit is a JSON **recipe** stored against the asset. Two exceptions (Round 24, `2026-11-21-round-24-design.md` §11), each only on the person's explicit action and verified before it replaces the file: **metadata writes** that add what the file lacks (GPS on a photo with none; never changing camera-recorded values) and **lossless edits** (video trim by stream copy, lossless JPEG crop). Nothing that re-encodes replaces an original; `assets.content_hash` stays the import identity and `assets.file_hash` records the current bytes.
+
+A recipe:
 
 ```json
 {

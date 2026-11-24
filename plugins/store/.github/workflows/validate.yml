@@ -1,0 +1,34 @@
+name: Validate index
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  index:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - name: Dependencies of pack.mjs
+        run: npm install --no-save --no-package-lock @noble/hashes fflate
+      - name: Tests
+        run: node --test validate.test.mjs
+      - name: Schema and unique ids
+        run: node validate.mjs index.json
+      - name: Download each new package, check size, blake3, manifest and signature
+        run: |
+          base=""
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            git show "origin/${{ github.base_ref }}:index.json" > "$RUNNER_TEMP/base.json"
+            base="--base $RUNNER_TEMP/base.json"
+          fi
+          node validate.mjs index.json --download $base

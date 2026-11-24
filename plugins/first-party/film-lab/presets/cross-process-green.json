@@ -1,0 +1,74 @@
+{
+  "recipeVersion": 3,
+  "name": "Cross Process Green",
+  "develop": {
+    "basic": {
+      "tint": -8,
+      "contrast": 0.3,
+      "saturation": 0.2
+    },
+    "curve": {
+      "r": [
+        [
+          0,
+          0
+        ],
+        [
+          0.25,
+          0.15
+        ],
+        [
+          0.75,
+          0.88
+        ],
+        [
+          1,
+          1
+        ]
+      ],
+      "g": [
+        [
+          0,
+          0.05
+        ],
+        [
+          0.5,
+          0.52
+        ],
+        [
+          1,
+          1
+        ]
+      ],
+      "b": [
+        [
+          0,
+          0.15
+        ],
+        [
+          0.5,
+          0.45
+        ],
+        [
+          1,
+          0.85
+        ]
+      ]
+    }
+  },
+  "panels": [
+    "basic",
+    "curve"
+  ],
+  "look": {
+    "intent": "Slide film processed as negative: green-yellow highlights, blue-green shadows, hard contrast",
+    "hues": [
+      90,
+      170
+    ],
+    "mono": false,
+    "key": "mid",
+    "skinSafe": false,
+    "likesSky": false
+  }
+}

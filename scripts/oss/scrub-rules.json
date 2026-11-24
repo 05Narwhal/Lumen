@@ -14,7 +14,12 @@
     "[\\\\/]+(?:Users|home)[\\\\/]+(?:a|x|u|j|sample|me|you|ana|user|someone|<you>|100%)[\\\\/]*$"
   ],
   "words": {
-    "pro-cloud": ["Lumen Pro", "Lumen Cloud", "one-time purchase", "subscription-based"]
+    "pro-cloud": [
+      "Lumen Pro",
+      "Lumen Cloud",
+      "one-time purchase",
+      "subscription-based"
+    ]
   },
   "skipText": [
     "scripts/oss/scrub-rules.json",
@@ -27,6 +32,12 @@
     "installer/src-tauri/icons/**",
     "src-tauri/resources/**",
     "**/fixtures/**",
-    "plugins/examples/**/assets/**"
+    "plugins/first-party/*/icon.png",
+    "plugins/first-party/*/screenshots/*.png",
+    "themes/first-party/*/icon.png",
+    "themes/first-party/*/screenshots/*.png"
+  ],
+  "exifAllow": [
+    "src-tauri/crates/photos-ml/tests/fixtures/wayfinder/*.jpg"
   ]
 }

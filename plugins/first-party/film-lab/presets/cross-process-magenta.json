@@ -1,0 +1,57 @@
+{
+  "recipeVersion": 3,
+  "name": "Cross Process Magenta",
+  "develop": {
+    "basic": {
+      "temperature": -4,
+      "tint": 12,
+      "contrast": 0.25,
+      "saturation": 0.15
+    },
+    "curve": {
+      "r": [
+        [
+          0,
+          0.03
+        ],
+        [
+          0.5,
+          0.58
+        ],
+        [
+          1,
+          1
+        ]
+      ],
+      "b": [
+        [
+          0,
+          0.1
+        ],
+        [
+          0.5,
+          0.5
+        ],
+        [
+          1,
+          0.9
+        ]
+      ]
+    }
+  },
+  "panels": [
+    "basic",
+    "curve"
+  ],
+  "look": {
+    "intent": "A magenta-leaning cross-processed look: pink highlights, cool blue shadows, saturated and contrasty",
+    "hues": [
+      300,
+      330
+    ],
+    "mono": false,
+    "key": "mid",
+    "skinSafe": false,
+    "likesSky": false
+  }
+}

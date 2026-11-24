@@ -319,8 +319,9 @@ fn judge(lib: &Library, e: &Entry, skips: &HashMap<String, String>, copies: &Mut
     };
     let sidecar = matches!(e.kind, Kind::Sidecar);
 
-    // (asset id, path under originals/, trashed) of the library's file with these bytes.
-    let found: Option<(i64, String, bool)> = lib
+    // (asset id, path under originals/, trashed, what that file hashes to) of the library's file
+    // with these bytes.
+    let found: Option<(i64, String, bool, String)> = lib
         .db
         .with_conn(|c| {
             use rusqlite::OptionalExtension;
@@ -328,12 +329,12 @@ fn judge(lib: &Library, e: &Entry, skips: &HashMap<String, String>, copies: &Mut
                 c.query_row(
                     "SELECT s.asset_id, s.relative_path, a.state FROM asset_sidecars s JOIN assets a ON a.id = s.asset_id WHERE s.content_hash = ?1 ORDER BY s.id LIMIT 1",
                     [&hash],
-                    |r| Ok((r.get::<_, i64>(0)?, r.get::<_, String>(1)?, r.get::<_, i64>(2)? == 1)),
+                    |r| Ok((r.get::<_, i64>(0)?, r.get::<_, String>(1)?, r.get::<_, i64>(2)? == 1, hash.clone())),
                 )
                 .optional()?
             } else {
-                c.query_row("SELECT id, relative_path, state FROM assets WHERE content_hash = ?1", [&hash], |r| {
-                    Ok((r.get::<_, i64>(0)?, r.get::<_, String>(1)?, r.get::<_, i64>(2)? == 1))
+                c.query_row(&format!("SELECT id, relative_path, state, {LIBRARY_FILE_HASH} FROM assets WHERE content_hash = ?1"), [&hash], |r| {
+                    Ok((r.get::<_, i64>(0)?, r.get::<_, String>(1)?, r.get::<_, i64>(2)? == 1, r.get::<_, String>(3)?))
                 })
                 .optional()?
             };
@@ -341,7 +342,7 @@ fn judge(lib: &Library, e: &Entry, skips: &HashMap<String, String>, copies: &Mut
         })
         .unwrap_or(None);
 
-    let Some((asset_id, relative, trashed)) = found else {
+    let Some((asset_id, relative, trashed, library_hash)) = found else {
         let reason = if sidecar {
             "sidecar_not_kept".to_string()
         } else {
@@ -356,7 +357,7 @@ fn judge(lib: &Library, e: &Entry, skips: &HashMap<String, String>, copies: &Mut
     let key = (sidecar, asset_id);
     let known = copies.lock().unwrap_or_else(|p| p.into_inner()).get(&key).copied();
     let copy = known.unwrap_or_else(|| {
-        let c = read_copy(&lib.originals_dir().join(&relative), &hash);
+        let c = read_copy(&lib.originals_dir().join(&relative), &library_hash);
         copies.lock().unwrap_or_else(|p| p.into_inner()).insert(key, c);
         c
     });
@@ -371,6 +372,10 @@ fn judge(lib: &Library, e: &Entry, skips: &HashMap<String, String>, copies: &Mut
 /// Copies made for an external editor are the editor's to change (Round 22 §8): *Check the
 /// library* leaves the paths `external_edits` names alone.
 const NOT_AN_EDITED_COPY: &str = "relative_path NOT IN (SELECT relative_path FROM external_edits)";
+/// What the library's own file should hash to (Round 24 §8.7): `file_hash` once a metadata write
+/// changed its bytes, else the import's `content_hash`. A source file is always looked up by
+/// `content_hash`, the camera's bytes.
+pub const LIBRARY_FILE_HASH: &str = "COALESCE(file_hash, content_hash)";
 
 struct Row {
     asset_id: i64,
@@ -386,7 +391,7 @@ fn page(lib: &Library, after: i64) -> Result<Vec<Row>, ImportError> {
     Ok(lib.db.with_conn(|c| {
         let mut rows = Vec::new();
         let mut st = c.prepare(&format!(
-            "SELECT id, filename, relative_path, content_hash, byte_size FROM assets WHERE id > ?1 AND {NOT_AN_EDITED_COPY} ORDER BY id LIMIT ?2"
+            "SELECT id, filename, relative_path, {LIBRARY_FILE_HASH}, byte_size FROM assets WHERE id > ?1 AND {NOT_AN_EDITED_COPY} ORDER BY id LIMIT ?2"
         ))?;
         let assets = st
             .query_map(rusqlite::params![after, PAGE], |r| {

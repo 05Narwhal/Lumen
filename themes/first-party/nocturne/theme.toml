@@ -1,0 +1,42 @@
+id = "jl.nocturne"
+name = "Nocturne"
+version = "1.0.0"
+author = "JL Studios"
+description = "Inky violet, quiet and deep, for editing late."
+license = "MIT"
+lumen = ">=26.2.0"
+homepage = "https://github.com/05Narwhal/lumen-plugins"
+base = "darkroom"
+default_scheme = "dark"
+
+[light]
+bg-base = "oklch(97% 0.01 300)"
+bg-raised = "oklch(100% 0 0)"
+bg-sunken = "oklch(94% 0.02 300)"
+develop-stage-bg = "oklch(92% 0.02 300)"
+bg-sidebar = "oklch(95% 0.015 300)"
+fg-primary = "oklch(22% 0.03 300)"
+fg-muted = "oklch(40% 0.03 300)"
+fg-subtle = "oklch(46% 0.03 300)"
+accent = "oklch(50% 0.18 300)"
+accent-hover = "oklch(44% 0.18 300)"
+accent-fg = "oklch(100% 0 0)"
+border = "oklch(88% 0.03 300)"
+
+[dark]
+bg-base = "oklch(15% 0.03 300)"
+bg-raised = "oklch(19% 0.035 300)"
+bg-sunken = "oklch(12% 0.03 300)"
+develop-stage-bg = "oklch(10% 0.03 300)"
+bg-sidebar = "oklch(13% 0.03 300)"
+fg-primary = "oklch(94% 0.01 300)"
+fg-muted = "oklch(78% 0.03 300)"
+fg-subtle = "oklch(70% 0.03 300)"
+accent = "oklch(72% 0.17 300)"
+accent-hover = "oklch(78% 0.16 300)"
+accent-fg = "oklch(15% 0.03 300)"
+border = "oklch(28% 0.05 300)"
+
+[listing]
+screenshots = ["screenshots/library-dark.png", "screenshots/library-light.png"]
+tags = ["dark", "colourful"]

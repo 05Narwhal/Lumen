@@ -70,7 +70,7 @@ export function EditToolbar({
   const angle = draft.straighten;
   const setAngle = (v: number) => set({ straighten: Math.max(-45, Math.min(45, Math.round(v * 10) / 10)) }, "straighten");
   return (
-    <div className="edit-toolbar" role="toolbar" aria-label="Edit tools">
+    <div className="edit-toolbar" data-part="toolbar" role="toolbar" aria-label="Edit tools">
       {cropping && (
         <div className="edit-toolbar__row edit-toolbar__row--crop">
           <div className="edit-toolbar__chips" role="radiogroup" aria-label="Crop shape">

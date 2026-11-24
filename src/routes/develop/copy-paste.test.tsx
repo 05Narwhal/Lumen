@@ -1,10 +1,11 @@
-import { act, render, renderHook, screen } from "@testing-library/react";
+import { act, render, renderHook, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { Providers } from "@/app";
 import { toastStore } from "@/components/toast/store";
 import { IDENTITY } from "@/hooks/use-edit-session";
 import type { DevelopSession } from "@/hooks/use-develop-session";
+import { serializeSettings } from "@/lib/develop-clipboard";
 import { DEFAULT_DEVELOP, developClipboard, developSelection, developOf, ZERO_ADJUST } from "@/lib/develop";
 import { invokeMock, mockCommand, mockLibraryDefaults } from "@/test/tauri-mock";
 import type { Develop } from "@/types/generated/Develop";
@@ -114,5 +115,68 @@ describe("copy and paste settings", () => {
     await act(() => result.current.paste());
     expect(toastStore.get().toasts.at(-1)?.message).toBe("Copy settings from a photo first.");
     expect(session.apply).not.toHaveBeenCalled();
+  });
+
+  /** The hook with its dialogs on screen, which a bare `renderHook` leaves out. */
+  const mount = (session: DevelopSession) => {
+    const api = { current: null as unknown as ReturnType<typeof useCopyPaste> };
+    function Harness() {
+      api.current = useCopyPaste(session, 7);
+      return api.current.dialog;
+    }
+    render(
+      <Providers>
+        <Harness />
+      </Providers>,
+    );
+    return api;
+  };
+
+  /** What the webview's clipboard holds, for the next `paste()`. */
+  const systemClipboard = (text: string | null) => {
+    const writeText = vi.fn(async (t: string) => void (text = t));
+    Object.defineProperty(navigator, "clipboard", { configurable: true, value: { readText: async () => text ?? "", writeText } });
+    return { writeText, held: () => text };
+  };
+
+  it("copies to the system clipboard as readable JSON too", async () => {
+    const clip = systemClipboard(null);
+    const session = fakeSession(warm);
+    const result = mount(session);
+    act(() => result.current.openCopy());
+    await userEvent.click(await screen.findByRole("button", { name: "Copy" }));
+    await waitFor(() => expect(clip.writeText).toHaveBeenCalled());
+    expect(JSON.parse(clip.held() ?? "")).toMatchObject({ lumen: "develop-settings", version: 1, settings: { develop: { basic: { temperature: 30 } } } });
+    expect(developClipboard.get()?.develop.basic.temperature).toBe(30);
+  });
+
+  it("pastes Lumen settings from the system clipboard in preference to Lumen's own", async () => {
+    developClipboard.set({ develop: DEFAULT_DEVELOP, panels: ["basic"] });
+    systemClipboard(serializeSettings({ develop: warm, panels: ["basic"] }, "26.2.0-alpha"));
+    const session = fakeSession();
+    const result = mount(session);
+    await act(() => result.current.paste());
+    expect(session.apply).not.toHaveBeenCalled();
+    await userEvent.click(await screen.findByRole("button", { name: "Paste" }));
+    await waitFor(() => expect(session.apply).toHaveBeenCalledWith(expect.any(Function), "Pasted settings"));
+    expect(session.develop.basic.temperature).toBe(30);
+  });
+
+  it("falls back to Lumen's clipboard when the system one holds foreign JSON", async () => {
+    developClipboard.set({ develop: warm, panels: ["basic"] });
+    systemClipboard('{"a":1}');
+    const session = fakeSession();
+    const { result } = renderHook(() => useCopyPaste(session, 7), { wrapper: Providers });
+    await act(() => result.current.paste());
+    expect(session.develop.basic.temperature).toBe(30);
+  });
+
+  it("falls back when reading the system clipboard throws", async () => {
+    developClipboard.set({ develop: warm, panels: ["basic"] });
+    Object.defineProperty(navigator, "clipboard", { configurable: true, value: { readText: async () => Promise.reject(new Error("denied")), writeText: async () => {} } });
+    const session = fakeSession();
+    const { result } = renderHook(() => useCopyPaste(session, 7), { wrapper: Providers });
+    await act(() => result.current.paste());
+    expect(session.develop.basic.temperature).toBe(30);
   });
 });

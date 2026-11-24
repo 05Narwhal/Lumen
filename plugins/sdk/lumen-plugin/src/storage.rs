@@ -1,7 +1,7 @@
 //! The plugin's own private storage (needs the `storage` permission; at most what the host's
 //! quota allows). Names are flat; the host refuses path tricks.
 
-#[cfg(all(target_arch = "wasm32", any(feature = "importer", feature = "tools")))]
+#[cfg(all(target_arch = "wasm32", any(feature = "importer", feature = "tools", feature = "places", feature = "ui", feature = "proposals")))]
 mod imp {
     use crate::bindings::lumen::plugin::storage as s;
 
@@ -20,5 +20,5 @@ mod imp {
     }
 }
 
-#[cfg(all(target_arch = "wasm32", any(feature = "importer", feature = "tools")))]
+#[cfg(all(target_arch = "wasm32", any(feature = "importer", feature = "tools", feature = "places", feature = "ui", feature = "proposals")))]
 pub use imp::*;

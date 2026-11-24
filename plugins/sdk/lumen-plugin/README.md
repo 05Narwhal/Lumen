@@ -1,6 +1,6 @@
 # lumen-plugin
 
-Safe Rust helpers for writing Lumen plugins (plugin API 1, WIT `lumen:plugin@1.0.0`). MIT.
+Safe Rust helpers for writing Lumen plugins (plugin API 1.4, WIT `lumen:plugin@1.4.0`). MIT.
 
 ```toml
 [dependencies]
@@ -15,6 +15,19 @@ Build with `cargo build --target wasm32-wasip2 --release`. The WIT is read from
 | `importer` | `importer-plugin` | `export_importer!(T)` (T: `Importer`) |
 | `tools` | `tools-plugin` | `export_tools!(T)` (T: `Tools`) |
 | both | `full-plugin` | `export_full!(I, T)` (one component cannot export twice) |
+| `places` (API 1.1, alone) | `places-plugin` | `export_places!(T, R)` (R: `Review`) |
+| `ui` (API 1.2, alone) | `ui-plugin` | `export_ui!(T, U)` (T: `Tools`, U: `Ui`) |
+| `proposals` (API 1.3, alone) | `proposals-plugin` | `export_proposals!(T)` (T: `Tools`; also imports `library`) |
+
+`Ui` answers the settings page: `action(name)` for a `button` control, `value(key)` for a `stat`
+(plain text) or `list` (a JSON array of strings or `{"text", "detail"}`). Only a plugin whose
+manifest has a `button`, `stat` or `list` control needs it; toggles, selects, sliders and the like
+need no code.
+
+`proposals` (API 1.3) sends places, dates, tags, labels, face names, titles and captions to the review
+screen: `proposals::{propose, location, person, submit, submit_all, date_string}` (`submit_all` sends
+200 at a time and stops at the first refusal). Nothing is written until the person accepts; see
+`docs/PLUGINS.md` *Proposals*.
 
 API: `log`, `setting::<T>(key)` (settings are JSON text), `chosen::{list, stat, read, read_all,
 progress}`, `storage::{read, write, remove, names}`, `photos::{scope, metadata, preview, recipe}`
