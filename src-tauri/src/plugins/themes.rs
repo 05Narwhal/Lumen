@@ -4,7 +4,7 @@
 
 use std::path::{Path, PathBuf};
 
-use photos_plugins::theme_pkg::{self, InstalledTheme, ThemePackage, ThemeStore, THEME_SLOT};
+use photos_plugins::theme_pkg::{self, InstalledTheme, ThemePackage, ThemeStore};
 use photos_plugins::PluginError;
 
 use super::state::Served;

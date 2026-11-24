@@ -121,8 +121,8 @@ fn clock_library() -> (Fake, Vec<(u64, String)>) {
             assets.push(asset(id, Some(wall(m)), "Pixel 8", Some(60)));
             id += 1;
         }
-        for k in 0..30usize {
-            let m = if k < 20 { phone[k] + rng.below(3) - 1 } else { base + rng.below(660) } + 134;
+        for (k, &p) in phone.iter().enumerate().take(30) {
+            let m = if k < 20 { p + rng.below(3) - 1 } else { base + rng.below(660) } + 134;
             assets.push(asset(id, Some(wall(m)), "Nikon Z6", None));
             cam_walls.push((id, wall(m)));
             id += 1;
