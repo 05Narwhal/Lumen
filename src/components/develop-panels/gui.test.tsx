@@ -282,7 +282,7 @@ describe("DevelopPanels", () => {
     expect(button).not.toHaveAttribute("data-busy");
     expect(button).toHaveTextContent("Auto");
     await waitFor(() => expect(button).toHaveAttribute("aria-busy", "true"));
-    expect(button).toHaveTextContent("Working…");
+    await waitFor(() => expect(button).toHaveTextContent("Working…"));
     expect(button).toHaveAttribute("data-indeterminate");
     expect(session.auto).toHaveBeenCalledTimes(1);
     await act(async () => finish({ ...CLASSIC, scene: "sunset" }));
