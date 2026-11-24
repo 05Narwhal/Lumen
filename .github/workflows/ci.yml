@@ -47,7 +47,11 @@ jobs:
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v4
+      # Pinned to the Rust the project builds with: 1.100 lays out target/debug/build/<crate>/<hash>/ differently and ort-sys 2.0.0-rc.10
+      # then copies its DLLs to the wrong folder and panics. Raise it together with the ort pin.
       - uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: 1.98.0
       - if: runner.os == 'Linux'
         run: sudo apt-get update && sudo apt-get install -y libwebkit2gtk-4.1-dev libappindicator3-dev librsvg2-dev patchelf
       - uses: Swatinem/rust-cache@v2

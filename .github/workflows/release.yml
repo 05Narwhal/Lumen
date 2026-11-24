@@ -101,7 +101,11 @@ jobs:
         with:
           node-version: 24
           cache: yarn
+      # Pinned to the Rust the project builds with: 1.100 lays out target/debug/build/<crate>/<hash>/ differently and ort-sys 2.0.0-rc.10
+      # then copies its DLLs to the wrong folder and panics. Raise it together with the ort pin.
       - uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: 1.98.0
       - run: yarn install --frozen-lockfile
       - uses: ./.github/actions/windows-sidecars
       - name: Gates before the build
@@ -120,7 +124,11 @@ jobs:
         with:
           node-version: 24
           cache: yarn
+      # Pinned to the Rust the project builds with: 1.100 lays out target/debug/build/<crate>/<hash>/ differently and ort-sys 2.0.0-rc.10
+      # then copies its DLLs to the wrong folder and panics. Raise it together with the ort pin.
       - uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: 1.98.0
       - uses: Swatinem/rust-cache@v2
         with:
           workspaces: |
