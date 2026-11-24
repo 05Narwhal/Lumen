@@ -77,7 +77,7 @@ jobs:
             if (!section) { console.error(`docs/CHANGELOG.md has no section for ${version}`); process.exit(1); }
             const body = [
               section, "",
-              "**Download `Lumen-Setup-" + version + ".exe`.** It is the installer: it installs, updates, repairs and removes Lumen. The other installer in this release, `Lumen_" + version + "_x64-setup.exe`, is only here because Lumen's own updater installs it; you do not need it.",
+              "**Download `Lumen-Setup-" + version + ".exe`.** It is the installer: it installs, updates, repairs and removes Lumen. The other installer in this release, `Lumen_" + version + "_x64-setup.exe`, is only here because the updater inside Lumen installs it; you do not need it.",
               "",
               "Windows only for now. **Unsigned:** Windows SmartScreen will warn when you open the installer: choose *More info* → *Run anyway*. On macOS and Linux, build from source (see the README).",
               "",
