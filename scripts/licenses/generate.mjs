@@ -144,6 +144,12 @@ if (refused.length) {
   for (const { i, r } of refused) console.error(`  ${i.name}@${i.version}  [${i.license}]  ${r.reason}`);
   process.exit(1);
 }
+// The date is stamped only when the content changes, so regenerating an unchanged file is a
+// no-op (the release gate regenerates and compares with git).
+try {
+  const prev = JSON.parse(readFileSync(out, "utf8"));
+  if (JSON.stringify({ ...prev, generated: notices.generated }) === JSON.stringify(notices)) notices.generated = prev.generated;
+} catch {}
 mkdirSync(dirname(out), { recursive: true });
 writeFileSync(out, `${JSON.stringify(notices)}\n`);
 const count = notices.groups.reduce((n, g) => n + g.items.length, 0);
